@@ -13,43 +13,44 @@ const sizes = {
   lg: "h-10 w-10 text-sm",
 };
 
-const palette = [
-  "bg-blue-100 text-blue-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-  "bg-violet-100 text-violet-700",
+const fallbackPalette = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
 ];
 
-function initials(name?: string | null) {
-  if (!name) return "?";
-  return name
-    .split(" ")
+function initials(name?: string | null, email?: string | null) {
+  const source = name?.trim() || email?.split("@")[0] || "?";
+  return source
+    .split(/\s+/)
     .map((p) => p[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
 }
 
-function colorFor(id?: string) {
-  if (!id) return palette[0];
+function fallbackColor(id?: string) {
+  if (!id) return fallbackPalette[0];
   let n = 0;
-  for (const c of id) n = (n + c.charCodeAt(0)) % palette.length;
-  return palette[n];
+  for (const c of id) n = (n + c.charCodeAt(0)) % fallbackPalette.length;
+  return fallbackPalette[n];
 }
 
 export function UserAvatar({ profile, size = "md", className }: Props) {
+  const bg = profile?.color || fallbackColor(profile?.id);
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-full font-semibold ring-2 ring-background",
+        "inline-flex items-center justify-center rounded-full font-semibold text-white ring-2 ring-background",
         sizes[size],
-        colorFor(profile?.id),
         className
       )}
+      style={{ backgroundColor: bg }}
       title={profile?.full_name ?? ""}
     >
-      {initials(profile?.full_name)}
+      {initials(profile?.full_name, profile?.email)}
     </span>
   );
 }
