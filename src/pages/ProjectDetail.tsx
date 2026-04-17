@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { useApp } from "@/lib/store";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
+import { useProjects, useTasks } from "@/lib/queries";
 
 export default function ProjectDetail() {
   const { id } = useParams();
-  const projects = useApp((s) => s.projects);
-  const tasks = useApp((s) => s.tasks);
+  const { data: projects = [] } = useProjects();
+  const { data: tasks = [] } = useTasks();
   const project = projects.find((p) => p.id === id);
 
   const grouped = useMemo(() => {
@@ -23,7 +23,10 @@ export default function ProjectDetail() {
   if (!project) {
     return (
       <div className="px-4 pt-6">
-        <p className="text-sm text-muted-foreground">Projekt nenájdený.</p>
+        <Link to="/projects" className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+          <ArrowLeft className="h-4 w-4" /> Projekty
+        </Link>
+        <p className="mt-4 text-sm text-muted-foreground">Projekt nenájdený.</p>
       </div>
     );
   }
@@ -61,6 +64,12 @@ export default function ProjectDetail() {
           </section>
         );
       })}
+
+      {tasks.filter((t) => t.project_id === id).length === 0 && (
+        <p className="mt-6 rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground">
+          Zatiaľ žiadne úlohy.
+        </p>
+      )}
     </div>
   );
 }

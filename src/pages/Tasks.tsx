@@ -1,16 +1,16 @@
 import { useMemo, useState } from "react";
-import { useApp } from "@/lib/store";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { cn } from "@/lib/utils";
 import type { Priority } from "@/lib/types";
 import { PRIORITY_META } from "@/lib/types";
+import { useCurrentUserId, useTasks } from "@/lib/queries";
 
 type Filter = "all" | Priority | "mine";
 
 export default function Tasks() {
-  const tasks = useApp((s) => s.tasks);
-  const currentUserId = useApp((s) => s.currentUserId);
+  const { data: tasks = [] } = useTasks();
+  const currentUserId = useCurrentUserId();
   const [filter, setFilter] = useState<Filter>("all");
 
   const filtered = useMemo(() => {

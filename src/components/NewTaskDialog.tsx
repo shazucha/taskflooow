@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { useApp } from "@/lib/store";
 import type { Priority } from "@/lib/types";
+import { PRIORITY_META } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,8 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PRIORITY_META } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useCreateTask, useCurrentUserId, useProfiles, useProjects } from "@/lib/queries";
+import { toast } from "sonner";
 
 interface Props {
   defaultProjectId?: string;
@@ -30,38 +31,43 @@ interface Props {
 }
 
 export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
-  const projects = useApp((s) => s.projects);
-  const profiles = useApp((s) => s.profiles);
-  const currentUserId = useApp((s) => s.currentUserId);
-  const addTask = useApp((s) => s.addTask);
+  const { data: projects = [] } = useProjects();
+  const { data: profiles = [] } = useProfiles();
+  const currentUserId = useCurrentUserId();
+  const create = useCreateTask();
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
-  const [projectId, setProjectId] = useState<string>(defaultProjectId ?? projects[0]?.id ?? "");
-  const [assigneeId, setAssigneeId] = useState<string>(currentUserId);
+  const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
+  const [assigneeId, setAssigneeId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
-    setAssigneeId(currentUserId); setDueDate("");
+    setProjectId(defaultProjectId ?? ""); setAssigneeId(""); setDueDate("");
   };
 
-  const submit = () => {
-    if (!title.trim()) return;
-    addTask({
-      title: title.trim(),
-      description: description.trim() || null,
-      priority,
-      status: "todo",
-      project_id: projectId || null,
-      assignee_id: assigneeId,
-      created_by: currentUserId,
-      due_date: dueDate ? new Date(dueDate).toISOString() : null,
-    });
-    setOpen(false);
-    reset();
+  const submit = async () => {
+    if (!title.trim() || !currentUserId) return;
+    try {
+      await create.mutateAsync({
+        title: title.trim(),
+        description: description.trim() || null,
+        priority,
+        status: "todo",
+        project_id: projectId || null,
+        assignee_id: assigneeId || currentUserId,
+        created_by: currentUserId,
+        due_date: dueDate ? new Date(dueDate).toISOString() : null,
+      });
+      setOpen(false);
+      reset();
+      toast.success("Úloha vytvorená");
+    } catch (e: any) {
+      toast.error(e.message ?? "Nepodarilo sa vytvoriť úlohu");
+    }
   };
 
   return (
@@ -114,9 +120,10 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Projekt</Label>
-              <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={projectId || "none"} onValueChange={(v) => setProjectId(v === "none" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Bez projektu" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">Bez projektu</SelectItem>
                   {projects.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
@@ -130,11 +137,13 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label>Priradiť</Label>
-            <Select value={assigneeId} onValueChange={setAssigneeId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={assigneeId || currentUserId || ""} onValueChange={setAssigneeId}>
+              <SelectTrigger><SelectValue placeholder="Vyber člena tímu" /></SelectTrigger>
               <SelectContent>
                 {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.full_name ?? p.email}{p.id === currentUserId ? " (ja)" : ""}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -142,7 +151,9 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Zrušiť</Button>
-          <Button onClick={submit} disabled={!title.trim()}>Vytvoriť</Button>
+          <Button onClick={submit} disabled={!title.trim() || create.isPending}>
+            {create.isPending ? "Vytváram..." : "Vytvoriť"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

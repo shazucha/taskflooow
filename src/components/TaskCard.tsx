@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, MoreHorizontal, ArrowRightLeft, Trash2, Check } from "lucide-react";
+import { CalendarDays, MoreHorizontal, Trash2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
-import { useApp } from "@/lib/store";
 import { PriorityBadge } from "./PriorityBadge";
 import { UserAvatar } from "./UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  useDelegateTask,
+  useDeleteTask,
+  useProfiles,
+  useProjects,
+  useToggleTaskStatus,
+} from "@/lib/queries";
 
 interface Props {
   task: Task;
@@ -24,15 +30,20 @@ interface Props {
 }
 
 export function TaskCard({ task, onOpen, showProject }: Props) {
-  const profiles = useApp((s) => s.profiles);
-  const projects = useApp((s) => s.projects);
-  const toggleStatus = useApp((s) => s.toggleTaskStatus);
-  const delegate = useApp((s) => s.delegateTask);
-  const remove = useApp((s) => s.deleteTask);
-  const [open, setOpen] = useState(false);
+  const { data: profiles = [] } = useProfiles();
+  const { data: projects = [] } = useProjects();
+  const toggleStatus = useToggleTaskStatus();
+  const delegate = useDelegateTask();
+  const del = useDeleteTask();
 
-  const assignee = profiles.find((p) => p.id === task.assignee_id);
-  const project = projects.find((p) => p.id === task.project_id);
+  const assignee = useMemo(
+    () => profiles.find((p) => p.id === task.assignee_id),
+    [profiles, task.assignee_id]
+  );
+  const project = useMemo(
+    () => projects.find((p) => p.id === task.project_id),
+    [projects, task.project_id]
+  );
   const done = task.status === "done";
 
   return (
@@ -44,7 +55,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
     >
       <div className="flex items-start gap-3">
         <button
-          onClick={() => toggleStatus(task.id)}
+          onClick={() => toggleStatus(task)}
           className={cn(
             "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors",
             done
@@ -81,7 +92,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
         </button>
 
         <div className="flex flex-col items-end gap-2">
-          <DropdownMenu open={open} onOpenChange={setOpen}>
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7 -mr-1 -mt-1">
                 <MoreHorizontal className="h-4 w-4" />
@@ -102,7 +113,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => remove(task.id)}
+                onClick={() => del.mutate(task.id)}
                 className="gap-2 text-destructive focus:text-destructive"
               >
                 <Trash2 className="h-4 w-4" /> Vymazať
