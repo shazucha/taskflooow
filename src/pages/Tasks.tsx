@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
+import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { cn } from "@/lib/utils";
-import type { Priority } from "@/lib/types";
+import type { Priority, Task } from "@/lib/types";
 import { PRIORITY_META } from "@/lib/types";
 import { useCurrentUserId, useTasks } from "@/lib/queries";
 
@@ -12,6 +13,7 @@ export default function Tasks() {
   const { data: tasks = [] } = useTasks();
   const currentUserId = useCurrentUserId();
   const [filter, setFilter] = useState<Filter>("all");
+  const [openTask, setOpenTask] = useState<Task | null>(null);
 
   const filtered = useMemo(() => {
     const base = tasks
@@ -63,9 +65,10 @@ export default function Tasks() {
             Žiadne úlohy v tomto filtri.
           </p>
         ) : (
-          filtered.map((t) => <TaskCard key={t.id} task={t} showProject />)
+          filtered.map((t) => <TaskCard key={t.id} task={t} showProject onOpen={setOpenTask} />)
         )}
       </div>
+      <TaskDetailDialog task={openTask} open={!!openTask} onOpenChange={(v) => !v && setOpenTask(null)} />
     </div>
   );
 }
