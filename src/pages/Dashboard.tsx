@@ -121,6 +121,13 @@ export default function Dashboard() {
           )}
         </div>
       </section>
+
+      <section className="mt-6">
+        <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
+          <MessagesSquare className="h-4 w-4" /> Tímový chat
+        </h2>
+        <Chat scope="team" />
+      </section>
     </div>
   );
 }
