@@ -27,9 +27,13 @@ export default function Auth() {
     e.preventDefault();
     if (!email) return;
     setSubmitting(true);
+    const redirectTo = `${window.location.origin}/`;
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      options: {
+        emailRedirectTo: redirectTo,
+        shouldCreateUser: true,
+      },
     });
     setSubmitting(false);
     if (error) toast.error(error.message);
