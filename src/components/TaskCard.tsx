@@ -20,6 +20,7 @@ import {
   useDeleteTask,
   useProfiles,
   useProjects,
+  useTaskWatchers,
   useToggleTaskStatus,
 } from "@/lib/queries";
 
@@ -32,6 +33,7 @@ interface Props {
 export function TaskCard({ task, onOpen, showProject }: Props) {
   const { data: profiles = [] } = useProfiles();
   const { data: projects = [] } = useProjects();
+  const { data: allWatchers = [] } = useTaskWatchers();
   const toggleStatus = useToggleTaskStatus();
   const delegate = useDelegateTask();
   const del = useDeleteTask();
@@ -44,6 +46,15 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
     () => projects.find((p) => p.id === task.project_id),
     [projects, task.project_id]
   );
+  const viewers = useMemo(() => {
+    const ids = new Set<string>();
+    ids.add(task.created_by);
+    if (task.assignee_id) ids.add(task.assignee_id);
+    allWatchers.filter((w) => w.task_id === task.id).forEach((w) => ids.add(w.user_id));
+    return Array.from(ids)
+      .map((id) => profiles.find((p) => p.id === id))
+      .filter((p): p is NonNullable<typeof p> => !!p);
+  }, [profiles, allWatchers, task.id, task.created_by, task.assignee_id]);
   const done = task.status === "done";
 
   return (
@@ -120,7 +131,23 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {assignee && <UserAvatar profile={assignee} size="sm" />}
+          {viewers.length > 0 && (
+            <div
+              className="flex -space-x-1.5"
+              title={`Vidia: ${viewers.map((v) => v.full_name ?? v.email).join(", ")}`}
+            >
+              {viewers.slice(0, 4).map((v) => (
+                <div key={v.id} className="ring-2 ring-card rounded-full">
+                  <UserAvatar profile={v} size="sm" />
+                </div>
+              ))}
+              {viewers.length > 4 && (
+                <div className="z-10 flex h-6 w-6 items-center justify-center rounded-full bg-surface-muted text-[10px] font-semibold text-muted-foreground ring-2 ring-card">
+                  +{viewers.length - 4}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
