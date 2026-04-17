@@ -19,9 +19,23 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          muted: "hsl(var(--surface-muted))",
+        },
+        success: "hsl(var(--success))",
+        priority: {
+          high: "hsl(var(--priority-high))",
+          "high-soft": "hsl(var(--priority-high-soft))",
+          medium: "hsl(var(--priority-medium))",
+          "medium-soft": "hsl(var(--priority-medium-soft))",
+          low: "hsl(var(--priority-low))",
+          "low-soft": "hsl(var(--priority-low-soft))",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          soft: "hsl(var(--primary-soft))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
