@@ -137,7 +137,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               title={`Pracujú na tom: ${viewers.map((v) => v.full_name ?? v.email).join(", ")}`}
             >
               {viewers.slice(0, 4).map((v) => (
-                <div key={v.id} className="ring-2 ring-card rounded-full">
+                <div key={v.id} className="rounded-full ring-2 ring-card">
                   <UserAvatar profile={v} size="sm" />
                 </div>
               ))}
