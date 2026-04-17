@@ -160,6 +160,39 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label className="flex items-center justify-between">
+              <span>Komu sa zobrazí</span>
+              <span className="text-[11px] font-normal text-muted-foreground">
+                Default: ty + priradený
+              </span>
+            </Label>
+            {availableWatchers.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Žiadni ďalší členovia.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {availableWatchers.map((p) => {
+                  const active = watcherIds.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => toggleWatcher(p.id)}
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-xs font-medium transition",
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {active && "✓ "}
+                      {p.full_name ?? p.email}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Zrušiť</Button>
