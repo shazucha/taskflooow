@@ -41,6 +41,8 @@ export default function Auth() {
     }
   }, [sent]);
 
+  const redirectPreview = new URL("/", getAuthRedirectUrl()).toString();
+
   if (loading) return null;
   if (user) return <Navigate to="/" replace />;
 
@@ -48,7 +50,8 @@ export default function Auth() {
     e.preventDefault();
     if (!email) return;
     setSubmitting(true);
-    const redirectTo = new URL("/", getAuthRedirectUrl()).toString();
+    const redirectTo = redirectPreview;
+    console.log("[Auth] magic link redirectTo:", redirectTo, "origin:", window.location.origin);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
