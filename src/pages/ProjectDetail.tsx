@@ -1,9 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, MessagesSquare } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
+import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
+import type { Task } from "@/lib/types";
 import { useProjects, useTasks } from "@/lib/queries";
 
 export default function ProjectDetail() {
@@ -11,6 +13,7 @@ export default function ProjectDetail() {
   const { data: projects = [] } = useProjects();
   const { data: tasks = [] } = useTasks();
   const project = projects.find((p) => p.id === id);
+  const [openTask, setOpenTask] = useState<Task | null>(null);
 
   const grouped = useMemo(() => {
     const list = tasks.filter((t) => t.project_id === id);
@@ -60,7 +63,7 @@ export default function ProjectDetail() {
               {labels[s]} · {list.length}
             </h2>
             <div className="space-y-2.5">
-              {list.map((t) => <TaskCard key={t.id} task={t} />)}
+              {list.map((t) => <TaskCard key={t.id} task={t} onOpen={setOpenTask} />)}
             </div>
           </section>
         );
@@ -78,6 +81,8 @@ export default function ProjectDetail() {
         </h2>
         <Chat scope="project" projectId={project.id} />
       </section>
+
+      <TaskDetailDialog task={openTask} open={!!openTask} onOpenChange={(v) => !v && setOpenTask(null)} />
     </div>
   );
 }
