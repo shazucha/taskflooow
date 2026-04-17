@@ -43,24 +43,36 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
+  const [watcherIds, setWatcherIds] = useState<string[]>([]);
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
     setProjectId(defaultProjectId ?? ""); setAssigneeId(""); setDueDate("");
+    setWatcherIds([]);
   };
+
+  const effectiveAssignee = assigneeId || currentUserId || "";
+  const availableWatchers = profiles.filter(
+    (p) => p.id !== currentUserId && p.id !== effectiveAssignee
+  );
+  const toggleWatcher = (id: string) =>
+    setWatcherIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
     try {
       await create.mutateAsync({
-        title: title.trim(),
-        description: description.trim() || null,
-        priority,
-        status: "todo",
-        project_id: projectId || null,
-        assignee_id: assigneeId || currentUserId,
-        created_by: currentUserId,
-        due_date: dueDate ? new Date(dueDate).toISOString() : null,
+        task: {
+          title: title.trim(),
+          description: description.trim() || null,
+          priority,
+          status: "todo",
+          project_id: projectId || null,
+          assignee_id: assigneeId || currentUserId,
+          created_by: currentUserId,
+          due_date: dueDate ? new Date(dueDate).toISOString() : null,
+        },
+        watcherIds: watcherIds.filter((id) => id !== currentUserId && id !== effectiveAssignee),
       });
       setOpen(false);
       reset();
