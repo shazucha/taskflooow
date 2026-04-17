@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Eye } from "lucide-react";
+import { Users } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -71,10 +71,10 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
 
         <div className="space-y-2 pt-2">
           <Label className="flex items-center gap-1.5">
-            <Eye className="h-3.5 w-3.5" /> Komu sa úloha zobrazuje
+            <Users className="h-3.5 w-3.5" /> Spolupracovníci
           </Label>
           <p className="text-[11px] text-muted-foreground">
-            Zadávateľ a priradený vidia úlohu vždy. Tu pridaj ďalších členov.
+            Zadávateľ a priradený majú prístup vždy. Tu pridaj ďalších, ktorí na úlohe môžu pracovať.
           </p>
 
           {available.length === 0 ? (
@@ -106,7 +106,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
           )}
           {!isCreator && (
             <p className="text-[11px] text-muted-foreground">
-              Watchers môže meniť iba zadávateľ úlohy.
+              Spolupracovníkov môže meniť iba zadávateľ úlohy.
             </p>
           )}
         </div>
