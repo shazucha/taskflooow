@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, MessagesSquare } from "lucide-react";
+import { ChevronRight, MessagesSquare, CalendarDays } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Chat } from "@/components/Chat";
+import { CalendarWidget } from "@/components/CalendarWidget";
 import { PRIORITY_META } from "@/lib/types";
 import { useCurrentUserId, useProfiles, useProjects, useTasks } from "@/lib/queries";
 
@@ -43,11 +44,18 @@ export default function Dashboard() {
         <div>
           <p className="text-sm text-muted-foreground">Dobrý deň</p>
           <h1 className="text-2xl font-bold tracking-tight">
-            {me?.full_name?.split(" ")[0] ?? me?.email?.split("@")[0] ?? "Tím"}
+            {me?.full_name?.trim() || "Tím"}
           </h1>
         </div>
         <Link to="/me"><UserAvatar profile={me} size="lg" /></Link>
       </header>
+
+      <section className="mt-6">
+        <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
+          <CalendarDays className="h-4 w-4" /> Kalendár
+        </h2>
+        <CalendarWidget />
+      </section>
 
       <section className="mt-6 grid grid-cols-3 gap-2.5">
         {(["high", "medium", "low"] as const).map((p) => {

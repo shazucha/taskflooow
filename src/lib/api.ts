@@ -5,10 +5,21 @@ import type { Profile, Project, Task } from "./types";
 export async function fetchProfiles(): Promise<Profile[]> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url, email")
+    .select("id, full_name, avatar_url, email, color")
     .order("full_name", { ascending: true });
   if (error) throw error;
   return (data ?? []) as Profile[];
+}
+
+export async function updateProfile(id: string, patch: Partial<Pick<Profile, "full_name" | "color">>) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(patch)
+    .eq("id", id)
+    .select("id, full_name, avatar_url, email, color")
+    .single();
+  if (error) throw error;
+  return data as Profile;
 }
 
 // ---- Projects
