@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, MessagesSquare } from "lucide-react";
+import { ChevronRight, MessagesSquare, CalendarDays } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Chat } from "@/components/Chat";
+import { CalendarWidget } from "@/components/CalendarWidget";
 import { PRIORITY_META } from "@/lib/types";
 import { useCurrentUserId, useProfiles, useProjects, useTasks } from "@/lib/queries";
 
