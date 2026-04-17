@@ -8,9 +8,10 @@ import {
   fetchProfiles,
   fetchProjects,
   fetchTasks,
+  updateProfile,
   updateTask,
 } from "./api";
-import type { Task, TaskStatus } from "./types";
+import type { Profile, Task, TaskStatus } from "./types";
 import { useSession } from "./useSession";
 
 export function useCurrentUserId() {
@@ -93,4 +94,13 @@ export function useDelegateTask() {
   const update = useUpdateTask();
   return (taskId: string, assigneeId: string) =>
     update.mutateAsync({ id: taskId, patch: { assignee_id: assigneeId } });
+}
+
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Pick<Profile, "full_name" | "color">> }) =>
+      updateProfile(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["profiles"] }),
+  });
 }
