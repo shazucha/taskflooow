@@ -1,6 +1,17 @@
+import { useState } from "react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { LogOut, Mail, Users } from "lucide-react";
+import { KeyRound, LogOut, Mail, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useCurrentUserId, useProfiles, useTasks } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +23,34 @@ export default function Profile() {
   const currentUserId = useCurrentUserId();
   const navigate = useNavigate();
   const me = profiles.find((p) => p.id === currentUserId);
+
+  const [pwOpen, setPwOpen] = useState(false);
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwSubmitting, setPwSubmitting] = useState(false);
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPw.length < 8) {
+      toast.error("Heslo musí mať aspoň 8 znakov");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast.error("Heslá sa nezhodujú");
+      return;
+    }
+    setPwSubmitting(true);
+    const { error } = await supabase.auth.updateUser({ password: newPw });
+    setPwSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Heslo bolo zmenené");
+    setPwOpen(false);
+    setNewPw("");
+    setConfirmPw("");
+  };
 
   const myDone = tasks.filter((t) => t.assignee_id === currentUserId && t.status === "done").length;
   const myOpen = tasks.filter((t) => t.assignee_id === currentUserId && t.status !== "done").length;
@@ -69,9 +108,57 @@ export default function Profile() {
         </div>
       </section>
 
-      <Button variant="outline" className="mt-6 w-full gap-2 rounded-xl" onClick={signOut}>
+      <Button
+        variant="outline"
+        className="mt-6 w-full gap-2 rounded-xl"
+        onClick={() => setPwOpen(true)}
+      >
+        <KeyRound className="h-4 w-4" /> Zmeniť heslo
+      </Button>
+
+      <Button variant="outline" className="mt-3 w-full gap-2 rounded-xl" onClick={signOut}>
         <LogOut className="h-4 w-4" /> Odhlásiť
       </Button>
+
+      <Dialog open={pwOpen} onOpenChange={setPwOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Zmena hesla</DialogTitle>
+            <DialogDescription>Zadaj nové heslo (min. 8 znakov).</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={changePassword} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-pw">Nové heslo</Label>
+              <Input
+                id="new-pw"
+                type="password"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm-pw">Potvrdiť heslo</Label>
+              <Input
+                id="confirm-pw"
+                type="password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setPwOpen(false)}>
+                Zrušiť
+              </Button>
+              <Button type="submit" disabled={pwSubmitting}>
+                {pwSubmitting ? "Ukladám..." : "Uložiť"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
