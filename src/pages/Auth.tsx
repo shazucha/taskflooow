@@ -41,6 +41,8 @@ export default function Auth() {
     }
   }, [sent]);
 
+  const redirectPreview = new URL("/", getAuthRedirectUrl()).toString();
+
   if (loading) return null;
   if (user) return <Navigate to="/" replace />;
 
@@ -48,7 +50,8 @@ export default function Auth() {
     e.preventDefault();
     if (!email) return;
     setSubmitting(true);
-    const redirectTo = new URL("/", getAuthRedirectUrl()).toString();
+    const redirectTo = redirectPreview;
+    console.log("[Auth] magic link redirectTo:", redirectTo, "origin:", window.location.origin);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -110,6 +113,14 @@ export default function Auth() {
             <p className="text-[11px] text-muted-foreground">
               Po kliknutí na odkaz v emaili budeš automaticky prihlásený.
             </p>
+            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/30 p-2">
+              <p className="break-all font-mono text-[10px] text-muted-foreground">
+                <strong>Debug redirect:</strong> {redirectPreview}
+              </p>
+              <p className="break-all font-mono text-[10px] text-muted-foreground">
+                <strong>Origin:</strong> {typeof window !== "undefined" ? window.location.origin : ""}
+              </p>
+            </div>
           </form>
         )}
       </div>
