@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { KeyRound, LogOut, Mail, Users } from "lucide-react";
+import { Check, KeyRound, LogOut, Mail, Pencil, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,10 +12,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useCurrentUserId, useProfiles, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useProfiles, useTasks, useUpdateProfile } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+const COLOR_OPTIONS = [
+  "#3b82f6", // blue
+  "#10b981", // emerald
+  "#ec4899", // pink
+  "#f59e0b", // amber
+  "#8b5cf6", // violet
+  "#ef4444", // red
+  "#14b8a6", // teal
+  "#6366f1", // indigo
+  "#f97316", // orange
+  "#84cc16", // lime
+];
 
 export default function Profile() {
   const { data: profiles = [] } = useProfiles();
@@ -23,11 +37,52 @@ export default function Profile() {
   const currentUserId = useCurrentUserId();
   const navigate = useNavigate();
   const me = profiles.find((p) => p.id === currentUserId);
+  const updateProfile = useUpdateProfile();
+
+  const [name, setName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+
+  useEffect(() => {
+    if (me) setName(me.full_name ?? "");
+  }, [me?.id, me?.full_name]);
+
+  const myDone = tasks.filter((t) => t.assignee_id === currentUserId && t.status === "done").length;
+  const myOpen = tasks.filter((t) => t.assignee_id === currentUserId && t.status !== "done").length;
 
   const [pwOpen, setPwOpen] = useState(false);
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [pwSubmitting, setPwSubmitting] = useState(false);
+
+  const saveName = async () => {
+    if (!currentUserId) return;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error("Zadaj meno");
+      return;
+    }
+    setSavingName(true);
+    try {
+      await updateProfile.mutateAsync({ id: currentUserId, patch: { full_name: trimmed } });
+      toast.success("Meno uložené");
+      setEditingName(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Chyba");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const pickColor = async (color: string) => {
+    if (!currentUserId) return;
+    try {
+      await updateProfile.mutateAsync({ id: currentUserId, patch: { color } });
+      toast.success("Farba zmenená");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Chyba");
+    }
+  };
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,9 +107,6 @@ export default function Profile() {
     setConfirmPw("");
   };
 
-  const myDone = tasks.filter((t) => t.assignee_id === currentUserId && t.status === "done").length;
-  const myOpen = tasks.filter((t) => t.assignee_id === currentUserId && t.status !== "done").length;
-
   const signOut = async () => {
     await supabase.auth.signOut();
     toast.success("Odhlásený");
@@ -68,14 +120,66 @@ export default function Profile() {
       <div className="card-elevated mt-5 flex items-center gap-4 p-5">
         <UserAvatar profile={me} size="lg" />
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-base font-semibold">
-            {me?.full_name ?? me?.email?.split("@")[0]}
-          </h2>
-          <p className="truncate text-xs text-muted-foreground inline-flex items-center gap-1">
+          {editingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Tvoje meno"
+                autoFocus
+                className="h-9"
+              />
+              <Button size="sm" onClick={saveName} disabled={savingName}>
+                Uložiť
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <h2 className="truncate text-base font-semibold">
+                {me?.full_name?.trim() || "Bez mena"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setEditingName(true)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Upraviť meno"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          <p className="mt-1 inline-flex items-center gap-1 truncate text-xs text-muted-foreground">
             <Mail className="h-3 w-3" /> {me?.email}
           </p>
         </div>
       </div>
+
+      <section className="card-elevated mt-4 p-4">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Moja farba</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
+          Použije sa pre tvoje úlohy v kalendári.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {COLOR_OPTIONS.map((c) => {
+            const active = me?.color === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => pickColor(c)}
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-full ring-2 ring-offset-2 ring-offset-background transition",
+                  active ? "ring-foreground" : "ring-transparent hover:ring-border"
+                )}
+                style={{ backgroundColor: c }}
+                aria-label={`Vybrať farbu ${c}`}
+              >
+                {active && <Check className="h-4 w-4 text-white" strokeWidth={3} />}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="card-elevated p-4">
@@ -97,7 +201,7 @@ export default function Profile() {
             <div key={p.id} className="flex items-center gap-3 p-3.5">
               <UserAvatar profile={p} size="md" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{p.full_name ?? p.email}</p>
+                <p className="truncate text-sm font-semibold">{p.full_name?.trim() || p.email}</p>
                 <p className="truncate text-xs text-muted-foreground">{p.email}</p>
               </div>
               {p.id === currentUserId && (
