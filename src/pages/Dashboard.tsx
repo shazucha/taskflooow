@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, MessagesSquare } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { UserAvatar } from "@/components/UserAvatar";
+import { Chat } from "@/components/Chat";
 import { PRIORITY_META } from "@/lib/types";
 import { useCurrentUserId, useProfiles, useProjects, useTasks } from "@/lib/queries";
 
@@ -119,6 +120,13 @@ export default function Dashboard() {
             myOpen.map((t) => <TaskCard key={t.id} task={t} showProject />)
           )}
         </div>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
+          <MessagesSquare className="h-4 w-4" /> Tímový chat
+        </h2>
+        <Chat scope="team" />
       </section>
     </div>
   );

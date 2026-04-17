@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MessagesSquare } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
+import { Chat } from "@/components/Chat";
 import { useProjects, useTasks } from "@/lib/queries";
 
 export default function ProjectDetail() {
@@ -70,6 +71,13 @@ export default function ProjectDetail() {
           Zatiaľ žiadne úlohy.
         </p>
       )}
+
+      <section className="mt-8">
+        <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
+          <MessagesSquare className="h-4 w-4" /> Chat projektu
+        </h2>
+        <Chat scope="project" projectId={project.id} />
+      </section>
     </div>
   );
 }

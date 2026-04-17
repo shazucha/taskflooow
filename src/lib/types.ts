@@ -31,6 +31,18 @@ export interface Task {
   updated_at: string;
 }
 
+export type ChatScope = "team" | "project";
+
+export interface ChatMessage {
+  id: string;
+  scope: ChatScope;
+  project_id: string | null;
+  author_id: string;
+  body: string | null;
+  image_url: string | null;
+  created_at: string;
+}
+
 export const PRIORITY_META: Record<Priority, { label: string; dot: string; soft: string; text: string; ring: string }> = {
   high: {
     label: "Urgentné",
