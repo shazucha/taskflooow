@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
@@ -8,27 +7,34 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useCreateProject, useCurrentUserId } from "@/lib/queries";
+import { toast } from "sonner";
 
 const colors = ["#3b82f6", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export function NewProjectDialog() {
-  const addProject = useApp((s) => s.addProject);
-  const currentUserId = useApp((s) => s.currentUserId);
+  const create = useCreateProject();
+  const currentUserId = useCurrentUserId();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState(colors[0]);
 
-  const submit = () => {
-    if (!name.trim()) return;
-    addProject({
-      name: name.trim(),
-      description: description.trim() || null,
-      color,
-      owner_id: currentUserId,
-    });
-    setOpen(false);
-    setName(""); setDescription(""); setColor(colors[0]);
+  const submit = async () => {
+    if (!name.trim() || !currentUserId) return;
+    try {
+      await create.mutateAsync({
+        name: name.trim(),
+        description: description.trim() || null,
+        color,
+        owner_id: currentUserId,
+      });
+      setOpen(false);
+      setName(""); setDescription(""); setColor(colors[0]);
+      toast.success("Projekt vytvorený");
+    } catch (e: any) {
+      toast.error(e.message ?? "Nepodarilo sa vytvoriť projekt");
+    }
   };
 
   return (
@@ -69,7 +75,9 @@ export function NewProjectDialog() {
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Zrušiť</Button>
-          <Button onClick={submit} disabled={!name.trim()}>Vytvoriť</Button>
+          <Button onClick={submit} disabled={!name.trim() || create.isPending}>
+            {create.isPending ? "Vytváram..." : "Vytvoriť"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
