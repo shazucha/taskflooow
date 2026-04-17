@@ -131,7 +131,23 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {assignee && <UserAvatar profile={assignee} size="sm" />}
+          {viewers.length > 0 && (
+            <div
+              className="flex -space-x-1.5"
+              title={`Vidia: ${viewers.map((v) => v.full_name ?? v.email).join(", ")}`}
+            >
+              {viewers.slice(0, 4).map((v) => (
+                <div key={v.id} className="ring-2 ring-card rounded-full">
+                  <UserAvatar profile={v} size="sm" />
+                </div>
+              ))}
+              {viewers.length > 4 && (
+                <div className="z-10 flex h-6 w-6 items-center justify-center rounded-full bg-surface-muted text-[10px] font-semibold text-muted-foreground ring-2 ring-card">
+                  +{viewers.length - 4}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
