@@ -1,29 +1,37 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Mail, Sparkles } from "lucide-react";
+import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/useSession";
 import { toast } from "sonner";
 
 export default function Auth() {
+  const { user, loading } = useSession();
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    if (sent) {
+      // No-op; UI handles state
+    }
+  }, [sent]);
+
+  if (loading) return null;
+  if (user) return <Navigate to="/" replace />;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    if (!isSupabaseConfigured || !supabase) {
-      toast.error("Supabase nie je nakonfigurované. Pridaj VITE_SUPABASE_URL a VITE_SUPABASE_ANON_KEY.");
-      return;
-    }
-    setLoading(true);
+    setSubmitting(true);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin },
     });
-    setLoading(false);
+    setSubmitting(false);
     if (error) toast.error(error.message);
     else setSent(true);
   };
@@ -35,7 +43,7 @@ export default function Auth() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
             <Sparkles className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Vitaj späť</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Vitaj v TaskFlow</h1>
           <p className="mt-1 text-sm text-muted-foreground">Prihlás sa cez magic link</p>
         </div>
 
@@ -46,6 +54,13 @@ export default function Auth() {
             <p className="mt-1 text-xs text-muted-foreground">
               Poslali sme prihlasovací odkaz na <strong>{email}</strong>.
             </p>
+            <button
+              type="button"
+              onClick={() => { setSent(false); setEmail(""); }}
+              className="mt-4 text-xs font-medium text-primary hover:underline"
+            >
+              Použiť iný email
+            </button>
           </div>
         ) : (
           <form onSubmit={submit} className="card-elevated space-y-4 p-5">
@@ -58,16 +73,15 @@ export default function Auth() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="ty@firma.sk"
                 required
+                autoFocus
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Posielam..." : "Poslať magic link"}
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? "Posielam..." : "Poslať magic link"}
             </Button>
-            {!isSupabaseConfigured && (
-              <p className="text-[11px] text-muted-foreground">
-                Supabase zatiaľ nie je nakonfigurované. Aplikácia beží v demo režime.
-              </p>
-            )}
+            <p className="text-[11px] text-muted-foreground">
+              Po kliknutí na odkaz v emaili budeš automaticky prihlásený.
+            </p>
           </form>
         )}
       </div>
