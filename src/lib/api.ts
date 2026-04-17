@@ -65,14 +65,38 @@ export async function fetchTasks(): Promise<Task[]> {
   return (data ?? []) as Task[];
 }
 
-export async function createTask(input: Omit<Task, "id" | "created_at" | "updated_at">) {
+export async function createTask(
+  input: Omit<Task, "id" | "created_at" | "updated_at">,
+  watcherIds: string[] = []
+) {
   const { data, error } = await supabase
     .from("tasks")
     .insert(input)
     .select()
     .single();
   if (error) throw error;
-  return data as Task;
+  const task = data as Task;
+  if (watcherIds.length > 0) {
+    const rows = watcherIds.map((user_id) => ({ task_id: task.id, user_id }));
+    const { error: wErr } = await supabase.from("task_watchers").insert(rows);
+    if (wErr) throw wErr;
+  }
+  return task;
+}
+
+// ---- Task watchers
+export async function fetchTaskWatchers(): Promise<{ task_id: string; user_id: string }[]> {
+  const { data, error } = await supabase.from("task_watchers").select("task_id, user_id");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function setTaskWatchers(taskId: string, userIds: string[]) {
+  await supabase.from("task_watchers").delete().eq("task_id", taskId);
+  if (userIds.length === 0) return;
+  const rows = userIds.map((user_id) => ({ task_id: taskId, user_id }));
+  const { error } = await supabase.from("task_watchers").insert(rows);
+  if (error) throw error;
 }
 
 export async function updateTask(id: string, patch: Partial<Task>) {

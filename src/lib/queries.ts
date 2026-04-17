@@ -8,6 +8,8 @@ import {
   fetchProfiles,
   fetchProjects,
   fetchTasks,
+  fetchTaskWatchers,
+  setTaskWatchers,
   updateProfile,
   updateTask,
 } from "./api";
@@ -60,8 +62,42 @@ export function useCreateProject() {
 export function useCreateTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: createTask,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+    mutationFn: ({
+      task,
+      watcherIds = [],
+    }: {
+      task: Parameters<typeof createTask>[0];
+      watcherIds?: string[];
+    }) => createTask(task, watcherIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["task_watchers"] });
+    },
+  });
+}
+
+export function useTaskWatchers() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel("task-watchers-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_watchers" }, () => {
+        qc.invalidateQueries({ queryKey: ["task_watchers"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+  return useQuery({ queryKey: ["task_watchers"], queryFn: fetchTaskWatchers });
+}
+
+export function useSetTaskWatchers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, userIds }: { taskId: string; userIds: string[] }) =>
+      setTaskWatchers(taskId, userIds),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["task_watchers"] }),
   });
 }
 
