@@ -134,7 +134,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
           {viewers.length > 0 && (
             <div
               className="flex -space-x-1.5"
-              title={`Vidia: ${viewers.map((v) => v.full_name ?? v.email).join(", ")}`}
+              title={`Pracujú na tom: ${viewers.map((v) => v.full_name ?? v.email).join(", ")}`}
             >
               {viewers.slice(0, 4).map((v) => (
                 <div key={v.id} className="ring-2 ring-card rounded-full">

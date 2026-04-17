@@ -162,11 +162,14 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label className="flex items-center justify-between">
-              <span>Komu sa zobrazí</span>
+              <span>Spolupracovníci</span>
               <span className="text-[11px] font-normal text-muted-foreground">
                 Default: ty + priradený
               </span>
             </Label>
+            <p className="text-[11px] text-muted-foreground">
+              Môžu na úlohe pracovať a meniť jej stav.
+            </p>
             {availableWatchers.length === 0 ? (
               <p className="text-xs text-muted-foreground">Žiadni ďalší členovia.</p>
             ) : (
