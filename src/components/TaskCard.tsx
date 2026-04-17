@@ -20,6 +20,7 @@ import {
   useDeleteTask,
   useProfiles,
   useProjects,
+  useTaskWatchers,
   useToggleTaskStatus,
 } from "@/lib/queries";
 
@@ -32,6 +33,7 @@ interface Props {
 export function TaskCard({ task, onOpen, showProject }: Props) {
   const { data: profiles = [] } = useProfiles();
   const { data: projects = [] } = useProjects();
+  const { data: allWatchers = [] } = useTaskWatchers();
   const toggleStatus = useToggleTaskStatus();
   const delegate = useDelegateTask();
   const del = useDeleteTask();
@@ -44,6 +46,15 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
     () => projects.find((p) => p.id === task.project_id),
     [projects, task.project_id]
   );
+  const viewers = useMemo(() => {
+    const ids = new Set<string>();
+    ids.add(task.created_by);
+    if (task.assignee_id) ids.add(task.assignee_id);
+    allWatchers.filter((w) => w.task_id === task.id).forEach((w) => ids.add(w.user_id));
+    return Array.from(ids)
+      .map((id) => profiles.find((p) => p.id === id))
+      .filter((p): p is NonNullable<typeof p> => !!p);
+  }, [profiles, allWatchers, task.id, task.created_by, task.assignee_id]);
   const done = task.status === "done";
 
   return (
