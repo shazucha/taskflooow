@@ -8,6 +8,27 @@ import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/useSession";
 import { toast } from "sonner";
 
+const PREVIEW_AUTH_REDIRECT = "https://id-preview--c29c1f95-f678-4c0a-8c07-dbf8cd89b342.lovable.app";
+const PUBLISHED_AUTH_REDIRECT = "https://taskflooow.lovable.app";
+
+const getAuthRedirectUrl = () => {
+  const origin = window.location.origin;
+
+  if (origin.includes("lovableproject.com")) {
+    return PREVIEW_AUTH_REDIRECT;
+  }
+
+  if (
+    origin === PREVIEW_AUTH_REDIRECT ||
+    origin === PUBLISHED_AUTH_REDIRECT ||
+    origin.includes("localhost")
+  ) {
+    return origin;
+  }
+
+  return PUBLISHED_AUTH_REDIRECT;
+};
+
 export default function Auth() {
   const { user, loading } = useSession();
   const [email, setEmail] = useState("");
@@ -27,7 +48,7 @@ export default function Auth() {
     e.preventDefault();
     if (!email) return;
     setSubmitting(true);
-    const redirectTo = `${window.location.origin}/`;
+    const redirectTo = new URL("/", getAuthRedirectUrl()).toString();
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -60,7 +81,10 @@ export default function Auth() {
             </p>
             <button
               type="button"
-              onClick={() => { setSent(false); setEmail(""); }}
+              onClick={() => {
+                setSent(false);
+                setEmail("");
+              }}
               className="mt-4 text-xs font-medium text-primary hover:underline"
             >
               Použiť iný email
