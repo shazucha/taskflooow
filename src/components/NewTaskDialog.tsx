@@ -25,6 +25,12 @@ import { cn } from "@/lib/utils";
 import { useCreateTask, useCurrentUserId, useProfiles, useProjects } from "@/lib/queries";
 import { toast } from "sonner";
 
+const HALF_HOUR_SLOTS = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? "00" : "30";
+  return `${String(h).padStart(2, "0")}:${m}`;
+});
+
 interface Props {
   defaultProjectId?: string;
   trigger?: React.ReactNode;
