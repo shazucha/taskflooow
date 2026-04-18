@@ -43,11 +43,13 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
+  const [dueTime, setDueTime] = useState<string>("");
   const [watcherIds, setWatcherIds] = useState<string[]>([]);
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
-    setProjectId(defaultProjectId ?? ""); setAssigneeId(""); setDueDate("");
+    setProjectId(defaultProjectId ?? ""); setAssigneeId("");
+    setDueDate(""); setDueTime("");
     setWatcherIds([]);
   };
 
@@ -70,7 +72,9 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           project_id: projectId || null,
           assignee_id: assigneeId || currentUserId,
           created_by: currentUserId,
-          due_date: dueDate ? new Date(dueDate).toISOString() : null,
+          due_date: dueDate
+            ? new Date(`${dueDate}T${dueTime || "00:00"}:00`).toISOString()
+            : null,
         },
         watcherIds: watcherIds.filter((id) => id !== currentUserId && id !== effectiveAssignee),
       });
@@ -144,7 +148,21 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label>Termín</Label>
-              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              <div className="flex gap-1.5">
+                <Input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="flex-1"
+                />
+                <Input
+                  type="time"
+                  value={dueTime}
+                  onChange={(e) => setDueTime(e.target.value)}
+                  disabled={!dueDate}
+                  className="w-[110px]"
+                />
+              </div>
             </div>
           </div>
           <div className="space-y-1.5">
