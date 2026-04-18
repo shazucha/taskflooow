@@ -80,7 +80,7 @@ export function useTaskWatchers() {
   const qc = useQueryClient();
   useEffect(() => {
     const channel = supabase
-      .channel("task-watchers-realtime")
+      .channel(`task-watchers-realtime-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "task_watchers" }, () => {
         qc.invalidateQueries({ queryKey: ["task_watchers"] });
       })
