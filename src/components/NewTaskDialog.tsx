@@ -148,7 +148,21 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label>Termín</Label>
-              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              <div className="flex gap-1.5">
+                <Input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="flex-1"
+                />
+                <Input
+                  type="time"
+                  value={dueTime}
+                  onChange={(e) => setDueTime(e.target.value)}
+                  disabled={!dueDate}
+                  className="w-[110px]"
+                />
+              </div>
             </div>
           </div>
           <div className="space-y-1.5">
