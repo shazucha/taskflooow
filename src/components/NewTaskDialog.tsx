@@ -72,7 +72,9 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           project_id: projectId || null,
           assignee_id: assigneeId || currentUserId,
           created_by: currentUserId,
-          due_date: dueDate ? new Date(dueDate).toISOString() : null,
+          due_date: dueDate
+            ? new Date(`${dueDate}T${dueTime || "00:00"}:00`).toISOString()
+            : null,
         },
         watcherIds: watcherIds.filter((id) => id !== currentUserId && id !== effectiveAssignee),
       });
