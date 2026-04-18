@@ -43,11 +43,13 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
+  const [dueTime, setDueTime] = useState<string>("");
   const [watcherIds, setWatcherIds] = useState<string[]>([]);
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
-    setProjectId(defaultProjectId ?? ""); setAssigneeId(""); setDueDate("");
+    setProjectId(defaultProjectId ?? ""); setAssigneeId("");
+    setDueDate(""); setDueTime("");
     setWatcherIds([]);
   };
 
