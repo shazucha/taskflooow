@@ -35,7 +35,7 @@ export function useTasks() {
   // Realtime — refresh on any change
   useEffect(() => {
     const channel = supabase
-      .channel("tasks-realtime")
+      .channel(`tasks-realtime-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
         qc.invalidateQueries({ queryKey: ["tasks"] });
       })
