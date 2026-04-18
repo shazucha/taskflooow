@@ -28,6 +28,7 @@ export interface Task {
   assignee_id: string | null;
   created_by: string;
   due_date: string | null;
+  due_end: string | null;
   created_at: string;
   updated_at: string;
 }

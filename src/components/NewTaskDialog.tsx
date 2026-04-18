@@ -25,6 +25,12 @@ import { cn } from "@/lib/utils";
 import { useCreateTask, useCurrentUserId, useProfiles, useProjects } from "@/lib/queries";
 import { toast } from "sonner";
 
+const HALF_HOUR_SLOTS = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? "00" : "30";
+  return `${String(h).padStart(2, "0")}:${m}`;
+});
+
 interface Props {
   defaultProjectId?: string;
   trigger?: React.ReactNode;
@@ -43,13 +49,14 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
-  const [dueTime, setDueTime] = useState<string>("");
+  const [dueTime, setDueTime] = useState<string>(""); // "" = celý deň, inak HH:MM (po 30 min)
+  const [endTime, setEndTime] = useState<string>(""); // koniec, HH:MM (po 30 min)
   const [watcherIds, setWatcherIds] = useState<string[]>([]);
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
     setProjectId(defaultProjectId ?? ""); setAssigneeId("");
-    setDueDate(""); setDueTime("");
+    setDueDate(""); setDueTime(""); setEndTime("");
     setWatcherIds([]);
   };
 
@@ -63,6 +70,16 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
     try {
+      let due_date: string | null = null;
+      let due_end: string | null = null;
+      if (dueDate) {
+        const start = new Date(`${dueDate}T${dueTime || "00:00"}:00`);
+        due_date = start.toISOString();
+        if (dueTime && endTime) {
+          const end = new Date(`${dueDate}T${endTime}:00`);
+          if (end.getTime() > start.getTime()) due_end = end.toISOString();
+        }
+      }
       await create.mutateAsync({
         task: {
           title: title.trim(),
@@ -72,9 +89,8 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           project_id: projectId || null,
           assignee_id: assigneeId || currentUserId,
           created_by: currentUserId,
-          due_date: dueDate
-            ? new Date(`${dueDate}T${dueTime || "00:00"}:00`).toISOString()
-            : null,
+          due_date,
+          due_end,
         },
         watcherIds: watcherIds.filter((id) => id !== currentUserId && id !== effectiveAssignee),
       });
@@ -153,38 +169,74 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
               value={dueDate}
               onChange={(e) => {
                 setDueDate(e.target.value);
-                if (!e.target.value) setDueTime("");
+                if (!e.target.value) {
+                  setDueTime("");
+                  setEndTime("");
+                }
               }}
             />
             {dueDate && (
-              <div className="flex gap-1.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setDueTime("")}
-                  className={cn(
-                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
-                    !dueTime
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Celý deň
-                </button>
-                <div
-                  className={cn(
-                    "flex flex-1 items-center gap-1.5 rounded-lg border px-2 py-1 transition",
-                    dueTime ? "border-primary bg-primary/10" : "border-border bg-surface-muted"
-                  )}
-                >
-                  <span className="text-[11px] font-semibold text-muted-foreground">Čas</span>
-                  <Input
-                    type="time"
-                    value={dueTime}
-                    onChange={(e) => setDueTime(e.target.value)}
-                    className="h-7 flex-1 border-0 bg-transparent p-0 text-xs focus-visible:ring-0"
-                  />
+              <>
+                <div className="flex gap-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setDueTime(""); setEndTime(""); }}
+                    className={cn(
+                      "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                      !dueTime
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Celý deň
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { if (!dueTime) setDueTime("09:00"); }}
+                    className={cn(
+                      "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                      dueTime
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Konkrétny čas
+                  </button>
                 </div>
-              </div>
+                {dueTime && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Začiatok</Label>
+                      <Select
+                        value={dueTime}
+                        onValueChange={(v) => {
+                          setDueTime(v);
+                          if (endTime && endTime <= v) setEndTime("");
+                        }}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          {HALF_HOUR_SLOTS.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Koniec</Label>
+                      <Select value={endTime || "none"} onValueChange={(v) => setEndTime(v === "none" ? "" : v)}>
+                        <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          <SelectItem value="none">— bez konca —</SelectItem>
+                          {HALF_HOUR_SLOTS.filter((s) => s > dueTime).map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
           <div className="space-y-1.5">

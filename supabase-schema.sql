@@ -119,6 +119,7 @@ create table public.tasks (
   assignee_id  uuid references public.profiles(id) on delete set null,
   created_by   uuid not null references public.profiles(id) on delete cascade,
   due_date     timestamptz,
+  due_end      timestamptz,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );

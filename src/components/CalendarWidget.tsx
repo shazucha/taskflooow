@@ -283,20 +283,27 @@ function WeekView({
 }
 
 /* ---------------- Day ---------------- */
+const SLOT_PX = 28; // výška jedného 30-min slotu
+const SLOTS_PER_DAY = 48;
+
 function DayView({ date, tasks, myColor }: { date: Date; tasks: Task[]; myColor: string }) {
   const allDay = tasks.filter((t) => !hasTime(t));
   const timed = tasks
     .filter((t) => hasTime(t))
     .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
 
-  const hours = Array.from({ length: 24 }, (_, i) => i);
-  const tasksByHour = new Map<number, Task[]>();
-  for (const t of timed) {
-    const h = new Date(t.due_date!).getHours();
-    const arr = tasksByHour.get(h) ?? [];
-    arr.push(t);
-    tasksByHour.set(h, arr);
-  }
+  // pre každý časovaný task spočítaj slot index a dĺžku v slotoch (zaokrúhli na pol hodinu)
+  const blocks = timed.map((t) => {
+    const s = new Date(t.due_date!);
+    const startSlot = s.getHours() * 2 + (s.getMinutes() >= 30 ? 1 : 0);
+    let lengthSlots = 1;
+    if (t.due_end) {
+      const e = new Date(t.due_end);
+      const endSlot = e.getHours() * 2 + Math.ceil(e.getMinutes() / 30);
+      lengthSlots = Math.max(1, endSlot - startSlot);
+    }
+    return { task: t, startSlot, lengthSlots };
+  });
 
   return (
     <div className="space-y-3">
@@ -310,38 +317,53 @@ function DayView({ date, tasks, myColor }: { date: Date; tasks: Task[]; myColor:
       )}
 
       <div className="max-h-[420px] overflow-y-auto rounded-lg border border-border/60">
-        {hours.map((h) => {
-          const list = tasksByHour.get(h) ?? [];
-          return (
-            <div key={h} className="flex gap-2 border-b border-border/40 px-2 py-1.5 last:border-b-0">
-              <span className="w-10 shrink-0 pt-0.5 text-[10px] font-semibold text-muted-foreground">
-                {String(h).padStart(2, "0")}:00
-              </span>
-              <div className="flex-1 space-y-1">
-                {list.length === 0 ? (
-                  <span className="block h-4" />
-                ) : (
-                  list.map((t) => {
-                    const d = new Date(t.due_date!);
-                    return (
-                      <Link
-                        key={t.id}
-                        to={t.project_id ? `/projects/${t.project_id}` : "/tasks"}
-                        className="flex items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-surface-muted"
-                        style={{ borderLeft: `3px solid ${myColor}` }}
-                      >
-                        <span className="font-mono text-[10px] text-muted-foreground">
-                          {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
-                        </span>
-                        <span className="truncate">{t.title}</span>
-                      </Link>
-                    );
-                  })
+        <div className="relative" style={{ height: SLOTS_PER_DAY * SLOT_PX }}>
+          {/* mriežka po pol hodinách */}
+          {Array.from({ length: SLOTS_PER_DAY }).map((_, i) => {
+            const isHour = i % 2 === 0;
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "absolute left-0 right-0 flex items-start gap-2 px-2",
+                  isHour ? "border-t border-border/60" : "border-t border-dashed border-border/30"
+                )}
+                style={{ top: i * SLOT_PX, height: SLOT_PX }}
+              >
+                {isHour && (
+                  <span className="w-10 shrink-0 pt-0.5 text-[10px] font-semibold text-muted-foreground">
+                    {String(i / 2).padStart(2, "0")}:00
+                  </span>
                 )}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+
+          {/* bloky úloh */}
+          {blocks.map(({ task, startSlot, lengthSlots }) => {
+            const d = new Date(task.due_date!);
+            const e = task.due_end ? new Date(task.due_end) : null;
+            return (
+              <Link
+                key={task.id}
+                to={task.project_id ? `/projects/${task.project_id}` : "/tasks"}
+                className="absolute left-12 right-2 overflow-hidden rounded-md px-2 py-1 text-[11px] hover:opacity-90"
+                style={{
+                  top: startSlot * SLOT_PX + 1,
+                  height: lengthSlots * SLOT_PX - 2,
+                  backgroundColor: `${myColor}22`,
+                  borderLeft: `3px solid ${myColor}`,
+                }}
+              >
+                <div className="font-mono text-[10px] text-muted-foreground">
+                  {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
+                  {e && ` – ${String(e.getHours()).padStart(2, "0")}:${String(e.getMinutes()).padStart(2, "0")}`}
+                </div>
+                <div className="truncate font-semibold">{task.title}</div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       {tasks.length === 0 && (
