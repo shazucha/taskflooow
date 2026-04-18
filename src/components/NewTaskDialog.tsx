@@ -163,38 +163,74 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
               value={dueDate}
               onChange={(e) => {
                 setDueDate(e.target.value);
-                if (!e.target.value) setDueTime("");
+                if (!e.target.value) {
+                  setDueTime("");
+                  setEndTime("");
+                }
               }}
             />
             {dueDate && (
-              <div className="flex gap-1.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setDueTime("")}
-                  className={cn(
-                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
-                    !dueTime
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Celý deň
-                </button>
-                <div
-                  className={cn(
-                    "flex flex-1 items-center gap-1.5 rounded-lg border px-2 py-1 transition",
-                    dueTime ? "border-primary bg-primary/10" : "border-border bg-surface-muted"
-                  )}
-                >
-                  <span className="text-[11px] font-semibold text-muted-foreground">Čas</span>
-                  <Input
-                    type="time"
-                    value={dueTime}
-                    onChange={(e) => setDueTime(e.target.value)}
-                    className="h-7 flex-1 border-0 bg-transparent p-0 text-xs focus-visible:ring-0"
-                  />
+              <>
+                <div className="flex gap-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setDueTime(""); setEndTime(""); }}
+                    className={cn(
+                      "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                      !dueTime
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Celý deň
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { if (!dueTime) setDueTime("09:00"); }}
+                    className={cn(
+                      "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                      dueTime
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Konkrétny čas
+                  </button>
                 </div>
-              </div>
+                {dueTime && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Začiatok</Label>
+                      <Select
+                        value={dueTime}
+                        onValueChange={(v) => {
+                          setDueTime(v);
+                          if (endTime && endTime <= v) setEndTime("");
+                        }}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          {HALF_HOUR_SLOTS.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Koniec</Label>
+                      <Select value={endTime || "none"} onValueChange={(v) => setEndTime(v === "none" ? "" : v)}>
+                        <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          <SelectItem value="none">— bez konca —</SelectItem>
+                          {HALF_HOUR_SLOTS.filter((s) => s > dueTime).map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
           <div className="space-y-1.5">
