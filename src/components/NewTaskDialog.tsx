@@ -43,13 +43,14 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
-  const [dueTime, setDueTime] = useState<string>("");
+  const [dueTime, setDueTime] = useState<string>(""); // "" = celý deň, inak HH:MM (po 30 min)
+  const [endTime, setEndTime] = useState<string>(""); // koniec, HH:MM (po 30 min)
   const [watcherIds, setWatcherIds] = useState<string[]>([]);
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
     setProjectId(defaultProjectId ?? ""); setAssigneeId("");
-    setDueDate(""); setDueTime("");
+    setDueDate(""); setDueTime(""); setEndTime("");
     setWatcherIds([]);
   };
 
@@ -63,6 +64,16 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
     try {
+      let due_date: string | null = null;
+      let due_end: string | null = null;
+      if (dueDate) {
+        const start = new Date(`${dueDate}T${dueTime || "00:00"}:00`);
+        due_date = start.toISOString();
+        if (dueTime && endTime) {
+          const end = new Date(`${dueDate}T${endTime}:00`);
+          if (end.getTime() > start.getTime()) due_end = end.toISOString();
+        }
+      }
       await create.mutateAsync({
         task: {
           title: title.trim(),
@@ -72,9 +83,8 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           project_id: projectId || null,
           assignee_id: assigneeId || currentUserId,
           created_by: currentUserId,
-          due_date: dueDate
-            ? new Date(`${dueDate}T${dueTime || "00:00"}:00`).toISOString()
-            : null,
+          due_date,
+          due_end,
         },
         watcherIds: watcherIds.filter((id) => id !== currentUserId && id !== effectiveAssignee),
       });
