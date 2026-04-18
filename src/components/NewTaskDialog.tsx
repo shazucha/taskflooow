@@ -133,37 +133,59 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
               })}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Projekt</Label>
-              <Select value={projectId || "none"} onValueChange={(v) => setProjectId(v === "none" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Bez projektu" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Bez projektu</SelectItem>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Termín</Label>
-              <div className="flex gap-1.5">
-                <Input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="flex-1"
-                />
-                <Input
-                  type="time"
-                  value={dueTime}
-                  onChange={(e) => setDueTime(e.target.value)}
-                  disabled={!dueDate}
-                  className="w-[110px]"
-                />
+          <div className="space-y-1.5">
+            <Label>Projekt</Label>
+            <Select value={projectId || "none"} onValueChange={(v) => setProjectId(v === "none" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Bez projektu" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Bez projektu</SelectItem>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Termín</Label>
+            <Input
+              type="date"
+              value={dueDate}
+              onChange={(e) => {
+                setDueDate(e.target.value);
+                if (!e.target.value) setDueTime("");
+              }}
+            />
+            {dueDate && (
+              <div className="flex gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setDueTime("")}
+                  className={cn(
+                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    !dueTime
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Celý deň
+                </button>
+                <div
+                  className={cn(
+                    "flex flex-1 items-center gap-1.5 rounded-lg border px-2 py-1 transition",
+                    dueTime ? "border-primary bg-primary/10" : "border-border bg-surface-muted"
+                  )}
+                >
+                  <span className="text-[11px] font-semibold text-muted-foreground">Čas</span>
+                  <Input
+                    type="time"
+                    value={dueTime}
+                    onChange={(e) => setDueTime(e.target.value)}
+                    className="h-7 flex-1 border-0 bg-transparent p-0 text-xs focus-visible:ring-0"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>Priradiť</Label>
