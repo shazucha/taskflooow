@@ -35,7 +35,7 @@ export function useTasks() {
   // Realtime — refresh on any change
   useEffect(() => {
     const channel = supabase
-      .channel("tasks-realtime")
+      .channel(`tasks-realtime-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
         qc.invalidateQueries({ queryKey: ["tasks"] });
       })
@@ -80,7 +80,7 @@ export function useTaskWatchers() {
   const qc = useQueryClient();
   useEffect(() => {
     const channel = supabase
-      .channel("task-watchers-realtime")
+      .channel(`task-watchers-realtime-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "task_watchers" }, () => {
         qc.invalidateQueries({ queryKey: ["task_watchers"] });
       })
