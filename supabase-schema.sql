@@ -16,8 +16,12 @@ create table public.profiles (
   full_name   text,
   avatar_url  text,
   email       text,
+  color       text,
   created_at  timestamptz not null default now()
 );
+
+-- If table already exists, add column:
+-- alter table public.profiles add column if not exists color text;
 
 alter table public.profiles enable row level security;
 
