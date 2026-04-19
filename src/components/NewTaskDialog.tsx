@@ -55,13 +55,29 @@ function nthDayOfMonth(year: number, monthIdx0: number, day: number, hour = 9, m
   return d.toISOString();
 }
 
-export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
+export function NewTaskDialog({
+  defaultProjectId,
+  trigger,
+  open: openProp,
+  onOpenChange,
+  defaultDueDate,
+  defaultDueTime,
+  defaultEndTime,
+  hideTrigger,
+}: Props) {
   const { data: projects = [] } = useProjects();
   const { data: profiles = [] } = useProfiles();
   const currentUserId = useCurrentUserId();
   const create = useCreateTask();
 
-  const [open, setOpen] = useState(false);
+  const isControlled = openProp !== undefined && onOpenChange !== undefined;
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = isControlled ? !!openProp : openInternal;
+  const setOpen = (v: boolean) => {
+    if (isControlled) onOpenChange!(v);
+    else setOpenInternal(v);
+  };
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
@@ -69,9 +85,9 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
     currentUserId ? [currentUserId] : []
   );
-  const [dueDate, setDueDate] = useState<string>("");
-  const [dueTime, setDueTime] = useState<string>("");
-  const [endTime, setEndTime] = useState<string>("");
+  const [dueDate, setDueDate] = useState<string>(defaultDueDate ?? "");
+  const [dueTime, setDueTime] = useState<string>(defaultDueTime ?? "");
+  const [endTime, setEndTime] = useState<string>(defaultEndTime ?? "");
 
   // Opakovanie
   const [recurring, setRecurring] = useState(false);
