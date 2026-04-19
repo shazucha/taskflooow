@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateProject, useCurrentUserId } from "@/lib/queries";
 import { toast } from "sonner";
+import { PROJECT_CATEGORIES, type ProjectCategory } from "@/lib/types";
 
 const colors = ["#3b82f6", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 const currencies = ["EUR", "USD", "CZK"];
