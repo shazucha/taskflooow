@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { useCreateTask, useCurrentUserId, useProfiles, useProjects, useSyncProjectMembers } from "@/lib/queries";
+import { useCreateTask, useCurrentUserId, useProfiles, useProjects } from "@/lib/queries";
 import { toast } from "sonner";
 import { UserAvatar } from "./UserAvatar";
 
@@ -43,7 +43,6 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const { data: profiles = [] } = useProfiles();
   const currentUserId = useCurrentUserId();
   const create = useCreateTask();
-  const syncProjectMembers = useSyncProjectMembers();
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -100,10 +99,6 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           due_end,
         },
         watcherIds: watchers,
-      });
-      await syncProjectMembers.mutateAsync({
-        projectId: projectId || null,
-        userIds: [currentUserId, assignee, ...watchers],
       });
       setOpen(false);
       reset();

@@ -75,26 +75,22 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
     try {
       const newAssignee = selected[0] ?? task.created_by;
       const newWatchers = selected.slice(1).filter((id) => id !== newAssignee);
-      const promises: Promise<unknown>[] = [];
-      if (newAssignee !== task.assignee_id) {
-        promises.push(updateTask.mutateAsync({ id: task.id, patch: { assignee_id: newAssignee } }));
-      }
       const sameWatchers =
         newWatchers.length === watcherIds.length &&
         newWatchers.every((id) => watcherIds.includes(id));
-      if (!sameWatchers) {
-        promises.push(setWatchersM.mutateAsync({ taskId: task.id, userIds: newWatchers }));
-      }
       if (task.project_id) {
-        promises.push(
-          syncProjectMembers.mutateAsync({
-            projectId: task.project_id,
-            userIds: [task.created_by, newAssignee, ...newWatchers],
-          })
-        );
+        await syncProjectMembers.mutateAsync({
+          projectId: task.project_id,
+          userIds: [task.created_by, newAssignee, ...newWatchers],
+        });
       }
-      if (promises.length) {
-        await Promise.all(promises);
+      if (newAssignee !== task.assignee_id) {
+        await updateTask.mutateAsync({ id: task.id, patch: { assignee_id: newAssignee } });
+      }
+      if (!sameWatchers) {
+        await setWatchersM.mutateAsync({ taskId: task.id, userIds: newWatchers });
+      }
+      if (newAssignee !== task.assignee_id || !sameWatchers) {
         toast.success("Priradenie uložené");
       }
       setMenuOpen(false);
@@ -216,7 +212,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
                   size="sm"
                   className="w-full"
                   onClick={saveAssignment}
-                  disabled={updateTask.isPending || setWatchersM.isPending}
+                  disabled={updateTask.isPending || setWatchersM.isPending || syncProjectMembers.isPending}
                 >
                   Uložiť priradenie
                 </Button>
