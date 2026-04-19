@@ -5,6 +5,7 @@ import {
   createProject,
   createProjectWork,
   createTask,
+  deleteProject,
   deleteProjectWork,
   deleteTask,
   fetchProfiles,
