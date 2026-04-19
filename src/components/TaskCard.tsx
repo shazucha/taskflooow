@@ -264,8 +264,17 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
                 onClick={() => del.mutate(task.id)}
                 className="gap-2 text-destructive focus:text-destructive"
               >
-                <Trash2 className="h-4 w-4" /> Vymazať
+                <Trash2 className="h-4 w-4" /> Vymazať túto úlohu
               </DropdownMenuItem>
+              {seriesTaskIds.length >= 2 && (
+                <DropdownMenuItem
+                  onClick={deleteSeries}
+                  disabled={delMany.isPending}
+                  className="gap-2 text-destructive focus:text-destructive"
+                >
+                  <Layers className="h-4 w-4" /> Zmazať celú sériu ({seriesTaskIds.length})
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           {viewers.length > 0 && (
