@@ -110,21 +110,22 @@ const TASK_COLS_FALLBACK =
   "id, project_id, title, description, priority, status, assignee_id, created_by, due_date, due_end, created_at, updated_at";
 
 export async function fetchTasks(): Promise<Task[]> {
-  let { data, error } = await supabase
+  const first = await supabase
     .from("tasks")
     .select(TASK_COLS_FULL)
     .order("created_at", { ascending: false });
-  // Ak DB ešte nemá stĺpec series_id (chýba migrácia), skús bez neho
-  if (error && (error as { code?: string }).code === "42703") {
+  let rows: unknown[] | null = first.data as unknown[] | null;
+  let err = first.error;
+  if (err && (err as { code?: string }).code === "42703") {
     const fallback = await supabase
       .from("tasks")
       .select(TASK_COLS_FALLBACK)
       .order("created_at", { ascending: false });
-    data = fallback.data;
-    error = fallback.error;
+    rows = fallback.data as unknown[] | null;
+    err = fallback.error;
   }
-  if (error) throw error;
-  return (data ?? []) as Task[];
+  if (err) throw err;
+  return (rows ?? []) as Task[];
 }
 
 export async function createTask(
