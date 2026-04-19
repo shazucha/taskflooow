@@ -103,12 +103,22 @@ export function NewTaskDialog({
 
   // Opakovanie
   const [recurring, setRecurring] = useState(false);
+  const [recMode, setRecMode] = useState<"monthly" | "weekly">("monthly");
   const today = new Date();
   const [recDay, setRecDay] = useState<number>(today.getDate());
   const [recMonths, setRecMonths] = useState<number>(12);
   const [recStartMonth, setRecStartMonth] = useState<string>(
     `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`
   );
+  // Týždenné opakovanie
+  const isoToday = (() => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  })();
+  const [recWeekStart, setRecWeekStart] = useState<string>(isoToday);
+  const [recWeeks, setRecWeeks] = useState<number>(12);
+  const [recWeekTime, setRecWeekTime] = useState<string>("");
+  const [recWeekEnd, setRecWeekEnd] = useState<string>("");
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
@@ -117,8 +127,10 @@ export function NewTaskDialog({
     setDueDate(defaultDueDate ?? ""); setDueTime(defaultDueTime ?? ""); setEndTime(defaultEndTime ?? "");
     setLastPrefillKey("");
     setRecurring(false);
+    setRecMode("monthly");
     setRecDay(today.getDate()); setRecMonths(12);
     setRecStartMonth(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
+    setRecWeekStart(isoToday); setRecWeeks(12); setRecWeekTime(""); setRecWeekEnd("");
   };
 
   const toggleUser = (id: string) =>
@@ -128,18 +140,29 @@ export function NewTaskDialog({
 
   const recPreview = useMemo(() => {
     if (!recurring) return [];
-    const [yStr, mStr] = recStartMonth.split("-");
-    const y0 = Number(yStr); const m0 = Number(mStr) - 1;
+    if (recMode === "monthly") {
+      const [yStr, mStr] = recStartMonth.split("-");
+      const y0 = Number(yStr); const m0 = Number(mStr) - 1;
+      const dates: string[] = [];
+      for (let i = 0; i < recMonths; i++) {
+        const y = y0 + Math.floor((m0 + i) / 12);
+        const m = (m0 + i) % 12;
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const safeDay = Math.min(recDay, lastDay);
+        dates.push(`${safeDay}.${m + 1}.${y}`);
+      }
+      return dates;
+    }
     const dates: string[] = [];
-    for (let i = 0; i < recMonths; i++) {
-      const y = y0 + Math.floor((m0 + i) / 12);
-      const m = (m0 + i) % 12;
-      const lastDay = new Date(y, m + 1, 0).getDate();
-      const safeDay = Math.min(recDay, lastDay);
-      dates.push(`${safeDay}.${m + 1}.${y}`);
+    if (!recWeekStart) return dates;
+    const base = new Date(`${recWeekStart}T00:00:00`);
+    for (let i = 0; i < recWeeks; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i * 7);
+      dates.push(`${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`);
     }
     return dates;
-  }, [recurring, recStartMonth, recMonths, recDay]);
+  }, [recurring, recMode, recStartMonth, recMonths, recDay, recWeekStart, recWeeks]);
 
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
@@ -152,32 +175,75 @@ export function NewTaskDialog({
           toast.error("Pre opakovanú úlohu vyber projekt");
           return;
         }
-        const [yStr, mStr] = recStartMonth.split("-");
-        const y0 = Number(yStr); const m0 = Number(mStr) - 1;
         const seriesId = (typeof crypto !== "undefined" && "randomUUID" in crypto)
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        for (let i = 0; i < recMonths; i++) {
-          const y = y0 + Math.floor((m0 + i) / 12);
-          const m = (m0 + i) % 12;
-          const due_date = nthDayOfMonth(y, m, recDay);
-          await create.mutateAsync({
-            task: {
-              title: title.trim(),
-              description: description.trim() || null,
-              priority,
-              status: "todo",
-              project_id: projectId,
-              assignee_id: assignee,
-              created_by: currentUserId,
-              due_date,
-              due_end: null,
-              series_id: seriesId,
-            },
-            watcherIds: watchers,
-          });
+
+        if (recMode === "monthly") {
+          const [yStr, mStr] = recStartMonth.split("-");
+          const y0 = Number(yStr); const m0 = Number(mStr) - 1;
+          for (let i = 0; i < recMonths; i++) {
+            const y = y0 + Math.floor((m0 + i) / 12);
+            const m = (m0 + i) % 12;
+            const due_date = nthDayOfMonth(y, m, recDay);
+            await create.mutateAsync({
+              task: {
+                title: title.trim(),
+                description: description.trim() || null,
+                priority,
+                status: "todo",
+                project_id: projectId,
+                assignee_id: assignee,
+                created_by: currentUserId,
+                due_date,
+                due_end: null,
+                series_id: seriesId,
+              },
+              watcherIds: watchers,
+            });
+          }
+          toast.success(`Vytvorených ${recMonths} opakovaných úloh`);
+        } else {
+          if (!recWeekStart) {
+            toast.error("Vyber dátum prvého týždňa");
+            return;
+          }
+          const base = new Date(`${recWeekStart}T00:00:00`);
+          const [hStr, minStr] = (recWeekTime || "09:00").split(":");
+          const h = Number(hStr); const min = Number(minStr);
+          for (let i = 0; i < recWeeks; i++) {
+            const d = new Date(base);
+            d.setDate(base.getDate() + i * 7);
+            d.setHours(h, min, 0, 0);
+            const start = new Date(d);
+            let due_end: string | null = null;
+            if (recWeekTime) {
+              if (recWeekEnd && recWeekEnd > recWeekTime) {
+                const [eh, em] = recWeekEnd.split(":").map(Number);
+                const end = new Date(d); end.setHours(eh, em, 0, 0);
+                due_end = end.toISOString();
+              } else {
+                due_end = new Date(start.getTime() + 30 * 60 * 1000).toISOString();
+              }
+            }
+            await create.mutateAsync({
+              task: {
+                title: title.trim(),
+                description: description.trim() || null,
+                priority,
+                status: "todo",
+                project_id: projectId,
+                assignee_id: assignee,
+                created_by: currentUserId,
+                due_date: start.toISOString(),
+                due_end,
+                series_id: seriesId,
+              },
+              watcherIds: watchers,
+            });
+          }
+          toast.success(`Vytvorených ${recWeeks} týždenných úloh`);
         }
-        toast.success(`Vytvorených ${recMonths} opakovaných úloh`);
       } else {
         let due_date: string | null = null;
         let due_end: string | null = null;
@@ -189,7 +255,6 @@ export function NewTaskDialog({
               const end = new Date(`${dueDate}T${endTime}:00`);
               if (end.getTime() > start.getTime()) due_end = end.toISOString();
             } else {
-              // Default 30 min slot when start time is set without explicit end
               due_end = new Date(start.getTime() + 30 * 60 * 1000).toISOString();
             }
           }
@@ -283,37 +348,123 @@ export function NewTaskDialog({
           {/* Prepínač opakovania */}
           <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
             <div className="min-w-0">
-              <Label htmlFor="rec-switch" className="text-sm font-semibold">Opakovať mesačne</Label>
-              <p className="text-[11px] text-muted-foreground">Vytvorí sériu úloh na vybraný deň každý mesiac.</p>
+              <Label htmlFor="rec-switch" className="text-sm font-semibold">Opakovať</Label>
+              <p className="text-[11px] text-muted-foreground">Vytvorí sériu úloh. Popis každej môžeš neskôr meniť samostatne.</p>
             </div>
             <Switch id="rec-switch" checked={recurring} onCheckedChange={setRecurring} />
           </div>
 
           {recurring ? (
             <div className="space-y-3 rounded-xl bg-surface-muted/60 p-3">
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rday" className="text-xs">Deň v mesiaci</Label>
-                  <Input
-                    id="rday" type="number" min={1} max={31} value={recDay}
-                    onChange={(e) => setRecDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rstart" className="text-xs">Od mesiaca</Label>
-                  <Input
-                    id="rstart" type="month" value={recStartMonth}
-                    onChange={(e) => setRecStartMonth(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rmonths" className="text-xs">Počet mesiacov</Label>
-                  <Input
-                    id="rmonths" type="number" min={1} max={36} value={recMonths}
-                    onChange={(e) => setRecMonths(Math.max(1, Math.min(36, Number(e.target.value) || 1)))}
-                  />
-                </div>
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setRecMode("monthly")}
+                  className={cn(
+                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    recMode === "monthly"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Mesačne
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecMode("weekly")}
+                  className={cn(
+                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    recMode === "weekly"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Týždenne
+                </button>
               </div>
+
+              {recMode === "monthly" ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rday" className="text-xs">Deň v mesiaci</Label>
+                    <Input
+                      id="rday" type="number" min={1} max={31} value={recDay}
+                      onChange={(e) => setRecDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rstart" className="text-xs">Od mesiaca</Label>
+                    <Input
+                      id="rstart" type="month" value={recStartMonth}
+                      onChange={(e) => setRecStartMonth(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rmonths" className="text-xs">Počet mesiacov</Label>
+                    <Input
+                      id="rmonths" type="number" min={1} max={36} value={recMonths}
+                      onChange={(e) => setRecMonths(Math.max(1, Math.min(36, Number(e.target.value) || 1)))}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rwstart" className="text-xs">Prvý dátum</Label>
+                      <Input
+                        id="rwstart" type="date" value={recWeekStart}
+                        onChange={(e) => setRecWeekStart(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rweeks" className="text-xs">Počet týždňov</Label>
+                      <Input
+                        id="rweeks" type="number" min={1} max={52} value={recWeeks}
+                        onChange={(e) => setRecWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Začiatok (voliteľné)</Label>
+                      <Select
+                        value={recWeekTime || "none"}
+                        onValueChange={(v) => {
+                          const nv = v === "none" ? "" : v;
+                          setRecWeekTime(nv);
+                          if (recWeekEnd && nv && recWeekEnd <= nv) setRecWeekEnd("");
+                          if (!nv) setRecWeekEnd("");
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Celý deň" /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          <SelectItem value="none">— celý deň —</SelectItem>
+                          {HALF_HOUR_SLOTS.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Koniec</Label>
+                      <Select
+                        value={recWeekEnd || "none"}
+                        onValueChange={(v) => setRecWeekEnd(v === "none" ? "" : v)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          <SelectItem value="none">— bez konca —</SelectItem>
+                          {HALF_HOUR_SLOTS.filter((s) => !recWeekTime || s > recWeekTime).map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="text-[11px] text-muted-foreground">
                 <span className="font-semibold text-foreground">Náhľad ({recPreview.length}):</span>{" "}
                 <span className="line-clamp-2">{recPreview.join(" · ")}</span>
@@ -447,7 +598,7 @@ export function NewTaskDialog({
             {create.isPending
               ? "Vytváram..."
               : recurring
-                ? `Vytvoriť ${recMonths}×`
+                ? `Vytvoriť ${recMode === "monthly" ? recMonths : recWeeks}×`
                 : "Vytvoriť"}
           </Button>
         </DialogFooter>
