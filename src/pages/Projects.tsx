@@ -8,15 +8,19 @@ export default function Projects() {
   const { data: tasks = [] } = useTasks();
   const { data: watchers = [] } = useTaskWatchers();
   const currentUserId = useCurrentUserId();
-  const visibleProjectIds = new Set(
-    tasks
+  // Projekt zobraz ak: som owner, alebo mám v ňom úlohu (assignee/watcher)
+  const visibleProjectIds = new Set<string>([
+    ...projects.filter((p) => p.owner_id === currentUserId).map((p) => p.id),
+    ...tasks
       .filter(
         (t) =>
           t.project_id &&
-          (t.assignee_id === currentUserId || watchers.some((w) => w.task_id === t.id && w.user_id === currentUserId))
+          (t.assignee_id === currentUserId ||
+            t.created_by === currentUserId ||
+            watchers.some((w) => w.task_id === t.id && w.user_id === currentUserId))
       )
-      .map((t) => t.project_id as string)
-  );
+      .map((t) => t.project_id as string),
+  ]);
 
   return (
     <div className="px-4 pt-6">
