@@ -37,6 +37,15 @@ const HALF_HOUR_SLOTS = Array.from({ length: 48 }, (_, i) => {
 interface Props {
   defaultProjectId?: string;
   trigger?: React.ReactNode;
+  /** Controlled open (optional). If provided together with onOpenChange, dialog is controlled. */
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
+  /** Prefill values when opening (e.g. from calendar click). */
+  defaultDueDate?: string; // "YYYY-MM-DD"
+  defaultDueTime?: string; // "HH:MM"
+  defaultEndTime?: string; // "HH:MM"
+  /** Hide the default trigger button (used when controlled). */
+  hideTrigger?: boolean;
 }
 
 function nthDayOfMonth(year: number, monthIdx0: number, day: number, hour = 9, minute = 0): string {
