@@ -80,11 +80,8 @@ export default function Projects() {
       {/* Filter chips */}
       <div className="mt-4 flex gap-1.5 overflow-x-auto rounded-xl bg-surface-muted p-1">
         {filters.map((f) => {
-          const count =
-            f === "all"
-              ? projects.length
-              : (groups.get(f)?.length ?? 0);
-          if (f !== "all" && count === 0 && f === "uncategorized") return null;
+          const count = groups.get(f)?.length ?? 0;
+          if (count === 0 && f === "uncategorized") return null;
           return (
             <button
               key={f}
@@ -108,20 +105,6 @@ export default function Projects() {
           <p className="rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground">
             Zatiaľ žiadne projekty. Klikni na „Nový" hore.
           </p>
-        ) : filter === "all" ? (
-          // Grouped sections
-          (["odstartujto.sk", "shazucha.sk", "uncategorized"] as const).map((key) => {
-            const list = groups.get(key) ?? [];
-            if (list.length === 0) return null;
-            return (
-              <section key={key} className="space-y-2">
-                <h2 className="px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {FILTER_LABEL[key]} <span className="opacity-60">· {list.length}</span>
-                </h2>
-                <div className="space-y-3">{list.map(renderProject)}</div>
-              </section>
-            );
-          })
         ) : (
           <div className="space-y-3">
             {(groups.get(filter) ?? []).length === 0 ? (
