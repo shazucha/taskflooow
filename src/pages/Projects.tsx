@@ -1,11 +1,22 @@
 import { Link } from "react-router-dom";
 import { ChevronRight, FolderKanban } from "lucide-react";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
-import { useProjects, useTasks } from "@/lib/queries";
+import { useProjects, useTaskWatchers, useTasks, useCurrentUserId } from "@/lib/queries";
 
 export default function Projects() {
   const { data: projects = [], isLoading } = useProjects();
   const { data: tasks = [] } = useTasks();
+  const { data: watchers = [] } = useTaskWatchers();
+  const currentUserId = useCurrentUserId();
+  const visibleProjectIds = new Set(
+    tasks
+      .filter(
+        (t) =>
+          t.project_id &&
+          (t.assignee_id === currentUserId || watchers.some((w) => w.task_id === t.id && w.user_id === currentUserId))
+      )
+      .map((t) => t.project_id as string)
+  );
 
   return (
     <div className="px-4 pt-6">
@@ -22,7 +33,7 @@ export default function Projects() {
             Zatiaľ žiadne projekty. Klikni na „Nový" hore.
           </p>
         ) : (
-          projects.map((p) => {
+          projects.filter((p) => visibleProjectIds.has(p.id)).map((p) => {
             const projectTasks = tasks.filter((t) => t.project_id === p.id);
             const open = projectTasks.filter((t) => t.status !== "done").length;
             const high = projectTasks.filter((t) => t.priority === "high" && t.status !== "done").length;

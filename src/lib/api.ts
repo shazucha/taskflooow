@@ -126,6 +126,10 @@ export async function createTask(
     const { error: wErr } = await supabase.from("task_watchers").insert(rows);
     if (wErr) throw wErr;
   }
+  await syncProjectMembers(
+    input.project_id,
+    [input.created_by, input.assignee_id, ...watcherIds].filter((value): value is string => !!value)
+  );
   return task;
 }
 
@@ -141,6 +145,16 @@ export async function setTaskWatchers(taskId: string, userIds: string[]) {
   if (userIds.length === 0) return;
   const rows = userIds.map((user_id) => ({ task_id: taskId, user_id }));
   const { error } = await supabase.from("task_watchers").insert(rows);
+  if (error) throw error;
+}
+
+export async function syncProjectMembers(projectId: string | null, userIds: string[]) {
+  if (!projectId || userIds.length === 0) return;
+  const uniqueUserIds = Array.from(new Set(userIds));
+  const { error } = await supabase.rpc("sync_project_members", {
+    _project_id: projectId,
+    _user_ids: uniqueUserIds,
+  });
   if (error) throw error;
 }
 

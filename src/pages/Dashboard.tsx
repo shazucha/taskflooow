@@ -7,36 +7,45 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { Chat } from "@/components/Chat";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { PRIORITY_META } from "@/lib/types";
-import { useCurrentUserId, useProfiles, useProjects, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
 
 export default function Dashboard() {
   const { data: tasks = [] } = useTasks();
   const { data: projects = [] } = useProjects();
   const { data: profiles = [] } = useProfiles();
+  const { data: watchers = [] } = useTaskWatchers();
   const currentUserId = useCurrentUserId();
   const me = profiles.find((p) => p.id === currentUserId);
+  const visibleTasks = useMemo(
+    () =>
+      tasks.filter(
+        (t) =>
+          t.assignee_id === currentUserId || watchers.some((w) => w.task_id === t.id && w.user_id === currentUserId)
+      ),
+    [tasks, watchers, currentUserId]
+  );
 
   const myOpen = useMemo(
     () =>
-      tasks
+      visibleTasks
         .filter((t) => t.assignee_id === currentUserId && t.status !== "done")
         .sort((a, b) => {
           const order = { high: 0, medium: 1, low: 2 } as const;
           return order[a.priority] - order[b.priority];
         }),
-    [tasks, currentUserId]
+    [visibleTasks, currentUserId]
   );
 
   const counts = useMemo(() => {
-    const open = tasks.filter((t) => t.status !== "done");
+    const open = visibleTasks.filter((t) => t.status !== "done");
     return {
       total: open.length,
       high: open.filter((t) => t.priority === "high").length,
       medium: open.filter((t) => t.priority === "medium").length,
       low: open.filter((t) => t.priority === "low").length,
-      done: tasks.filter((t) => t.status === "done").length,
+      done: visibleTasks.filter((t) => t.status === "done").length,
     };
-  }, [tasks]);
+  }, [visibleTasks]);
 
   return (
     <div className="px-4 pt-6">
@@ -86,8 +95,9 @@ export default function Dashboard() {
         ) : (
           <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {projects.map((p) => {
-              const open = tasks.filter((t) => t.project_id === p.id && t.status !== "done").length;
-              const total = tasks.filter((t) => t.project_id === p.id).length;
+              const projectTasks = visibleTasks.filter((t) => t.project_id === p.id);
+              const open = projectTasks.filter((t) => t.status !== "done").length;
+              const total = projectTasks.length;
               const progress = total === 0 ? 0 : Math.round(((total - open) / total) * 100);
               return (
                 <Link

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCurrentUserId, useProfiles, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useProfiles, useTaskWatchers, useTasks } from "@/lib/queries";
 import type { Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 
@@ -45,13 +45,19 @@ export function CalendarWidget() {
   const currentUserId = useCurrentUserId();
   const { data: tasks = [] } = useTasks();
   const { data: profiles = [] } = useProfiles();
+  const { data: watchers = [] } = useTaskWatchers();
 
   const me = profiles.find((p) => p.id === currentUserId);
   const myColor = me?.color || "hsl(var(--primary))";
 
   const myTasks = useMemo(
-    () => tasks.filter((t) => t.assignee_id === currentUserId && t.due_date),
-    [tasks, currentUserId]
+    () =>
+      tasks.filter(
+        (t) =>
+          t.due_date &&
+          (t.assignee_id === currentUserId || watchers.some((w) => w.task_id === t.id && w.user_id === currentUserId))
+      ),
+    [tasks, watchers, currentUserId]
   );
 
   const tasksByDay = useMemo(() => {

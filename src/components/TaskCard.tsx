@@ -22,6 +22,7 @@ import {
   useProfiles,
   useProjects,
   useSetTaskWatchers,
+  useSyncProjectMembers,
   useTaskWatchers,
   useToggleTaskStatus,
   useUpdateTask,
@@ -40,6 +41,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
   const toggleStatus = useToggleTaskStatus();
   const updateTask = useUpdateTask();
   const setWatchersM = useSetTaskWatchers();
+  const syncProjectMembers = useSyncProjectMembers();
   const del = useDeleteTask();
 
   const watcherIds = useMemo(
@@ -82,6 +84,14 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
         newWatchers.every((id) => watcherIds.includes(id));
       if (!sameWatchers) {
         promises.push(setWatchersM.mutateAsync({ taskId: task.id, userIds: newWatchers }));
+      }
+      if (task.project_id) {
+        promises.push(
+          syncProjectMembers.mutateAsync({
+            projectId: task.project_id,
+            userIds: [task.created_by, newAssignee, ...newWatchers],
+          })
+        );
       }
       if (promises.length) {
         await Promise.all(promises);

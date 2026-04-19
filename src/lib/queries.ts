@@ -13,6 +13,7 @@ import {
   fetchTasks,
   fetchTaskWatchers,
   setTaskWatchers,
+  syncProjectMembers,
   updateProfile,
   updateProject,
   updateTask,
@@ -25,19 +26,28 @@ export function useCurrentUserId() {
   return user?.id ?? null;
 }
 
+function useAuthReady() {
+  const { user, loading } = useSession();
+  return { user, isReady: !loading };
+}
+
 export function useProfiles() {
-  return useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
+  const { isReady, user } = useAuthReady();
+  return useQuery({ queryKey: ["profiles", user?.id ?? null], queryFn: fetchProfiles, enabled: isReady && !!user });
 }
 
 export function useProjects() {
-  return useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
+  const { isReady, user } = useAuthReady();
+  return useQuery({ queryKey: ["projects", user?.id ?? null], queryFn: fetchProjects, enabled: isReady && !!user });
 }
 
 export function useTasks() {
   const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
 
   // Realtime — refresh on any change
   useEffect(() => {
+    if (!isReady || !user) return;
     const channel = supabase
       .channel(`tasks-realtime-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
@@ -50,9 +60,9 @@ export function useTasks() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [qc]);
+  }, [qc, isReady, user]);
 
-  return useQuery({ queryKey: ["tasks"], queryFn: fetchTasks });
+  return useQuery({ queryKey: ["tasks", user?.id ?? null], queryFn: fetchTasks, enabled: isReady && !!user });
 }
 
 export function useCreateProject() {
@@ -115,7 +125,9 @@ export function useCreateTask() {
 
 export function useTaskWatchers() {
   const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
   useEffect(() => {
+    if (!isReady || !user) return;
     const channel = supabase
       .channel(`task-watchers-realtime-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "task_watchers" }, () => {
@@ -125,8 +137,8 @@ export function useTaskWatchers() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [qc]);
-  return useQuery({ queryKey: ["task_watchers"], queryFn: fetchTaskWatchers });
+  }, [qc, isReady, user]);
+  return useQuery({ queryKey: ["task_watchers", user?.id ?? null], queryFn: fetchTaskWatchers, enabled: isReady && !!user });
 }
 
 export function useSetTaskWatchers() {
@@ -135,6 +147,15 @@ export function useSetTaskWatchers() {
     mutationFn: ({ taskId, userIds }: { taskId: string; userIds: string[] }) =>
       setTaskWatchers(taskId, userIds),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["task_watchers"] }),
+  });
+}
+
+export function useSyncProjectMembers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, userIds }: { projectId: string | null; userIds: string[] }) =>
+      syncProjectMembers(projectId, userIds),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
 
