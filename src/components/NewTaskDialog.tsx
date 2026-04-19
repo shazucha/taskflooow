@@ -89,6 +89,18 @@ export function NewTaskDialog({
   const [dueTime, setDueTime] = useState<string>(defaultDueTime ?? "");
   const [endTime, setEndTime] = useState<string>(defaultEndTime ?? "");
 
+  // Sync prefill values when dialog is opened from outside with new defaults
+  const prefillKey = `${defaultDueDate ?? ""}|${defaultDueTime ?? ""}|${defaultEndTime ?? ""}`;
+  const [lastPrefillKey, setLastPrefillKey] = useState<string>(open ? prefillKey : "");
+  if (open && prefillKey !== lastPrefillKey) {
+    queueMicrotask(() => {
+      setDueDate(defaultDueDate ?? "");
+      setDueTime(defaultDueTime ?? "");
+      setEndTime(defaultEndTime ?? "");
+      setLastPrefillKey(prefillKey);
+    });
+  }
+
   // Opakovanie
   const [recurring, setRecurring] = useState(false);
   const today = new Date();
