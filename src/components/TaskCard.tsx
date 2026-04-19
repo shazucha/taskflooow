@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, MoreHorizontal, Trash2, Check, Users, Repeat } from "lucide-react";
+import { CalendarDays, MoreHorizontal, Trash2, Check, Users, Repeat, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
-import { seriesIndex, seriesSize } from "@/lib/recurring";
+import { seriesIndex, seriesSize, getSeriesKey } from "@/lib/recurring";
 import { PriorityBadge } from "./PriorityBadge";
 import { UserAvatar } from "./UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import {
   useCurrentUserId,
   useDeleteTask,
+  useDeleteTasks,
   useProfiles,
   useProjects,
   useSetTaskWatchers,
@@ -48,6 +49,26 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
   const setWatchersM = useSetTaskWatchers();
   const syncProjectMembers = useSyncProjectMembers();
   const del = useDeleteTask();
+  const delMany = useDeleteTasks();
+
+  const seriesKey = useMemo(() => getSeriesKey(allTasks, task), [allTasks, task]);
+  const seriesTaskIds = useMemo(() => {
+    if (!seriesKey) return [] as string[];
+    return allTasks
+      .filter((t) => getSeriesKey(allTasks, t) === seriesKey)
+      .map((t) => t.id);
+  }, [allTasks, seriesKey, task.id]);
+
+  const deleteSeries = async () => {
+    if (seriesTaskIds.length === 0) return;
+    if (!confirm(`Naozaj zmazať celú sériu (${seriesTaskIds.length} úloh)?`)) return;
+    try {
+      await delMany.mutateAsync(seriesTaskIds);
+      toast.success(`Zmazaných ${seriesTaskIds.length} úloh`);
+    } catch (e: any) {
+      toast.error(e.message ?? "Nepodarilo sa zmazať sériu");
+    }
+  };
 
   const watcherIds = useMemo(
     () => allWatchers.filter((w) => w.task_id === task.id).map((w) => w.user_id),
@@ -243,8 +264,17 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
                 onClick={() => del.mutate(task.id)}
                 className="gap-2 text-destructive focus:text-destructive"
               >
-                <Trash2 className="h-4 w-4" /> Vymazať
+                <Trash2 className="h-4 w-4" /> Vymazať túto úlohu
               </DropdownMenuItem>
+              {seriesTaskIds.length >= 2 && (
+                <DropdownMenuItem
+                  onClick={deleteSeries}
+                  disabled={delMany.isPending}
+                  className="gap-2 text-destructive focus:text-destructive"
+                >
+                  <Layers className="h-4 w-4" /> Zmazať celú sériu ({seriesTaskIds.length})
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           {viewers.length > 0 && (
