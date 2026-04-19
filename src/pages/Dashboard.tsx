@@ -76,7 +76,12 @@ export default function Dashboard() {
         <CalendarWidget />
       </section>
 
-      <section className="mt-6 grid grid-cols-3 gap-2.5">
+      <section className="mt-6 flex items-center justify-between">
+        <h2 className="text-base font-semibold">Prehľad</h2>
+        <MonthFilter value={monthKey} onChange={setMonthKey} />
+      </section>
+
+      <section className="mt-3 grid grid-cols-3 gap-2.5">
         {(["high", "medium", "low"] as const).map((p) => {
           const meta = PRIORITY_META[p];
           return (

@@ -8,6 +8,8 @@ import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
 import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
+import { MonthFilter } from "@/components/MonthFilter";
+import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
 import type { Task } from "@/lib/types";
 import { useCurrentUserId, useProjects, useTasks } from "@/lib/queries";
 
@@ -20,14 +22,18 @@ export default function ProjectDetail() {
   const isOwner = !!project && project.owner_id === currentUserId;
   const [openTask, setOpenTask] = useState<Task | null>(null);
 
+  const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
+
+  const projectTasks = useMemo(() => tasks.filter((t) => t.project_id === id), [tasks, id]);
+  const monthFiltered = useMemo(() => filterTasksByMonth(projectTasks, monthKey), [projectTasks, monthKey]);
+
   const grouped = useMemo(() => {
-    const list = tasks.filter((t) => t.project_id === id);
     return {
-      todo: list.filter((t) => t.status === "todo"),
-      in_progress: list.filter((t) => t.status === "in_progress"),
-      done: list.filter((t) => t.status === "done"),
+      todo: monthFiltered.filter((t) => t.status === "todo"),
+      in_progress: monthFiltered.filter((t) => t.status === "in_progress"),
+      done: monthFiltered.filter((t) => t.status === "done"),
     };
-  }, [tasks, id]);
+  }, [monthFiltered]);
 
   if (!project) {
     return (
