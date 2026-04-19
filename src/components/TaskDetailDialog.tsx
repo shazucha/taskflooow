@@ -96,6 +96,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   if (!task) return null;
 
   const isCreator = task.created_by === currentUserId;
+  const canEdit = isCreator || task.assignee_id === currentUserId;
   const available = profiles.filter(
     (p) => p.id !== task.created_by && p.id !== task.assignee_id
   );
@@ -181,6 +182,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
 
   const saving = setWatchers.isPending || updateTask.isPending;
   const disabled = !isCreator;
+  const statusDisabled = !canEdit;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -254,12 +256,14 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
                   <button
                     key={s}
                     type="button"
+                    disabled={statusDisabled}
                     onClick={() => setStatus(s)}
                     className={cn(
                       "rounded-xl border py-2 text-xs font-semibold transition-all",
                       active
                         ? `${styles[s]} border-transparent ring-2`
-                        : "bg-surface-muted text-muted-foreground border-transparent hover:text-foreground"
+                        : "bg-surface-muted text-muted-foreground border-transparent hover:text-foreground",
+                      statusDisabled && "opacity-60 cursor-not-allowed"
                     )}
                   >
                     {STATUS_LABEL[s]}
@@ -415,7 +419,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
 
           {!isCreator && (
             <p className="text-[11px] text-muted-foreground">
-              Úlohu môže upravovať iba zadávateľ.
+              Názov, popis, prioritu, projekt a spolupracovníkov môže meniť iba zadávateľ. Stav môže meniť aj priradený.
             </p>
           )}
 
