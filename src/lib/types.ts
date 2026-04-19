@@ -57,6 +57,19 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export type TaskActivityAction = "created" | "field_changed" | "watcher_added" | "watcher_removed";
+
+export interface TaskActivity {
+  id: string;
+  task_id: string;
+  actor_id: string | null;
+  action: TaskActivityAction;
+  field: string | null;
+  old_value: unknown;
+  new_value: unknown;
+  created_at: string;
+}
+
 export const PRIORITY_META: Record<Priority, { label: string; dot: string; soft: string; text: string; ring: string }> = {
   high: {
     label: "Urgentné",

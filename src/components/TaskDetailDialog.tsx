@@ -25,6 +25,7 @@ import {
   useUpdateTask,
 } from "@/lib/queries";
 import { toast } from "sonner";
+import { TaskActivityList } from "./TaskActivityList";
 
 interface Props {
   task: Task | null;
@@ -417,6 +418,10 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
               Úlohu môže upravovať iba zadávateľ.
             </p>
           )}
+
+          <div className="pt-2 border-t border-border/60">
+            <TaskActivityList taskId={task.id} />
+          </div>
         </div>
 
         <DialogFooter>

@@ -10,6 +10,7 @@ import {
   fetchProfiles,
   fetchProjects,
   fetchProjectWorks,
+  fetchTaskActivity,
   fetchTasks,
   fetchTaskWatchers,
   setTaskWatchers,
@@ -196,5 +197,31 @@ export function useUpdateProfile() {
     mutationFn: ({ id, patch }: { id: string; patch: Partial<Pick<Profile, "full_name" | "color">> }) =>
       updateProfile(id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["profiles"] }),
+  });
+}
+
+export function useTaskActivity(taskId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+
+  useEffect(() => {
+    if (!isReady || !user || !taskId) return;
+    const channel = supabase
+      .channel(`task-activity-${taskId}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_activity", filter: `task_id=eq.${taskId}` },
+        () => qc.invalidateQueries({ queryKey: ["task_activity", taskId] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isReady, user, taskId, qc]);
+
+  return useQuery({
+    queryKey: ["task_activity", taskId],
+    queryFn: () => fetchTaskActivity(taskId as string),
+    enabled: isReady && !!user && !!taskId,
   });
 }
