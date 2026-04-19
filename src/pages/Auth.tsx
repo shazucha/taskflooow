@@ -21,6 +21,7 @@ export default function Auth() {
     e.preventDefault();
     if (!email || !password) return;
     setSubmitting(true);
+    await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setSubmitting(false);
     if (error) {
