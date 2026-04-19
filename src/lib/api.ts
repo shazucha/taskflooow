@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import type { Profile, Project, ProjectWork, Task, TaskActivity } from "./types";
 
-const PROJECT_COLS = "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since";
+const PROJECT_COLS = "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since, category";
 
 // ---- Profiles
 export async function fetchProfiles(): Promise<Profile[]> {
