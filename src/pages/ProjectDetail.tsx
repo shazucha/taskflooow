@@ -6,7 +6,7 @@ import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
-import { ProjectServicesCard } from "@/components/ProjectServicesCard";
+import { MonthlyDeliverablesCard } from "@/components/MonthlyDeliverablesCard";
 import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import { MonthFilter } from "@/components/MonthFilter";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
