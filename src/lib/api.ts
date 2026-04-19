@@ -153,7 +153,8 @@ export async function setTaskWatchers(taskId: string, userIds: string[]) {
     [task.created_by, task.assignee_id, ...userIds].filter((value): value is string => !!value)
   );
 
-  await supabase.from("task_watchers").delete().eq("task_id", taskId);
+  const { error: deleteError } = await supabase.from("task_watchers").delete().eq("task_id", taskId);
+  if (deleteError) throw deleteError;
   if (userIds.length === 0) return;
   const rows = userIds.map((user_id) => ({ task_id: taskId, user_id }));
   const { error } = await supabase.from("task_watchers").insert(rows);
