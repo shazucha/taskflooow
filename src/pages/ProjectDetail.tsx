@@ -72,7 +72,7 @@ export default function ProjectDetail() {
       </div>
 
       <div className="mt-4">
-        <ProjectServicesCard projectId={project.id} />
+        <MonthlyDeliverablesCard projectId={project.id} />
       </div>
 
       <div className="mt-5 flex items-center justify-between">
