@@ -110,7 +110,7 @@ export default function Dashboard() {
         ) : (
           <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {projects.map((p) => {
-              const projectTasks = visibleTasks.filter((t) => t.project_id === p.id);
+              const projectTasks = tasks.filter((t) => t.project_id === p.id);
               const open = projectTasks.filter((t) => t.status !== "done").length;
               const total = projectTasks.length;
               const progress = total === 0 ? 0 : Math.round(((total - open) / total) * 100);
