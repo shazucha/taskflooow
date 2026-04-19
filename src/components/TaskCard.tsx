@@ -1,12 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, MoreHorizontal, Trash2, Check } from "lucide-react";
+import { CalendarDays, MoreHorizontal, Trash2, Check, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 import { PriorityBadge } from "./PriorityBadge";
 import { UserAvatar } from "./UserAvatar";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,13 +16,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 import {
-  useDelegateTask,
   useDeleteTask,
   useProfiles,
   useProjects,
+  useSetTaskWatchers,
   useTaskWatchers,
   useToggleTaskStatus,
+  useUpdateTask,
 } from "@/lib/queries";
 
 interface Props {
@@ -35,8 +38,60 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
   const { data: projects = [] } = useProjects();
   const { data: allWatchers = [] } = useTaskWatchers();
   const toggleStatus = useToggleTaskStatus();
-  const delegate = useDelegateTask();
+  const updateTask = useUpdateTask();
+  const setWatchersM = useSetTaskWatchers();
   const del = useDeleteTask();
+
+  const watcherIds = useMemo(
+    () => allWatchers.filter((w) => w.task_id === task.id).map((w) => w.user_id),
+    [allWatchers, task.id]
+  );
+
+  // Poradie vybraných: prvý = hlavný (assignee), ďalší = watchers
+  const initialSelected = useMemo(() => {
+    const arr: string[] = [];
+    if (task.assignee_id) arr.push(task.assignee_id);
+    watcherIds.forEach((id) => {
+      if (!arr.includes(id)) arr.push(id);
+    });
+    return arr;
+  }, [task.assignee_id, watcherIds]);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>(initialSelected);
+
+  // Sync keď sa otvorí menu / zmenia sa dáta
+  const openChange = (v: boolean) => {
+    if (v) setSelected(initialSelected);
+    setMenuOpen(v);
+  };
+
+  const toggleUser = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const saveAssignment = async () => {
+    try {
+      const newAssignee = selected[0] ?? task.created_by;
+      const newWatchers = selected.slice(1).filter((id) => id !== newAssignee);
+      const promises: Promise<unknown>[] = [];
+      if (newAssignee !== task.assignee_id) {
+        promises.push(updateTask.mutateAsync({ id: task.id, patch: { assignee_id: newAssignee } }));
+      }
+      const sameWatchers =
+        newWatchers.length === watcherIds.length &&
+        newWatchers.every((id) => watcherIds.includes(id));
+      if (!sameWatchers) {
+        promises.push(setWatchersM.mutateAsync({ taskId: task.id, userIds: newWatchers }));
+      }
+      if (promises.length) {
+        await Promise.all(promises);
+        toast.success("Priradenie uložené");
+      }
+      setMenuOpen(false);
+    } catch (e: any) {
+      toast.error(e.message ?? "Nepodarilo sa uložiť");
+    }
+  };
 
   const assignee = useMemo(
     () => profiles.find((p) => p.id === task.assignee_id),
@@ -73,7 +128,8 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               ? "border-success bg-success text-white"
               : "border-border hover:border-primary"
           )}
-          aria-label="Označiť stav"
+          aria-label={done ? "Označiť ako nedokončené" : "Označiť ako dokončené"}
+          title={done ? "Klikni pre vrátenie na nedokončené" : "Označiť ako dokončené"}
         >
           {done && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
         </button>
@@ -103,25 +159,58 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
         </button>
 
         <div className="flex flex-col items-end gap-2">
-          <DropdownMenu>
+          <DropdownMenu open={menuOpen} onOpenChange={openChange}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7 -mr-1 -mt-1">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="text-xs">Predať úlohu</DropdownMenuLabel>
-              {profiles.map((p) => (
-                <DropdownMenuItem
-                  key={p.id}
-                  onClick={() => delegate(task.id, p.id)}
-                  className="gap-2"
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel className="flex items-center gap-1.5 text-xs">
+                <Users className="h-3.5 w-3.5" /> Komu úloha patrí
+              </DropdownMenuLabel>
+              <p className="px-2 pb-1 text-[10px] text-muted-foreground">
+                1. zaškrtnutý = hlavný zodpovedný
+              </p>
+              <div className="max-h-64 overflow-y-auto px-1">
+                {profiles.map((p) => {
+                  const idx = selected.indexOf(p.id);
+                  const active = idx !== -1;
+                  const isPrimary = idx === 0;
+                  return (
+                    <label
+                      key={p.id}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition",
+                        active ? "bg-primary/10" : "hover:bg-surface-muted"
+                      )}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Checkbox
+                        checked={active}
+                        onCheckedChange={() => toggleUser(p.id)}
+                      />
+                      <UserAvatar profile={p} size="sm" />
+                      <span className="flex-1 truncate">{p.full_name ?? p.email}</span>
+                      {isPrimary && (
+                        <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary-foreground">
+                          Hlavný
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="px-2 py-1.5">
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={saveAssignment}
+                  disabled={updateTask.isPending || setWatchersM.isPending}
                 >
-                  <UserAvatar profile={p} size="sm" />
-                  <span className="flex-1 truncate">{p.full_name}</span>
-                  {task.assignee_id === p.id && <Check className="h-3.5 w-3.5" />}
-                </DropdownMenuItem>
-              ))}
+                  Uložiť priradenie
+                </Button>
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => del.mutate(task.id)}
