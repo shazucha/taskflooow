@@ -43,17 +43,16 @@ export async function createProject(input: {
   currency?: string | null;
   client_since?: string | null;
 }): Promise<Project> {
-  const { data, error } = await supabase
-    .from("projects")
-    .insert(input)
-    .select(PROJECT_COLS)
-    .single();
-  if (error) throw error;
-  await supabase.from("project_members").insert({
-    project_id: data.id,
-    user_id: input.owner_id,
-    role: "owner",
+  const { data, error } = await supabase.rpc("create_project_with_membership", {
+    _name: input.name,
+    _description: input.description,
+    _color: input.color,
+    _owner_id: input.owner_id,
+    _monthly_price: input.monthly_price ?? null,
+    _currency: input.currency ?? null,
+    _client_since: input.client_since ?? null,
   });
+  if (error) throw error;
   return data as Project;
 }
 
