@@ -21,9 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useCreateTask, useCurrentUserId, useProfiles, useProjects } from "@/lib/queries";
 import { toast } from "sonner";
+import { UserAvatar } from "./UserAvatar";
 
 const HALF_HOUR_SLOTS = Array.from({ length: 48 }, (_, i) => {
   const h = Math.floor(i / 2);
@@ -47,25 +49,26 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
-  const [assigneeId, setAssigneeId] = useState<string>("");
+  // Pole vybraných používateľov. PRVÝ v poradí = hlavný zodpovedný (assignee),
+  // ostatní = spolupracovníci (watchers). Default: aktuálny používateľ.
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
+    currentUserId ? [currentUserId] : []
+  );
   const [dueDate, setDueDate] = useState<string>("");
-  const [dueTime, setDueTime] = useState<string>(""); // "" = celý deň, inak HH:MM (po 30 min)
-  const [endTime, setEndTime] = useState<string>(""); // koniec, HH:MM (po 30 min)
-  const [watcherIds, setWatcherIds] = useState<string[]>([]);
+  const [dueTime, setDueTime] = useState<string>("");
+  const [endTime, setEndTime] = useState<string>("");
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
-    setProjectId(defaultProjectId ?? ""); setAssigneeId("");
+    setProjectId(defaultProjectId ?? "");
+    setSelectedUserIds(currentUserId ? [currentUserId] : []);
     setDueDate(""); setDueTime(""); setEndTime("");
-    setWatcherIds([]);
   };
 
-  const effectiveAssignee = assigneeId || currentUserId || "";
-  const availableWatchers = profiles.filter(
-    (p) => p.id !== currentUserId && p.id !== effectiveAssignee
-  );
-  const toggleWatcher = (id: string) =>
-    setWatcherIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggleUser = (id: string) =>
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
 
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
@@ -80,6 +83,9 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           if (end.getTime() > start.getTime()) due_end = end.toISOString();
         }
       }
+      // Hlavný zodpovedný = prvý vybraný, fallback aktuálny používateľ
+      const assignee = selectedUserIds[0] ?? currentUserId;
+      const watchers = selectedUserIds.slice(1).filter((id) => id !== assignee);
       await create.mutateAsync({
         task: {
           title: title.trim(),
@@ -87,12 +93,12 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           priority,
           status: "todo",
           project_id: projectId || null,
-          assignee_id: assigneeId || currentUserId,
+          assignee_id: assignee,
           created_by: currentUserId,
           due_date,
           due_end,
         },
-        watcherIds: watcherIds.filter((id) => id !== currentUserId && id !== effectiveAssignee),
+        watcherIds: watchers,
       });
       setOpen(false);
       reset();
@@ -240,53 +246,48 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
             )}
           </div>
           <div className="space-y-1.5">
-            <Label>Priradiť</Label>
-            <Select value={assigneeId || currentUserId || ""} onValueChange={setAssigneeId}>
-              <SelectTrigger><SelectValue placeholder="Vyber člena tímu" /></SelectTrigger>
-              <SelectContent>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.full_name ?? p.email}{p.id === currentUserId ? " (ja)" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
             <Label className="flex items-center justify-between">
-              <span>Spolupracovníci</span>
+              <span>Komu úloha patrí</span>
               <span className="text-[11px] font-normal text-muted-foreground">
-                Default: ty + priradený
+                1. zaškrtnutý = hlavný
               </span>
             </Label>
             <p className="text-[11px] text-muted-foreground">
-              Môžu na úlohe pracovať a meniť jej stav.
+              Môžeš vybrať viac ľudí. Prvý zaškrtnutý je hlavný zodpovedný, ostatní spolupracujú.
             </p>
-            {availableWatchers.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Žiadni ďalší členovia.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {availableWatchers.map((p) => {
-                  const active = watcherIds.includes(p.id);
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => toggleWatcher(p.id)}
-                      className={cn(
-                        "rounded-full border px-2.5 py-1 text-xs font-medium transition",
-                        active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {active && "✓ "}
+            <div className="space-y-1 rounded-xl border border-border/60 p-1">
+              {profiles.map((p) => {
+                const idx = selectedUserIds.indexOf(p.id);
+                const active = idx !== -1;
+                const isPrimary = idx === 0;
+                return (
+                  <label
+                    key={p.id}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition",
+                      active ? "bg-primary/10" : "hover:bg-surface-muted"
+                    )}
+                  >
+                    <Checkbox
+                      checked={active}
+                      onCheckedChange={() => toggleUser(p.id)}
+                    />
+                    <UserAvatar profile={p} size="sm" />
+                    <span className="flex-1 truncate text-sm">
                       {p.full_name ?? p.email}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                      {p.id === currentUserId && (
+                        <span className="ml-1 text-xs text-muted-foreground">(ja)</span>
+                      )}
+                    </span>
+                    {isPrimary && (
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
+                        Hlavný
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
           </div>
         </div>
         <DialogFooter>

@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
 
@@ -38,19 +39,23 @@ function fallbackColor(id?: string) {
   return fallbackPalette[n];
 }
 
-export function UserAvatar({ profile, size = "md", className }: Props) {
-  const bg = profile?.color || fallbackColor(profile?.id);
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center justify-center rounded-full font-semibold text-white ring-2 ring-background",
-        sizes[size],
-        className
-      )}
-      style={{ backgroundColor: bg }}
-      title={profile?.full_name ?? ""}
-    >
-      {initials(profile?.full_name, profile?.email)}
-    </span>
-  );
-}
+export const UserAvatar = forwardRef<HTMLSpanElement, Props>(
+  ({ profile, size = "md", className }, ref) => {
+    const bg = profile?.color || fallbackColor(profile?.id);
+    return (
+      <span
+        ref={ref}
+        className={cn(
+          "inline-flex items-center justify-center rounded-full font-semibold text-white ring-2 ring-background",
+          sizes[size],
+          className
+        )}
+        style={{ backgroundColor: bg }}
+        title={profile?.full_name ?? ""}
+      >
+        {initials(profile?.full_name, profile?.email)}
+      </span>
+    );
+  }
+);
+UserAvatar.displayName = "UserAvatar";

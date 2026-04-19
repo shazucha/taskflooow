@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUserId, useProfiles, useTasks } from "@/lib/queries";
-import { Link } from "react-router-dom";
 import type { Task } from "@/lib/types";
+import { TaskDetailDialog } from "./TaskDetailDialog";
 
 type View = "month" | "week" | "day";
 
@@ -41,6 +41,7 @@ export function CalendarWidget() {
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<Date>(new Date());
+  const [openTask, setOpenTask] = useState<Task | null>(null);
   const currentUserId = useCurrentUserId();
   const { data: tasks = [] } = useTasks();
   const { data: profiles = [] } = useProfiles();
@@ -169,6 +170,7 @@ export function CalendarWidget() {
           date={cursor}
           tasks={tasksByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
+          onOpenTask={setOpenTask}
         />
       )}
 
@@ -178,8 +180,15 @@ export function CalendarWidget() {
           selected={selected}
           tasks={tasksByDay.get(dayKey(selected)) ?? []}
           myColor={myColor}
+          onOpenTask={setOpenTask}
         />
       )}
+
+      <TaskDetailDialog
+        task={openTask}
+        open={!!openTask}
+        onOpenChange={(v) => !v && setOpenTask(null)}
+      />
     </div>
   );
 }
@@ -286,13 +295,16 @@ function WeekView({
 const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
-function DayView({ date, tasks, myColor }: { date: Date; tasks: Task[]; myColor: string }) {
+function DayView({
+  date, tasks, myColor, onOpenTask,
+}: {
+  date: Date; tasks: Task[]; myColor: string; onOpenTask: (t: Task) => void;
+}) {
   const allDay = tasks.filter((t) => !hasTime(t));
   const timed = tasks
     .filter((t) => hasTime(t))
     .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
 
-  // pre každý časovaný task spočítaj slot index a dĺžku v slotoch (zaokrúhli na pol hodinu)
   const blocks = timed.map((t) => {
     const s = new Date(t.due_date!);
     const startSlot = s.getHours() * 2 + (s.getMinutes() >= 30 ? 1 : 0);
@@ -311,14 +323,13 @@ function DayView({ date, tasks, myColor }: { date: Date; tasks: Task[]; myColor:
         <div>
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
           <ul className="space-y-1">
-            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} />)}
+            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} onOpenTask={onOpenTask} />)}
           </ul>
         </div>
       )}
 
       <div className="max-h-[420px] overflow-y-auto rounded-lg border border-border/60">
         <div className="relative" style={{ height: SLOTS_PER_DAY * SLOT_PX }}>
-          {/* mriežka po pol hodinách */}
           {Array.from({ length: SLOTS_PER_DAY }).map((_, i) => {
             const isHour = i % 2 === 0;
             return (
@@ -339,15 +350,15 @@ function DayView({ date, tasks, myColor }: { date: Date; tasks: Task[]; myColor:
             );
           })}
 
-          {/* bloky úloh */}
           {blocks.map(({ task, startSlot, lengthSlots }) => {
             const d = new Date(task.due_date!);
             const e = task.due_end ? new Date(task.due_end) : null;
             return (
-              <Link
+              <button
                 key={task.id}
-                to={task.project_id ? `/projects/${task.project_id}` : "/tasks"}
-                className="absolute left-12 right-2 overflow-hidden rounded-md px-2 py-1 text-[11px] hover:opacity-90"
+                type="button"
+                onClick={() => onOpenTask(task)}
+                className="absolute left-12 right-2 overflow-hidden rounded-md px-2 py-1 text-left text-[11px] hover:opacity-90"
                 style={{
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
@@ -360,7 +371,7 @@ function DayView({ date, tasks, myColor }: { date: Date; tasks: Task[]; myColor:
                   {e && ` – ${String(e.getHours()).padStart(2, "0")}:${String(e.getMinutes()).padStart(2, "0")}`}
                 </div>
                 <div className="truncate font-semibold">{task.title}</div>
-              </Link>
+              </button>
             );
           })}
         </div>
@@ -374,7 +385,11 @@ function DayView({ date, tasks, myColor }: { date: Date; tasks: Task[]; myColor:
 }
 
 /* ---------------- Helpers ---------------- */
-function SelectedDayList({ selected, tasks, myColor }: { selected: Date; tasks: Task[]; myColor: string }) {
+function SelectedDayList({
+  selected, tasks, myColor, onOpenTask,
+}: {
+  selected: Date; tasks: Task[]; myColor: string; onOpenTask: (t: Task) => void;
+}) {
   return (
     <div className="mt-3 border-t border-border/60 pt-3">
       <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -384,21 +399,26 @@ function SelectedDayList({ selected, tasks, myColor }: { selected: Date; tasks: 
         <p className="mt-2 text-xs text-muted-foreground">Žiadne úlohy.</p>
       ) : (
         <ul className="mt-2 space-y-1.5">
-          {tasks.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} />)}
+          {tasks.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} onOpenTask={onOpenTask} />)}
         </ul>
       )}
     </div>
   );
 }
 
-function TaskRow({ task, myColor }: { task: Task; myColor: string }) {
+function TaskRow({
+  task, myColor, onOpenTask,
+}: {
+  task: Task; myColor: string; onOpenTask: (t: Task) => void;
+}) {
   const timed = hasTime(task);
   const d = task.due_date ? new Date(task.due_date) : null;
   return (
     <li>
-      <Link
-        to={task.project_id ? `/projects/${task.project_id}` : "/tasks"}
-        className="flex items-center gap-2 rounded-lg p-1.5 text-xs hover:bg-surface-muted"
+      <button
+        type="button"
+        onClick={() => onOpenTask(task)}
+        className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left text-xs hover:bg-surface-muted"
       >
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: myColor }} />
         {timed && d && (
@@ -407,7 +427,7 @@ function TaskRow({ task, myColor }: { task: Task; myColor: string }) {
           </span>
         )}
         <span className="flex-1 truncate">{task.title}</span>
-      </Link>
+      </button>
     </li>
   );
 }
