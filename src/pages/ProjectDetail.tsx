@@ -5,6 +5,7 @@ import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
+import { ProjectMetaCard } from "@/components/ProjectMetaCard";
 import type { Task } from "@/lib/types";
 import { useProjects, useTasks } from "@/lib/queries";
 
@@ -52,6 +53,10 @@ export default function ProjectDetail() {
         </div>
         <NewTaskDialog defaultProjectId={project.id} />
       </header>
+
+      <div className="mt-4">
+        <ProjectMetaCard project={project} />
+      </div>
 
       {(["in_progress", "todo", "done"] as const).map((s) => {
         const list = grouped[s];

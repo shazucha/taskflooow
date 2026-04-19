@@ -3,17 +3,21 @@ import { useEffect } from "react";
 import { supabase } from "./supabase";
 import {
   createProject,
+  createProjectWork,
   createTask,
+  deleteProjectWork,
   deleteTask,
   fetchProfiles,
   fetchProjects,
+  fetchProjectWorks,
   fetchTasks,
   fetchTaskWatchers,
   setTaskWatchers,
   updateProfile,
+  updateProject,
   updateTask,
 } from "./api";
-import type { Profile, Task, TaskStatus } from "./types";
+import type { Profile, Project, Task, TaskStatus } from "./types";
 import { useSession } from "./useSession";
 
 export function useCurrentUserId() {
@@ -56,6 +60,39 @@ export function useCreateProject() {
   return useMutation({
     mutationFn: createProject,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export function useUpdateProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Project> }) => updateProject(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export function useProjectWorks(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ["project_works", projectId],
+    queryFn: () => fetchProjectWorks(projectId!),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateProjectWork() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createProjectWork,
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ["project_works", vars.project_id] }),
+  });
+}
+
+export function useDeleteProjectWork(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteProjectWork(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_works", projectId] }),
   });
 }
 

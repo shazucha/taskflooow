@@ -16,6 +16,18 @@ export interface Project {
   color: string | null;
   owner_id: string;
   created_at: string;
+  monthly_price: number | null;
+  currency: string | null;
+  client_since: string | null;
+}
+
+export interface ProjectWork {
+  id: string;
+  project_id: string;
+  title: string;
+  price: number | null;
+  note: string | null;
+  created_at: string;
 }
 
 export interface Task {
