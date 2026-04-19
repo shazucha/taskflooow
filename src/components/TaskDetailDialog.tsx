@@ -240,6 +240,35 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
           </div>
 
           <div className="space-y-1.5">
+            <Label>Stav</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["todo", "in_progress", "done"] as TaskStatus[]).map((s) => {
+                const active = status === s;
+                const styles: Record<TaskStatus, string> = {
+                  todo: "bg-surface-muted text-foreground ring-border",
+                  in_progress: "bg-primary/15 text-primary ring-primary/30",
+                  done: "bg-success/15 text-success ring-success/30",
+                };
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setStatus(s)}
+                    className={cn(
+                      "rounded-xl border py-2 text-xs font-semibold transition-all",
+                      active
+                        ? `${styles[s]} border-transparent ring-2`
+                        : "bg-surface-muted text-muted-foreground border-transparent hover:text-foreground"
+                    )}
+                  >
+                    {STATUS_LABEL[s]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
             <Label>Projekt</Label>
             <Select
               value={projectId || "none"}
