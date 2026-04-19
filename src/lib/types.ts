@@ -35,6 +35,23 @@ export interface ProjectWork {
   created_at: string;
 }
 
+export interface ProjectRecurringWork {
+  id: string;
+  project_id: string;
+  title: string;
+  note: string | null;
+  position: number;
+  created_at: string;
+}
+
+export interface ProjectRecurringWorkCompletion {
+  id: string;
+  work_id: string;
+  month_key: string; // "YYYY-MM"
+  completed_by: string | null;
+  completed_at: string;
+}
+
 export interface Task {
   id: string;
   project_id: string | null;
