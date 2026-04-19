@@ -114,7 +114,8 @@ export function NewTaskDialog({
     setTitle(""); setDescription(""); setPriority("medium");
     setProjectId(defaultProjectId ?? "");
     setSelectedUserIds(currentUserId ? [currentUserId] : []);
-    setDueDate(""); setDueTime(""); setEndTime("");
+    setDueDate(defaultDueDate ?? ""); setDueTime(defaultDueTime ?? ""); setEndTime(defaultEndTime ?? "");
+    setLastPrefillKey("");
     setRecurring(false);
     setRecDay(today.getDate()); setRecMonths(12);
     setRecStartMonth(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
