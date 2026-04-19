@@ -1,5 +1,13 @@
 import { supabase } from "./supabase";
-import type { Profile, Project, ProjectWork, Task, TaskActivity } from "./types";
+import type {
+  Profile,
+  Project,
+  ProjectRecurringWork,
+  ProjectRecurringWorkCompletion,
+  ProjectWork,
+  Task,
+  TaskActivity,
+} from "./types";
 
 const PROJECT_COLS = "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since, category";
 
@@ -223,3 +231,95 @@ export async function fetchTaskActivity(taskId: string): Promise<TaskActivity[]>
   if (error) throw error;
   return (data ?? []) as TaskActivity[];
 }
+
+// ---- Project recurring works (mesačná náplň predplatného)
+const RECURRING_COLS = "id, project_id, title, note, position, created_at";
+
+export async function fetchProjectRecurringWorks(projectId: string): Promise<ProjectRecurringWork[]> {
+  const { data, error } = await supabase
+    .from("project_recurring_works")
+    .select(RECURRING_COLS)
+    .eq("project_id", projectId)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ProjectRecurringWork[];
+}
+
+export async function createProjectRecurringWork(input: {
+  project_id: string;
+  title: string;
+  note: string | null;
+  position?: number;
+}): Promise<ProjectRecurringWork> {
+  const { data, error } = await supabase
+    .from("project_recurring_works")
+    .insert({
+      project_id: input.project_id,
+      title: input.title,
+      note: input.note,
+      position: input.position ?? 0,
+    })
+    .select(RECURRING_COLS)
+    .single();
+  if (error) throw error;
+  return data as ProjectRecurringWork;
+}
+
+export async function deleteProjectRecurringWork(id: string) {
+  const { error } = await supabase.from("project_recurring_works").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function fetchRecurringWorkCompletions(
+  projectId: string
+): Promise<ProjectRecurringWorkCompletion[]> {
+  const { data, error } = await supabase
+    .from("project_recurring_work_completions")
+    .select(
+      "id, work_id, month_key, completed_by, completed_at, project_recurring_works!inner(project_id)"
+    )
+    .eq("project_recurring_works.project_id", projectId);
+  if (error) throw error;
+  return ((data ?? []) as Array<{
+    id: string;
+    work_id: string;
+    month_key: string;
+    completed_by: string | null;
+    completed_at: string;
+  }>).map((r) => ({
+    id: r.id,
+    work_id: r.work_id,
+    month_key: r.month_key,
+    completed_by: r.completed_by,
+    completed_at: r.completed_at,
+  }));
+}
+
+export async function markRecurringWorkDone(input: {
+  work_id: string;
+  month_key: string;
+  user_id: string;
+}): Promise<ProjectRecurringWorkCompletion> {
+  const { data, error } = await supabase
+    .from("project_recurring_work_completions")
+    .insert({
+      work_id: input.work_id,
+      month_key: input.month_key,
+      completed_by: input.user_id,
+    })
+    .select("id, work_id, month_key, completed_by, completed_at")
+    .single();
+  if (error) throw error;
+  return data as ProjectRecurringWorkCompletion;
+}
+
+export async function unmarkRecurringWorkDone(work_id: string, month_key: string) {
+  const { error } = await supabase
+    .from("project_recurring_work_completions")
+    .delete()
+    .eq("work_id", work_id)
+    .eq("month_key", month_key);
+  if (error) throw error;
+}
+
