@@ -127,8 +127,10 @@ export function NewTaskDialog({
     setDueDate(defaultDueDate ?? ""); setDueTime(defaultDueTime ?? ""); setEndTime(defaultEndTime ?? "");
     setLastPrefillKey("");
     setRecurring(false);
+    setRecMode("monthly");
     setRecDay(today.getDate()); setRecMonths(12);
     setRecStartMonth(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
+    setRecWeekStart(isoToday); setRecWeeks(12); setRecWeekTime(""); setRecWeekEnd("");
   };
 
   const toggleUser = (id: string) =>
