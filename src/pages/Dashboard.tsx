@@ -33,17 +33,6 @@ export default function Dashboard() {
     [visibleTasks, monthKey]
   );
 
-  const myOpen = useMemo(
-    () =>
-      monthFiltered
-        .filter((t) => t.assignee_id === currentUserId && t.status !== "done")
-        .sort((a, b) => {
-          const order = { high: 0, medium: 1, low: 2 } as const;
-          return order[a.priority] - order[b.priority];
-        }),
-    [monthFiltered, currentUserId]
-  );
-
   const counts = useMemo(() => {
     const open = monthFiltered.filter((t) => t.status !== "done");
     return {
