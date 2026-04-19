@@ -220,13 +220,15 @@ export function NewTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button className="gap-1.5 rounded-full shadow-md">
-            <Plus className="h-4 w-4" /> Nová úloha
-          </Button>
-        )}
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          {trigger ?? (
+            <Button className="gap-1.5 rounded-full shadow-md">
+              <Plus className="h-4 w-4" /> Nová úloha
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nová úloha</DialogTitle>
