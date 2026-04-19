@@ -184,9 +184,14 @@ export function NewTaskDialog({
         if (dueDate) {
           const start = new Date(`${dueDate}T${dueTime || "00:00"}:00`);
           due_date = start.toISOString();
-          if (dueTime && endTime) {
-            const end = new Date(`${dueDate}T${endTime}:00`);
-            if (end.getTime() > start.getTime()) due_end = end.toISOString();
+          if (dueTime) {
+            if (endTime) {
+              const end = new Date(`${dueDate}T${endTime}:00`);
+              if (end.getTime() > start.getTime()) due_end = end.toISOString();
+            } else {
+              // Default 30 min slot when start time is set without explicit end
+              due_end = new Date(start.getTime() + 30 * 60 * 1000).toISOString();
+            }
           }
         }
         await create.mutateAsync({
