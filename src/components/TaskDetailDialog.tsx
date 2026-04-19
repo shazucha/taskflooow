@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { Priority, Task } from "@/lib/types";
-import { PRIORITY_META } from "@/lib/types";
+import type { Priority, Task, TaskStatus } from "@/lib/types";
+import { PRIORITY_META, STATUS_LABEL } from "@/lib/types";
 import {
   useCurrentUserId,
   useProfiles,
