@@ -154,7 +154,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
       if ((projectId || "") !== (task.project_id ?? "") && projectId) {
         await syncProjectMembers.mutateAsync({
           projectId,
-          userIds: [task.created_by, task.assignee_id, ...selected].filter(
+          userIds: [task.created_by, currentUserId, task.assignee_id, ...selected].filter(
             (x): x is string => !!x
           ),
         });
