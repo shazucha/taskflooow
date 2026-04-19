@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, MessagesSquare, CalendarDays } from "lucide-react";
-import { TaskCard } from "@/components/TaskCard";
-import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Chat } from "@/components/Chat";
 import { CalendarWidget } from "@/components/CalendarWidget";
@@ -33,17 +31,6 @@ export default function Dashboard() {
   const monthFiltered = useMemo(
     () => filterTasksByMonth(visibleTasks, monthKey),
     [visibleTasks, monthKey]
-  );
-
-  const myOpen = useMemo(
-    () =>
-      monthFiltered
-        .filter((t) => t.assignee_id === currentUserId && t.status !== "done")
-        .sort((a, b) => {
-          const order = { high: 0, medium: 1, low: 2 } as const;
-          return order[a.priority] - order[b.priority];
-        }),
-    [monthFiltered, currentUserId]
   );
 
   const counts = useMemo(() => {
@@ -98,7 +85,7 @@ export default function Dashboard() {
 
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold">Aktívne projekty</h2>
+          <h2 className="text-base font-semibold">Projekty</h2>
           <Link to="/projects" className="text-xs font-medium text-primary inline-flex items-center">
             Všetky <ChevronRight className="h-3 w-3" />
           </Link>
@@ -137,22 +124,6 @@ export default function Dashboard() {
             })}
           </div>
         )}
-      </section>
-
-      <section className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold">Moje úlohy</h2>
-          <NewTaskDialog />
-        </div>
-        <div className="space-y-2.5">
-          {myOpen.length === 0 ? (
-            <p className="rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground">
-              Všetko hotové. 🎉
-            </p>
-          ) : (
-            myOpen.map((t) => <TaskCard key={t.id} task={t} showProject />)
-          )}
-        </div>
       </section>
 
       <section className="mt-6">
