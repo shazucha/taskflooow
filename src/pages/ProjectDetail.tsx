@@ -55,8 +55,9 @@ export default function ProjectDetail() {
             <p className="mt-1 text-sm text-muted-foreground">{project.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1 justify-end">
           {isOwner && project && <DeleteProjectDialog projectId={project.id} projectName={project.name} />}
+          <RecurringTaskDialog projectId={project.id} />
           <NewTaskDialog defaultProjectId={project.id} />
         </div>
       </header>
