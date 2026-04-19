@@ -164,6 +164,10 @@ export function CalendarWidget() {
             setCursor(d);
             setView("day");
           }}
+          onCreateAt={(d) => {
+            setPrefill({ date: fmtDate(d) });
+            setCreateOpen(true);
+          }}
         />
       )}
 
@@ -180,6 +184,10 @@ export function CalendarWidget() {
             setCursor(d);
             setView("day");
           }}
+          onCreateAt={(d) => {
+            setPrefill({ date: fmtDate(d) });
+            setCreateOpen(true);
+          }}
         />
       )}
 
@@ -189,6 +197,24 @@ export function CalendarWidget() {
           tasks={tasksByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
           onOpenTask={setOpenTask}
+          onCreateSlot={(slotIdx) => {
+            const h = Math.floor(slotIdx / 2);
+            const m = slotIdx % 2 === 0 ? 0 : 30;
+            setPrefill({ date: fmtDate(cursor), time: fmtTime(h, m) });
+            setCreateOpen(true);
+          }}
+          onCreateRange={(startSlot, endSlot) => {
+            const sh = Math.floor(startSlot / 2);
+            const sm = startSlot % 2 === 0 ? 0 : 30;
+            const eh = Math.floor(endSlot / 2);
+            const em = endSlot % 2 === 0 ? 0 : 30;
+            setPrefill({
+              date: fmtDate(cursor),
+              time: fmtTime(sh, sm),
+              end: fmtTime(eh, em),
+            });
+            setCreateOpen(true);
+          }}
         />
       )}
 
@@ -206,6 +232,18 @@ export function CalendarWidget() {
         task={openTask}
         open={!!openTask}
         onOpenChange={(v) => !v && setOpenTask(null)}
+      />
+
+      <NewTaskDialog
+        hideTrigger
+        open={createOpen}
+        onOpenChange={(v) => {
+          setCreateOpen(v);
+          if (!v) setPrefill(null);
+        }}
+        defaultDueDate={prefill?.date}
+        defaultDueTime={prefill?.time}
+        defaultEndTime={prefill?.end}
       />
     </div>
   );
