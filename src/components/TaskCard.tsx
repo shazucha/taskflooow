@@ -261,7 +261,15 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => del.mutate(task.id)}
+                onClick={async () => {
+                  if (!confirm("Naozaj zmazať túto úlohu?")) return;
+                  try {
+                    await del.mutateAsync(task.id);
+                    toast.success("Úloha zmazaná");
+                  } catch (e: any) {
+                    toast.error(e?.message ?? "Nepodarilo sa zmazať úlohu");
+                  }
+                }}
                 className="gap-2 text-destructive focus:text-destructive"
               >
                 <Trash2 className="h-4 w-4" /> Vymazať túto úlohu
