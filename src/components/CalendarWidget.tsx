@@ -251,11 +251,12 @@ export function CalendarWidget() {
 
 /* ---------------- Month ---------------- */
 function MonthView({
-  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay,
+  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay, onCreateAt,
 }: {
   cursor: Date; selected: Date; today: Date;
   tasksByDay: Map<string, Task[]>; myColor: string;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
+  onCreateAt: (d: Date) => void;
 }) {
   const monthStart = startOfMonth(cursor);
   const monthDays = daysInMonth(cursor);
@@ -278,22 +279,29 @@ function MonthView({
           const isToday = sameDay(d, today);
           const isSelected = sameDay(d, selected);
           return (
-            <button
+            <div
               key={key}
-              type="button"
-              onClick={() => onSelect(d)}
-              onDoubleClick={() => onDrillDay(d)}
               className={cn(
-                "relative flex aspect-square flex-col items-center justify-center rounded-lg text-xs font-medium transition",
+                "group relative flex aspect-square flex-col items-center justify-center rounded-lg text-xs font-medium transition cursor-pointer",
                 isSelected ? "ring-2 ring-primary" : "hover:bg-surface-muted",
                 isToday && !isSelected && "bg-surface-muted"
               )}
+              onClick={() => onSelect(d)}
+              onDoubleClick={() => onDrillDay(d)}
             >
               <span className={cn(isToday && "font-bold text-primary")}>{d.getDate()}</span>
               {dayTasks.length > 0 && (
                 <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
               )}
-            </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onCreateAt(d); }}
+                title="Pridať úlohu"
+                className="absolute right-0.5 top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold leading-none text-primary-foreground shadow group-hover:flex"
+              >
+                +
+              </button>
+            </div>
           );
         })}
       </div>
@@ -303,11 +311,12 @@ function MonthView({
 
 /* ---------------- Week ---------------- */
 function WeekView({
-  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay,
+  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay, onCreateAt,
 }: {
   cursor: Date; selected: Date; today: Date;
   tasksByDay: Map<string, Task[]>; myColor: string;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
+  onCreateAt: (d: Date) => void;
 }) {
   const start = startOfWeek(cursor);
   const days = Array.from({ length: 7 }, (_, i) =>
@@ -322,16 +331,15 @@ function WeekView({
         const isToday = sameDay(d, today);
         const isSelected = sameDay(d, selected);
         return (
-          <button
+          <div
             key={key}
-            type="button"
-            onClick={() => onSelect(d)}
-            onDoubleClick={() => onDrillDay(d)}
             className={cn(
-              "flex flex-col items-center gap-1 rounded-lg p-2 text-xs transition",
+              "group relative flex flex-col items-center gap-1 rounded-lg p-2 text-xs transition cursor-pointer",
               isSelected ? "ring-2 ring-primary" : "hover:bg-surface-muted",
               isToday && !isSelected && "bg-surface-muted"
             )}
+            onClick={() => onSelect(d)}
+            onDoubleClick={() => onDrillDay(d)}
           >
             <span className="text-[10px] font-bold uppercase text-muted-foreground">{WEEKDAYS[i]}</span>
             <span className={cn("text-base font-semibold", isToday && "text-primary")}>{d.getDate()}</span>
@@ -340,7 +348,15 @@ function WeekView({
                 <span key={t.id} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
               ))}
             </span>
-          </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onCreateAt(d); }}
+              title="Pridať úlohu"
+              className="absolute right-1 top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold leading-none text-primary-foreground shadow group-hover:flex"
+            >
+              +
+            </button>
+          </div>
         );
       })}
     </div>
