@@ -158,25 +158,58 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
         </button>
 
         <div className="flex flex-col items-end gap-2">
-          <DropdownMenu>
+          <DropdownMenu open={menuOpen} onOpenChange={openChange}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7 -mr-1 -mt-1">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="text-xs">Predať úlohu</DropdownMenuLabel>
-              {profiles.map((p) => (
-                <DropdownMenuItem
-                  key={p.id}
-                  onClick={() => delegate(task.id, p.id)}
-                  className="gap-2"
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel className="flex items-center gap-1.5 text-xs">
+                <Users className="h-3.5 w-3.5" /> Komu úloha patrí
+              </DropdownMenuLabel>
+              <p className="px-2 pb-1 text-[10px] text-muted-foreground">
+                1. zaškrtnutý = hlavný zodpovedný
+              </p>
+              <div className="max-h-64 overflow-y-auto px-1">
+                {profiles.map((p) => {
+                  const idx = selected.indexOf(p.id);
+                  const active = idx !== -1;
+                  const isPrimary = idx === 0;
+                  return (
+                    <label
+                      key={p.id}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition",
+                        active ? "bg-primary/10" : "hover:bg-surface-muted"
+                      )}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Checkbox
+                        checked={active}
+                        onCheckedChange={() => toggleUser(p.id)}
+                      />
+                      <UserAvatar profile={p} size="sm" />
+                      <span className="flex-1 truncate">{p.full_name ?? p.email}</span>
+                      {isPrimary && (
+                        <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary-foreground">
+                          Hlavný
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="px-2 py-1.5">
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={saveAssignment}
+                  disabled={updateTask.isPending || setWatchersM.isPending}
                 >
-                  <UserAvatar profile={p} size="sm" />
-                  <span className="flex-1 truncate">{p.full_name}</span>
-                  {task.assignee_id === p.id && <Check className="h-3.5 w-3.5" />}
-                </DropdownMenuItem>
-              ))}
+                  Uložiť priradenie
+                </Button>
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => del.mutate(task.id)}
