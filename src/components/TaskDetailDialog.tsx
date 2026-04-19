@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { Priority, Task } from "@/lib/types";
-import { PRIORITY_META } from "@/lib/types";
+import type { Priority, Task, TaskStatus } from "@/lib/types";
+import { PRIORITY_META, STATUS_LABEL } from "@/lib/types";
 import {
   useCurrentUserId,
   useProfiles,
@@ -67,6 +67,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const [description, setDescription] = useState(task?.description ?? "");
   const [priority, setPriority] = useState<Priority>(task?.priority ?? "medium");
   const [projectId, setProjectId] = useState<string>(task?.project_id ?? "");
+  const [status, setStatus] = useState<TaskStatus>(task?.status ?? "todo");
 
   // Termín
   const initialStart = useMemo(() => splitISO(task?.due_date ?? null), [task?.due_date]);
@@ -85,6 +86,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
     setDescription(task.description ?? "");
     setPriority(task.priority);
     setProjectId(task.project_id ?? "");
+    setStatus(task.status);
     setDueDate(initialStart.date);
     setDueTime(initialStart.time);
     setEndTime(initialEnd.time);
@@ -113,6 +115,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
     title.trim() !== task.title ||
     (description.trim() || "") !== (task.description ?? "") ||
     priority !== task.priority ||
+    status !== task.status ||
     (projectId || "") !== (task.project_id ?? "");
 
   const dirty = watchersDirty || dueDirty || fieldsDirty;
@@ -134,6 +137,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
         patch.title = title.trim();
         patch.description = description.trim() || null;
         patch.priority = priority;
+        patch.status = status;
         patch.project_id = projectId || null;
       }
       if (dueDirty) {
@@ -229,6 +233,35 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
                   >
                     <span className={cn("priority-dot", meta.dot)} />
                     {meta.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Stav</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["todo", "in_progress", "done"] as TaskStatus[]).map((s) => {
+                const active = status === s;
+                const styles: Record<TaskStatus, string> = {
+                  todo: "bg-surface-muted text-foreground ring-border",
+                  in_progress: "bg-primary/15 text-primary ring-primary/30",
+                  done: "bg-success/15 text-success ring-success/30",
+                };
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setStatus(s)}
+                    className={cn(
+                      "rounded-xl border py-2 text-xs font-semibold transition-all",
+                      active
+                        ? `${styles[s]} border-transparent ring-2`
+                        : "bg-surface-muted text-muted-foreground border-transparent hover:text-foreground"
+                    )}
+                  >
+                    {STATUS_LABEL[s]}
                   </button>
                 );
               })}
