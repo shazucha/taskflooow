@@ -67,6 +67,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const [description, setDescription] = useState(task?.description ?? "");
   const [priority, setPriority] = useState<Priority>(task?.priority ?? "medium");
   const [projectId, setProjectId] = useState<string>(task?.project_id ?? "");
+  const [status, setStatus] = useState<TaskStatus>(task?.status ?? "todo");
 
   // Termín
   const initialStart = useMemo(() => splitISO(task?.due_date ?? null), [task?.due_date]);
