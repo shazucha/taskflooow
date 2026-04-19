@@ -348,37 +348,123 @@ export function NewTaskDialog({
           {/* Prepínač opakovania */}
           <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
             <div className="min-w-0">
-              <Label htmlFor="rec-switch" className="text-sm font-semibold">Opakovať mesačne</Label>
-              <p className="text-[11px] text-muted-foreground">Vytvorí sériu úloh na vybraný deň každý mesiac.</p>
+              <Label htmlFor="rec-switch" className="text-sm font-semibold">Opakovať</Label>
+              <p className="text-[11px] text-muted-foreground">Vytvorí sériu úloh. Popis každej môžeš neskôr meniť samostatne.</p>
             </div>
             <Switch id="rec-switch" checked={recurring} onCheckedChange={setRecurring} />
           </div>
 
           {recurring ? (
             <div className="space-y-3 rounded-xl bg-surface-muted/60 p-3">
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rday" className="text-xs">Deň v mesiaci</Label>
-                  <Input
-                    id="rday" type="number" min={1} max={31} value={recDay}
-                    onChange={(e) => setRecDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rstart" className="text-xs">Od mesiaca</Label>
-                  <Input
-                    id="rstart" type="month" value={recStartMonth}
-                    onChange={(e) => setRecStartMonth(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rmonths" className="text-xs">Počet mesiacov</Label>
-                  <Input
-                    id="rmonths" type="number" min={1} max={36} value={recMonths}
-                    onChange={(e) => setRecMonths(Math.max(1, Math.min(36, Number(e.target.value) || 1)))}
-                  />
-                </div>
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setRecMode("monthly")}
+                  className={cn(
+                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    recMode === "monthly"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Mesačne
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecMode("weekly")}
+                  className={cn(
+                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    recMode === "weekly"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Týždenne
+                </button>
               </div>
+
+              {recMode === "monthly" ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rday" className="text-xs">Deň v mesiaci</Label>
+                    <Input
+                      id="rday" type="number" min={1} max={31} value={recDay}
+                      onChange={(e) => setRecDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rstart" className="text-xs">Od mesiaca</Label>
+                    <Input
+                      id="rstart" type="month" value={recStartMonth}
+                      onChange={(e) => setRecStartMonth(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rmonths" className="text-xs">Počet mesiacov</Label>
+                    <Input
+                      id="rmonths" type="number" min={1} max={36} value={recMonths}
+                      onChange={(e) => setRecMonths(Math.max(1, Math.min(36, Number(e.target.value) || 1)))}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rwstart" className="text-xs">Prvý dátum</Label>
+                      <Input
+                        id="rwstart" type="date" value={recWeekStart}
+                        onChange={(e) => setRecWeekStart(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rweeks" className="text-xs">Počet týždňov</Label>
+                      <Input
+                        id="rweeks" type="number" min={1} max={52} value={recWeeks}
+                        onChange={(e) => setRecWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Začiatok (voliteľné)</Label>
+                      <Select
+                        value={recWeekTime || "none"}
+                        onValueChange={(v) => {
+                          const nv = v === "none" ? "" : v;
+                          setRecWeekTime(nv);
+                          if (recWeekEnd && nv && recWeekEnd <= nv) setRecWeekEnd("");
+                          if (!nv) setRecWeekEnd("");
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Celý deň" /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          <SelectItem value="none">— celý deň —</SelectItem>
+                          {HALF_HOUR_SLOTS.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Koniec</Label>
+                      <Select
+                        value={recWeekEnd || "none"}
+                        onValueChange={(v) => setRecWeekEnd(v === "none" ? "" : v)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          <SelectItem value="none">— bez konca —</SelectItem>
+                          {HALF_HOUR_SLOTS.filter((s) => !recWeekTime || s > recWeekTime).map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="text-[11px] text-muted-foreground">
                 <span className="font-semibold text-foreground">Náhľad ({recPreview.length}):</span>{" "}
                 <span className="line-clamp-2">{recPreview.join(" · ")}</span>
