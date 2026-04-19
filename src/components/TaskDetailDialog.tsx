@@ -123,7 +123,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const dirty = watchersDirty || dueDirty || fieldsDirty;
 
   const save = async () => {
-    if (!title.trim()) {
+    if (isCreator && !title.trim()) {
       toast.error("Názov nemôže byť prázdny");
       return;
     }
@@ -432,8 +432,8 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Zavrieť
           </Button>
-          {isCreator && (
-            <Button onClick={save} disabled={!dirty || saving || !title.trim()}>
+          {canEdit && (
+            <Button onClick={save} disabled={!dirty || saving || (isCreator && !title.trim())}>
               {saving ? "Ukladám..." : "Uložiť"}
             </Button>
           )}
