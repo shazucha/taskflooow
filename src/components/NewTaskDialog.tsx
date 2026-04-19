@@ -44,6 +44,8 @@ interface Props {
   defaultDueDate?: string; // "YYYY-MM-DD"
   defaultDueTime?: string; // "HH:MM"
   defaultEndTime?: string; // "HH:MM"
+  /** Prefill title (e.g. when opening from a project service). */
+  defaultTitle?: string;
   /** Hide the default trigger button (used when controlled). */
   hideTrigger?: boolean;
 }
@@ -63,6 +65,7 @@ export function NewTaskDialog({
   defaultDueDate,
   defaultDueTime,
   defaultEndTime,
+  defaultTitle,
   hideTrigger,
 }: Props) {
   const { data: projects = [] } = useProjects();
@@ -78,7 +81,7 @@ export function NewTaskDialog({
     else setOpenInternal(v);
   };
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(defaultTitle ?? "");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
@@ -90,13 +93,15 @@ export function NewTaskDialog({
   const [endTime, setEndTime] = useState<string>(defaultEndTime ?? "");
 
   // Sync prefill values when dialog is opened from outside with new defaults
-  const prefillKey = `${defaultDueDate ?? ""}|${defaultDueTime ?? ""}|${defaultEndTime ?? ""}`;
+  const prefillKey = `${defaultDueDate ?? ""}|${defaultDueTime ?? ""}|${defaultEndTime ?? ""}|${defaultTitle ?? ""}|${defaultProjectId ?? ""}`;
   const [lastPrefillKey, setLastPrefillKey] = useState<string>(open ? prefillKey : "");
   if (open && prefillKey !== lastPrefillKey) {
     queueMicrotask(() => {
       setDueDate(defaultDueDate ?? "");
       setDueTime(defaultDueTime ?? "");
       setEndTime(defaultEndTime ?? "");
+      if (defaultTitle !== undefined) setTitle(defaultTitle);
+      if (defaultProjectId !== undefined) setProjectId(defaultProjectId);
       setLastPrefillKey(prefillKey);
     });
   }
