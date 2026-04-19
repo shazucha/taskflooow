@@ -1,5 +1,7 @@
 import { supabase } from "./supabase";
-import type { Profile, Project, Task } from "./types";
+import type { Profile, Project, ProjectWork, Task } from "./types";
+
+const PROJECT_COLS = "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since";
 
 // ---- Profiles
 export async function fetchProfiles(): Promise<Profile[]> {
@@ -26,7 +28,7 @@ export async function updateProfile(id: string, patch: Partial<Pick<Profile, "fu
 export async function fetchProjects(): Promise<Project[]> {
   const { data, error } = await supabase
     .from("projects")
-    .select("id, name, description, color, owner_id, created_at")
+    .select(PROJECT_COLS)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as Project[];
@@ -37,20 +39,64 @@ export async function createProject(input: {
   description: string | null;
   color: string | null;
   owner_id: string;
+  monthly_price?: number | null;
+  currency?: string | null;
+  client_since?: string | null;
 }): Promise<Project> {
   const { data, error } = await supabase
     .from("projects")
     .insert(input)
-    .select("id, name, description, color, owner_id, created_at")
+    .select(PROJECT_COLS)
     .single();
   if (error) throw error;
-  // Auto-add owner as member so RLS reads work cleanly
   await supabase.from("project_members").insert({
     project_id: data.id,
     user_id: input.owner_id,
     role: "owner",
   });
   return data as Project;
+}
+
+export async function updateProject(id: string, patch: Partial<Project>): Promise<Project> {
+  const { data, error } = await supabase
+    .from("projects")
+    .update(patch)
+    .eq("id", id)
+    .select(PROJECT_COLS)
+    .single();
+  if (error) throw error;
+  return data as Project;
+}
+
+// ---- Project works (jednotlivé práce pre klienta)
+export async function fetchProjectWorks(projectId: string): Promise<ProjectWork[]> {
+  const { data, error } = await supabase
+    .from("project_works")
+    .select("id, project_id, title, price, note, created_at")
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ProjectWork[];
+}
+
+export async function createProjectWork(input: {
+  project_id: string;
+  title: string;
+  price: number | null;
+  note: string | null;
+}): Promise<ProjectWork> {
+  const { data, error } = await supabase
+    .from("project_works")
+    .insert(input)
+    .select("id, project_id, title, price, note, created_at")
+    .single();
+  if (error) throw error;
+  return data as ProjectWork;
+}
+
+export async function deleteProjectWork(id: string) {
+  const { error } = await supabase.from("project_works").delete().eq("id", id);
+  if (error) throw error;
 }
 
 // ---- Tasks
