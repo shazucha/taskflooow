@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import type { Project } from "@/lib/types";
+import type { Project, ProjectCategory } from "@/lib/types";
+import { PROJECT_CATEGORIES } from "@/lib/types";
 import {
   useCreateProjectWork,
   useDeleteProjectWork,
   useProjectWorks,
+  useUpdateProject,
 } from "@/lib/queries";
 
 function monthsSince(iso: string | null): number | null {
@@ -39,6 +41,7 @@ export function ProjectMetaCard({ project }: { project: Project }) {
   const { data: works = [] } = useProjectWorks(project.id);
   const createWork = useCreateProjectWork();
   const delWork = useDeleteProjectWork(project.id);
+  const updateProject = useUpdateProject();
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -66,6 +69,27 @@ export function ProjectMetaCard({ project }: { project: Project }) {
 
   return (
     <div className="card-elevated p-4">
+      <div className="mb-3 space-y-1.5">
+        <Label htmlFor="pcat" className="text-xs text-muted-foreground">Kategória</Label>
+        <select
+          id="pcat"
+          value={project.category ?? ""}
+          onChange={async (e) => {
+            const v = e.target.value as ProjectCategory | "";
+            try {
+              await updateProject.mutateAsync({ id: project.id, patch: { category: v || null } });
+              toast.success("Kategória zmenená");
+            } catch (err: any) {
+              toast.error(err.message ?? "Nepodarilo sa zmeniť kategóriu");
+            }
+          }}
+          className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+        >
+          <option value="">Bez kategórie</option>
+          {PROJECT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-surface-muted p-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

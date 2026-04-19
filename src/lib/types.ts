@@ -9,6 +9,10 @@ export interface Profile {
   color: string | null;
 }
 
+export type ProjectCategory = "odstartujto.sk" | "shazucha.sk";
+
+export const PROJECT_CATEGORIES: ProjectCategory[] = ["odstartujto.sk", "shazucha.sk"];
+
 export interface Project {
   id: string;
   name: string;
@@ -19,6 +23,7 @@ export interface Project {
   monthly_price: number | null;
   currency: string | null;
   client_since: string | null;
+  category: ProjectCategory | null;
 }
 
 export interface ProjectWork {

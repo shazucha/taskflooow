@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import type { Profile, Project, ProjectWork, Task, TaskActivity } from "./types";
 
-const PROJECT_COLS = "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since";
+const PROJECT_COLS = "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since, category";
 
 // ---- Profiles
 export async function fetchProfiles(): Promise<Profile[]> {
@@ -42,6 +42,7 @@ export async function createProject(input: {
   monthly_price?: number | null;
   currency?: string | null;
   client_since?: string | null;
+  category?: string | null;
 }): Promise<Project> {
   const { data, error } = await supabase.rpc("create_project_with_membership", {
     _name: input.name,
@@ -51,6 +52,7 @@ export async function createProject(input: {
     _monthly_price: input.monthly_price ?? null,
     _currency: input.currency ?? null,
     _client_since: input.client_since ?? null,
+    _category: input.category ?? null,
   });
   if (error) throw error;
   return data as Project;

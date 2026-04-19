@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateProject, useCurrentUserId } from "@/lib/queries";
 import { toast } from "sonner";
+import { PROJECT_CATEGORIES, type ProjectCategory } from "@/lib/types";
 
 const colors = ["#3b82f6", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 const currencies = ["EUR", "USD", "CZK"];
@@ -23,6 +24,7 @@ export function NewProjectDialog() {
   const [monthlyPrice, setMonthlyPrice] = useState("");
   const [currency, setCurrency] = useState("EUR");
   const [clientSince, setClientSince] = useState(""); // YYYY-MM
+  const [category, setCategory] = useState<ProjectCategory | "">("");
 
   const submit = async () => {
     if (!name.trim() || !currentUserId) return;
@@ -35,10 +37,11 @@ export function NewProjectDialog() {
         monthly_price: monthlyPrice ? Number(monthlyPrice) : null,
         currency,
         client_since: clientSince ? `${clientSince}-01` : null,
+        category: category || null,
       });
       setOpen(false);
       setName(""); setDescription(""); setColor(colors[0]);
-      setMonthlyPrice(""); setCurrency("EUR"); setClientSince("");
+      setMonthlyPrice(""); setCurrency("EUR"); setClientSince(""); setCategory("");
       toast.success("Projekt vytvorený");
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa vytvoriť projekt");
@@ -62,6 +65,19 @@ export function NewProjectDialog() {
           <div className="space-y-1.5">
             <Label htmlFor="pdesc">Popis</Label>
             <Textarea id="pdesc" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="pcat">Kategória</Label>
+            <select
+              id="pcat"
+              value={category}
+              onChange={(e) => setCategory(e.target.value as ProjectCategory | "")}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">Bez kategórie</option>
+              {PROJECT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
 
           <div className="grid grid-cols-[1fr_90px] gap-2">
