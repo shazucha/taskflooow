@@ -37,10 +37,11 @@ export function NewProjectDialog() {
         monthly_price: monthlyPrice ? Number(monthlyPrice) : null,
         currency,
         client_since: clientSince ? `${clientSince}-01` : null,
+        category: category || null,
       });
       setOpen(false);
       setName(""); setDescription(""); setColor(colors[0]);
-      setMonthlyPrice(""); setCurrency("EUR"); setClientSince("");
+      setMonthlyPrice(""); setCurrency("EUR"); setClientSince(""); setCategory("");
       toast.success("Projekt vytvorený");
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa vytvoriť projekt");
