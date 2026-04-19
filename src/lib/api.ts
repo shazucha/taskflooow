@@ -121,15 +121,15 @@ export async function createTask(
     .single();
   if (error) throw error;
   const task = data as Task;
+  const relatedUserIds = [input.created_by, input.assignee_id, ...watcherIds].filter(
+    (value): value is string => !!value
+  );
+  await syncProjectMembers(input.project_id, relatedUserIds);
   if (watcherIds.length > 0) {
     const rows = watcherIds.map((user_id) => ({ task_id: task.id, user_id }));
     const { error: wErr } = await supabase.from("task_watchers").insert(rows);
     if (wErr) throw wErr;
   }
-  await syncProjectMembers(
-    input.project_id,
-    [input.created_by, input.assignee_id, ...watcherIds].filter((value): value is string => !!value)
-  );
   return task;
 }
 
@@ -141,6 +141,18 @@ export async function fetchTaskWatchers(): Promise<{ task_id: string; user_id: s
 }
 
 export async function setTaskWatchers(taskId: string, userIds: string[]) {
+  const { data: task, error: taskError } = await supabase
+    .from("tasks")
+    .select("project_id, created_by, assignee_id")
+    .eq("id", taskId)
+    .single();
+  if (taskError) throw taskError;
+
+  await syncProjectMembers(
+    task.project_id,
+    [task.created_by, task.assignee_id, ...userIds].filter((value): value is string => !!value)
+  );
+
   await supabase.from("task_watchers").delete().eq("task_id", taskId);
   if (userIds.length === 0) return;
   const rows = userIds.map((user_id) => ({ task_id: taskId, user_id }));
