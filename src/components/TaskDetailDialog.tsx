@@ -128,12 +128,6 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
       return;
     }
     try {
-      const promises: Promise<unknown>[] = [];
-
-      if (watchersDirty) {
-        promises.push(setWatchers.mutateAsync({ taskId: task.id, userIds: selected }));
-      }
-
       const patch: Partial<Task> = {};
       if (fieldsDirty) {
         patch.title = title.trim();
@@ -156,23 +150,24 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
         patch.due_date = due_date;
         patch.due_end = due_end;
       }
+
+      if ((projectId || "") !== (task.project_id ?? "") && projectId) {
+        await syncProjectMembers.mutateAsync({
+          projectId,
+          userIds: [task.created_by, task.assignee_id, ...selected].filter(
+            (x): x is string => !!x
+          ),
+        });
+      }
+
       if (Object.keys(patch).length) {
-        promises.push(updateTask.mutateAsync({ id: task.id, patch }));
+        await updateTask.mutateAsync({ id: task.id, patch });
       }
 
-      // Ak sa zmenil projekt, dosynchronizujeme členov nového projektu
-      if (fieldsDirty && (projectId || "") !== (task.project_id ?? "") && projectId) {
-        promises.push(
-          syncProjectMembers.mutateAsync({
-            projectId,
-            userIds: [task.created_by, task.assignee_id, ...selected].filter(
-              (x): x is string => !!x
-            ),
-          })
-        );
+      if (watchersDirty) {
+        await setWatchers.mutateAsync({ taskId: task.id, userIds: selected });
       }
 
-      await Promise.all(promises);
       toast.success("Uložené");
       onOpenChange(false);
     } catch (e: any) {
@@ -180,7 +175,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
     }
   };
 
-  const saving = setWatchers.isPending || updateTask.isPending;
+  const saving = setWatchers.isPending || updateTask.isPending || syncProjectMembers.isPending;
   const disabled = !isCreator;
   const statusDisabled = !canEdit;
 
