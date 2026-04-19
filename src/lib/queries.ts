@@ -13,6 +13,7 @@ import {
   fetchTasks,
   fetchTaskWatchers,
   setTaskWatchers,
+  syncProjectMembers,
   updateProfile,
   updateProject,
   updateTask,
@@ -146,6 +147,15 @@ export function useSetTaskWatchers() {
     mutationFn: ({ taskId, userIds }: { taskId: string; userIds: string[] }) =>
       setTaskWatchers(taskId, userIds),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["task_watchers"] }),
+  });
+}
+
+export function useSyncProjectMembers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, userIds }: { projectId: string | null; userIds: string[] }) =>
+      syncProjectMembers(projectId, userIds),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
 
