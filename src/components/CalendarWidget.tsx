@@ -398,7 +398,7 @@ function DayView({
   const slotFromEvent = (clientY: number): number => {
     const rect = gridRef.current?.getBoundingClientRect();
     if (!rect) return 0;
-    const y = clientY - rect.top + (gridRef.current?.parentElement?.scrollTop ?? 0);
+    const y = clientY - rect.top;
     return Math.max(0, Math.min(SLOTS_PER_DAY - 1, Math.floor(y / SLOT_PX)));
   };
 
