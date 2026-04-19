@@ -1,12 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, MoreHorizontal, Trash2, Check } from "lucide-react";
+import { CalendarDays, MoreHorizontal, Trash2, Check, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 import { PriorityBadge } from "./PriorityBadge";
 import { UserAvatar } from "./UserAvatar";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,13 +16,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 import {
-  useDelegateTask,
   useDeleteTask,
   useProfiles,
   useProjects,
+  useSetTaskWatchers,
   useTaskWatchers,
   useToggleTaskStatus,
+  useUpdateTask,
 } from "@/lib/queries";
 
 interface Props {
