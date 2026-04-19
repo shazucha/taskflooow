@@ -3,17 +3,21 @@ import { useEffect } from "react";
 import { supabase } from "./supabase";
 import {
   createProject,
+  createProjectWork,
   createTask,
+  deleteProjectWork,
   deleteTask,
   fetchProfiles,
   fetchProjects,
+  fetchProjectWorks,
   fetchTasks,
   fetchTaskWatchers,
   setTaskWatchers,
   updateProfile,
+  updateProject,
   updateTask,
 } from "./api";
-import type { Profile, Task, TaskStatus } from "./types";
+import type { Profile, Project, Task, TaskStatus } from "./types";
 import { useSession } from "./useSession";
 
 export function useCurrentUserId() {
