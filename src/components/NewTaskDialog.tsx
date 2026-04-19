@@ -140,18 +140,29 @@ export function NewTaskDialog({
 
   const recPreview = useMemo(() => {
     if (!recurring) return [];
-    const [yStr, mStr] = recStartMonth.split("-");
-    const y0 = Number(yStr); const m0 = Number(mStr) - 1;
+    if (recMode === "monthly") {
+      const [yStr, mStr] = recStartMonth.split("-");
+      const y0 = Number(yStr); const m0 = Number(mStr) - 1;
+      const dates: string[] = [];
+      for (let i = 0; i < recMonths; i++) {
+        const y = y0 + Math.floor((m0 + i) / 12);
+        const m = (m0 + i) % 12;
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const safeDay = Math.min(recDay, lastDay);
+        dates.push(`${safeDay}.${m + 1}.${y}`);
+      }
+      return dates;
+    }
     const dates: string[] = [];
-    for (let i = 0; i < recMonths; i++) {
-      const y = y0 + Math.floor((m0 + i) / 12);
-      const m = (m0 + i) % 12;
-      const lastDay = new Date(y, m + 1, 0).getDate();
-      const safeDay = Math.min(recDay, lastDay);
-      dates.push(`${safeDay}.${m + 1}.${y}`);
+    if (!recWeekStart) return dates;
+    const base = new Date(`${recWeekStart}T00:00:00`);
+    for (let i = 0; i < recWeeks; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i * 7);
+      dates.push(`${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`);
     }
     return dates;
-  }, [recurring, recStartMonth, recMonths, recDay]);
+  }, [recurring, recMode, recStartMonth, recMonths, recDay, recWeekStart, recWeeks]);
 
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
@@ -164,32 +175,75 @@ export function NewTaskDialog({
           toast.error("Pre opakovanú úlohu vyber projekt");
           return;
         }
-        const [yStr, mStr] = recStartMonth.split("-");
-        const y0 = Number(yStr); const m0 = Number(mStr) - 1;
         const seriesId = (typeof crypto !== "undefined" && "randomUUID" in crypto)
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        for (let i = 0; i < recMonths; i++) {
-          const y = y0 + Math.floor((m0 + i) / 12);
-          const m = (m0 + i) % 12;
-          const due_date = nthDayOfMonth(y, m, recDay);
-          await create.mutateAsync({
-            task: {
-              title: title.trim(),
-              description: description.trim() || null,
-              priority,
-              status: "todo",
-              project_id: projectId,
-              assignee_id: assignee,
-              created_by: currentUserId,
-              due_date,
-              due_end: null,
-              series_id: seriesId,
-            },
-            watcherIds: watchers,
-          });
+
+        if (recMode === "monthly") {
+          const [yStr, mStr] = recStartMonth.split("-");
+          const y0 = Number(yStr); const m0 = Number(mStr) - 1;
+          for (let i = 0; i < recMonths; i++) {
+            const y = y0 + Math.floor((m0 + i) / 12);
+            const m = (m0 + i) % 12;
+            const due_date = nthDayOfMonth(y, m, recDay);
+            await create.mutateAsync({
+              task: {
+                title: title.trim(),
+                description: description.trim() || null,
+                priority,
+                status: "todo",
+                project_id: projectId,
+                assignee_id: assignee,
+                created_by: currentUserId,
+                due_date,
+                due_end: null,
+                series_id: seriesId,
+              },
+              watcherIds: watchers,
+            });
+          }
+          toast.success(`Vytvorených ${recMonths} opakovaných úloh`);
+        } else {
+          if (!recWeekStart) {
+            toast.error("Vyber dátum prvého týždňa");
+            return;
+          }
+          const base = new Date(`${recWeekStart}T00:00:00`);
+          const [hStr, minStr] = (recWeekTime || "09:00").split(":");
+          const h = Number(hStr); const min = Number(minStr);
+          for (let i = 0; i < recWeeks; i++) {
+            const d = new Date(base);
+            d.setDate(base.getDate() + i * 7);
+            d.setHours(h, min, 0, 0);
+            const start = new Date(d);
+            let due_end: string | null = null;
+            if (recWeekTime) {
+              if (recWeekEnd && recWeekEnd > recWeekTime) {
+                const [eh, em] = recWeekEnd.split(":").map(Number);
+                const end = new Date(d); end.setHours(eh, em, 0, 0);
+                due_end = end.toISOString();
+              } else {
+                due_end = new Date(start.getTime() + 30 * 60 * 1000).toISOString();
+              }
+            }
+            await create.mutateAsync({
+              task: {
+                title: title.trim(),
+                description: description.trim() || null,
+                priority,
+                status: "todo",
+                project_id: projectId,
+                assignee_id: assignee,
+                created_by: currentUserId,
+                due_date: start.toISOString(),
+                due_end,
+                series_id: seriesId,
+              },
+              watcherIds: watchers,
+            });
+          }
+          toast.success(`Vytvorených ${recWeeks} týždenných úloh`);
         }
-        toast.success(`Vytvorených ${recMonths} opakovaných úloh`);
       } else {
         let due_date: string | null = null;
         let due_end: string | null = null;
@@ -201,7 +255,6 @@ export function NewTaskDialog({
               const end = new Date(`${dueDate}T${endTime}:00`);
               if (end.getTime() > start.getTime()) due_end = end.toISOString();
             } else {
-              // Default 30 min slot when start time is set without explicit end
               due_end = new Date(start.getTime() + 30 * 60 * 1000).toISOString();
             }
           }
