@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Wallet, CalendarDays } from "lucide-react";
+import { Plus, Trash2, Wallet, CalendarDays, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,8 @@ export function ProjectMetaCard({ project }: { project: Project }) {
 
   const months = monthsSince(project.client_since);
   const totalWorks = works.reduce((s, w) => s + (w.price ?? 0), 0);
+  const monthlyTotal = (project.monthly_price ?? 0) * (months ?? 0);
+  const billedTotal = monthlyTotal + totalWorks;
 
   const addWork = async () => {
     if (!title.trim()) return;
@@ -82,6 +84,23 @@ export function ProjectMetaCard({ project }: { project: Project }) {
           </div>
           {project.client_since && (
             <div className="text-xs text-muted-foreground">od {fmtMonth(project.client_since)}</div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-xl bg-primary/10 p-3">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Receipt className="h-3.5 w-3.5" /> Vyfakturované spolu
+        </div>
+        <div className="mt-1 text-2xl font-bold tabular-nums">
+          {fmtMoney(billedTotal, project.currency)}
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          {project.monthly_price != null && months != null
+            ? `${fmtMoney(project.monthly_price, project.currency)} × ${months} mes. = ${fmtMoney(monthlyTotal, project.currency)}`
+            : "Mesačná cena alebo dátum spolupráce nie je nastavený"}
+          {works.length > 0 && (
+            <> · práce {fmtMoney(totalWorks, project.currency)}</>
           )}
         </div>
       </div>
