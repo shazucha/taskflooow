@@ -246,53 +246,48 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
             )}
           </div>
           <div className="space-y-1.5">
-            <Label>Priradiť</Label>
-            <Select value={assigneeId || currentUserId || ""} onValueChange={setAssigneeId}>
-              <SelectTrigger><SelectValue placeholder="Vyber člena tímu" /></SelectTrigger>
-              <SelectContent>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.full_name ?? p.email}{p.id === currentUserId ? " (ja)" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
             <Label className="flex items-center justify-between">
-              <span>Spolupracovníci</span>
+              <span>Komu úloha patrí</span>
               <span className="text-[11px] font-normal text-muted-foreground">
-                Default: ty + priradený
+                1. zaškrtnutý = hlavný
               </span>
             </Label>
             <p className="text-[11px] text-muted-foreground">
-              Môžu na úlohe pracovať a meniť jej stav.
+              Môžeš vybrať viac ľudí. Prvý zaškrtnutý je hlavný zodpovedný, ostatní spolupracujú.
             </p>
-            {availableWatchers.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Žiadni ďalší členovia.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {availableWatchers.map((p) => {
-                  const active = watcherIds.includes(p.id);
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => toggleWatcher(p.id)}
-                      className={cn(
-                        "rounded-full border px-2.5 py-1 text-xs font-medium transition",
-                        active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {active && "✓ "}
+            <div className="space-y-1 rounded-xl border border-border/60 p-1">
+              {profiles.map((p) => {
+                const idx = selectedUserIds.indexOf(p.id);
+                const active = idx !== -1;
+                const isPrimary = idx === 0;
+                return (
+                  <label
+                    key={p.id}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition",
+                      active ? "bg-primary/10" : "hover:bg-surface-muted"
+                    )}
+                  >
+                    <Checkbox
+                      checked={active}
+                      onCheckedChange={() => toggleUser(p.id)}
+                    />
+                    <UserAvatar profile={p} size="sm" />
+                    <span className="flex-1 truncate text-sm">
                       {p.full_name ?? p.email}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                      {p.id === currentUserId && (
+                        <span className="ml-1 text-xs text-muted-foreground">(ja)</span>
+                      )}
+                    </span>
+                    {isPrimary && (
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
+                        Hlavný
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
           </div>
         </div>
         <DialogFooter>
