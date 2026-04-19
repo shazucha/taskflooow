@@ -25,6 +25,7 @@ import {
   useUpdateTask,
 } from "@/lib/queries";
 import { toast } from "sonner";
+import { TaskActivityList } from "./TaskActivityList";
 
 interface Props {
   task: Task | null;
