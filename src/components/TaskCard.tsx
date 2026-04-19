@@ -128,7 +128,8 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               ? "border-success bg-success text-white"
               : "border-border hover:border-primary"
           )}
-          aria-label="Označiť stav"
+          aria-label={done ? "Označiť ako nedokončené" : "Označiť ako dokončené"}
+          title={done ? "Klikni pre vrátenie na nedokončené" : "Označiť ako dokončené"}
         >
           {done && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
         </button>
