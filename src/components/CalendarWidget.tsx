@@ -38,11 +38,22 @@ function hasTime(t: Task) {
   return d.getHours() !== 0 || d.getMinutes() !== 0;
 }
 
+function fmtDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function fmtTime(h: number, m: number) {
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+type Prefill = { date: string; time?: string; end?: string } | null;
+
 export function CalendarWidget() {
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<Date>(new Date());
   const [openTask, setOpenTask] = useState<Task | null>(null);
+  const [prefill, setPrefill] = useState<Prefill>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const currentUserId = useCurrentUserId();
   const { data: tasks = [] } = useTasks();
   const { data: profiles = [] } = useProfiles();
