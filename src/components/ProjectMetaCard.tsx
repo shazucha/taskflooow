@@ -45,6 +45,8 @@ export function ProjectMetaCard({ project }: { project: Project }) {
 
   const months = monthsSince(project.client_since);
   const totalWorks = works.reduce((s, w) => s + (w.price ?? 0), 0);
+  const monthlyTotal = (project.monthly_price ?? 0) * (months ?? 0);
+  const billedTotal = monthlyTotal + totalWorks;
 
   const addWork = async () => {
     if (!title.trim()) return;
