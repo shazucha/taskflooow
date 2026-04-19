@@ -6,6 +6,7 @@ import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
+import { ProjectServicesCard } from "@/components/ProjectServicesCard";
 import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import { MonthFilter } from "@/components/MonthFilter";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
@@ -68,6 +69,10 @@ export default function ProjectDetail() {
 
       <div className="mt-4">
         <ProjectMetaCard project={project} />
+      </div>
+
+      <div className="mt-4">
+        <ProjectServicesCard projectId={project.id} />
       </div>
 
       <div className="mt-5 flex items-center justify-between">
