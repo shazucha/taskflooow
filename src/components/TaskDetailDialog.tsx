@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Users } from "lucide-react";
+import { CalendarDays, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 import {
@@ -10,6 +18,7 @@ import {
   useProfiles,
   useSetTaskWatchers,
   useTaskWatchers,
+  useUpdateTask,
 } from "@/lib/queries";
 import { toast } from "sonner";
 
@@ -19,11 +28,29 @@ interface Props {
   onOpenChange: (v: boolean) => void;
 }
 
+const HALF_HOUR_SLOTS = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? "00" : "30";
+  return `${String(h).padStart(2, "0")}:${m}`;
+});
+
+// Z ISO stringu vytiahne lokálny dátum (YYYY-MM-DD) a čas (HH:mm)
+function splitISO(iso: string | null): { date: string; time: string } {
+  if (!iso) return { date: "", time: "" };
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  // Ak je čas 00:00, považujeme za "celý deň"
+  return { date, time: time === "00:00" ? "" : time };
+}
+
 export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
   const { data: allWatchers = [] } = useTaskWatchers();
   const setWatchers = useSetTaskWatchers();
+  const updateTask = useUpdateTask();
 
   const initial = useMemo(
     () => (task ? allWatchers.filter((w) => w.task_id === task.id).map((w) => w.user_id) : []),
@@ -31,9 +58,22 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   );
   const [selected, setSelected] = useState<string[]>(initial);
 
+  // Termín
+  const initialStart = useMemo(() => splitISO(task?.due_date ?? null), [task?.due_date]);
+  const initialEnd = useMemo(() => splitISO(task?.due_end ?? null), [task?.due_end]);
+  const [dueDate, setDueDate] = useState(initialStart.date);
+  const [dueTime, setDueTime] = useState(initialStart.time);
+  const [endTime, setEndTime] = useState(initialEnd.time);
+
   useEffect(() => {
     setSelected(initial);
   }, [initial]);
+
+  useEffect(() => {
+    setDueDate(initialStart.date);
+    setDueTime(initialStart.time);
+    setEndTime(initialEnd.time);
+  }, [initialStart.date, initialStart.time, initialEnd.time]);
 
   if (!task) return null;
 
@@ -45,18 +85,49 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const toggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  const dirty =
+  const watchersDirty =
     selected.length !== initial.length || selected.some((id) => !initial.includes(id));
+
+  const dueDirty =
+    dueDate !== initialStart.date ||
+    dueTime !== initialStart.time ||
+    endTime !== initialEnd.time;
+
+  const dirty = watchersDirty || dueDirty;
 
   const save = async () => {
     try {
-      await setWatchers.mutateAsync({ taskId: task.id, userIds: selected });
+      const promises: Promise<unknown>[] = [];
+
+      if (watchersDirty) {
+        promises.push(setWatchers.mutateAsync({ taskId: task.id, userIds: selected }));
+      }
+
+      if (dueDirty) {
+        let due_date: string | null = null;
+        let due_end: string | null = null;
+        if (dueDate) {
+          const start = new Date(`${dueDate}T${dueTime || "00:00"}:00`);
+          due_date = start.toISOString();
+          if (dueTime && endTime && endTime > dueTime) {
+            const end = new Date(`${dueDate}T${endTime}:00`);
+            due_end = end.toISOString();
+          }
+        }
+        promises.push(
+          updateTask.mutateAsync({ id: task.id, patch: { due_date, due_end } })
+        );
+      }
+
+      await Promise.all(promises);
       toast.success("Uložené");
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa uložiť");
     }
   };
+
+  const saving = setWatchers.isPending || updateTask.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -68,6 +139,101 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
         {task.description && (
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">{task.description}</p>
         )}
+
+        <div className="space-y-2 pt-2">
+          <Label className="flex items-center gap-1.5">
+            <CalendarDays className="h-3.5 w-3.5" /> Termín
+          </Label>
+          <Input
+            type="date"
+            value={dueDate}
+            disabled={!isCreator}
+            onChange={(e) => {
+              setDueDate(e.target.value);
+              if (!e.target.value) {
+                setDueTime("");
+                setEndTime("");
+              }
+            }}
+          />
+          {dueDate && (
+            <>
+              <div className="flex gap-1.5 pt-1">
+                <button
+                  type="button"
+                  disabled={!isCreator}
+                  onClick={() => { setDueTime(""); setEndTime(""); }}
+                  className={cn(
+                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    !dueTime
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground",
+                    !isCreator && "opacity-60 cursor-not-allowed"
+                  )}
+                >
+                  Celý deň
+                </button>
+                <button
+                  type="button"
+                  disabled={!isCreator}
+                  onClick={() => { if (!dueTime) setDueTime("09:00"); }}
+                  className={cn(
+                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    dueTime
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground",
+                    !isCreator && "opacity-60 cursor-not-allowed"
+                  )}
+                >
+                  Konkrétny čas
+                </button>
+              </div>
+              {dueTime && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">Začiatok</Label>
+                    <Select
+                      value={dueTime}
+                      disabled={!isCreator}
+                      onValueChange={(v) => {
+                        setDueTime(v);
+                        if (endTime && endTime <= v) setEndTime("");
+                      }}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {HALF_HOUR_SLOTS.map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">Koniec</Label>
+                    <Select
+                      value={endTime || "none"}
+                      disabled={!isCreator}
+                      onValueChange={(v) => setEndTime(v === "none" ? "" : v)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        <SelectItem value="none">— bez konca —</SelectItem>
+                        {HALF_HOUR_SLOTS.filter((s) => s > dueTime).map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {!isCreator && (
+            <p className="text-[11px] text-muted-foreground">
+              Termín môže meniť iba zadávateľ úlohy.
+            </p>
+          )}
+        </div>
 
         <div className="space-y-2 pt-2">
           <Label className="flex items-center gap-1.5">
@@ -116,8 +282,8 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
             Zavrieť
           </Button>
           {isCreator && (
-            <Button onClick={save} disabled={!dirty || setWatchers.isPending}>
-              {setWatchers.isPending ? "Ukladám..." : "Uložiť"}
+            <Button onClick={save} disabled={!dirty || saving}>
+              {saving ? "Ukladám..." : "Uložiť"}
             </Button>
           )}
         </DialogFooter>
