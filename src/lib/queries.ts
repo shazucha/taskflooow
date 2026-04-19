@@ -10,6 +10,7 @@ import {
   fetchProfiles,
   fetchProjects,
   fetchProjectWorks,
+  fetchTaskActivity,
   fetchTasks,
   fetchTaskWatchers,
   setTaskWatchers,
