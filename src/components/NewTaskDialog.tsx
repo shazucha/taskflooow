@@ -21,9 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useCreateTask, useCurrentUserId, useProfiles, useProjects } from "@/lib/queries";
 import { toast } from "sonner";
+import { UserAvatar } from "./UserAvatar";
 
 const HALF_HOUR_SLOTS = Array.from({ length: 48 }, (_, i) => {
   const h = Math.floor(i / 2);
@@ -47,25 +49,26 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
-  const [assigneeId, setAssigneeId] = useState<string>("");
+  // Pole vybraných používateľov. PRVÝ v poradí = hlavný zodpovedný (assignee),
+  // ostatní = spolupracovníci (watchers). Default: aktuálny používateľ.
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
+    currentUserId ? [currentUserId] : []
+  );
   const [dueDate, setDueDate] = useState<string>("");
-  const [dueTime, setDueTime] = useState<string>(""); // "" = celý deň, inak HH:MM (po 30 min)
-  const [endTime, setEndTime] = useState<string>(""); // koniec, HH:MM (po 30 min)
-  const [watcherIds, setWatcherIds] = useState<string[]>([]);
+  const [dueTime, setDueTime] = useState<string>("");
+  const [endTime, setEndTime] = useState<string>("");
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
-    setProjectId(defaultProjectId ?? ""); setAssigneeId("");
+    setProjectId(defaultProjectId ?? "");
+    setSelectedUserIds(currentUserId ? [currentUserId] : []);
     setDueDate(""); setDueTime(""); setEndTime("");
-    setWatcherIds([]);
   };
 
-  const effectiveAssignee = assigneeId || currentUserId || "";
-  const availableWatchers = profiles.filter(
-    (p) => p.id !== currentUserId && p.id !== effectiveAssignee
-  );
-  const toggleWatcher = (id: string) =>
-    setWatcherIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggleUser = (id: string) =>
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
 
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
@@ -80,6 +83,9 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           if (end.getTime() > start.getTime()) due_end = end.toISOString();
         }
       }
+      // Hlavný zodpovedný = prvý vybraný, fallback aktuálny používateľ
+      const assignee = selectedUserIds[0] ?? currentUserId;
+      const watchers = selectedUserIds.slice(1).filter((id) => id !== assignee);
       await create.mutateAsync({
         task: {
           title: title.trim(),
@@ -87,12 +93,12 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           priority,
           status: "todo",
           project_id: projectId || null,
-          assignee_id: assigneeId || currentUserId,
+          assignee_id: assignee,
           created_by: currentUserId,
           due_date,
           due_end,
         },
-        watcherIds: watcherIds.filter((id) => id !== currentUserId && id !== effectiveAssignee),
+        watcherIds: watchers,
       });
       setOpen(false);
       reset();
