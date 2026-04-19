@@ -5,6 +5,7 @@ import {
   createProject,
   createProjectWork,
   createTask,
+  deleteProject,
   deleteProjectWork,
   deleteTask,
   fetchProfiles,
@@ -79,6 +80,17 @@ export function useUpdateProject() {
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<Project> }) => updateProject(id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export function useDeleteProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteProject(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
   });
 }
 

@@ -6,14 +6,17 @@ import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
+import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import type { Task } from "@/lib/types";
-import { useProjects, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useProjects, useTasks } from "@/lib/queries";
 
 export default function ProjectDetail() {
   const { id } = useParams();
   const { data: projects = [] } = useProjects();
   const { data: tasks = [] } = useTasks();
+  const currentUserId = useCurrentUserId();
   const project = projects.find((p) => p.id === id);
+  const isOwner = !!project && project.owner_id === currentUserId;
   const [openTask, setOpenTask] = useState<Task | null>(null);
 
   const grouped = useMemo(() => {
@@ -51,7 +54,10 @@ export default function ProjectDetail() {
             <p className="mt-1 text-sm text-muted-foreground">{project.description}</p>
           )}
         </div>
-        <NewTaskDialog defaultProjectId={project.id} />
+        <div className="flex items-center gap-1">
+          {isOwner && project && <DeleteProjectDialog projectId={project.id} projectName={project.name} />}
+          <NewTaskDialog defaultProjectId={project.id} />
+        </div>
       </header>
 
       <div className="mt-4">
