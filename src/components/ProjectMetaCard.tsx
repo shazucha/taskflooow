@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import type { Project } from "@/lib/types";
+import type { Project, ProjectCategory } from "@/lib/types";
+import { PROJECT_CATEGORIES } from "@/lib/types";
 import {
   useCreateProjectWork,
   useDeleteProjectWork,
   useProjectWorks,
+  useUpdateProject,
 } from "@/lib/queries";
 
 function monthsSince(iso: string | null): number | null {
