@@ -86,6 +86,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
     setDescription(task.description ?? "");
     setPriority(task.priority);
     setProjectId(task.project_id ?? "");
+    setStatus(task.status);
     setDueDate(initialStart.date);
     setDueTime(initialStart.time);
     setEndTime(initialEnd.time);
