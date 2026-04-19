@@ -115,6 +115,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
     title.trim() !== task.title ||
     (description.trim() || "") !== (task.description ?? "") ||
     priority !== task.priority ||
+    status !== task.status ||
     (projectId || "") !== (task.project_id ?? "");
 
   const dirty = watchersDirty || dueDirty || fieldsDirty;
@@ -136,6 +137,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
         patch.title = title.trim();
         patch.description = description.trim() || null;
         patch.priority = priority;
+        patch.status = status;
         patch.project_id = projectId || null;
       }
       if (dueDirty) {
