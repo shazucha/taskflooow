@@ -24,6 +24,7 @@ export function NewProjectDialog() {
   const [monthlyPrice, setMonthlyPrice] = useState("");
   const [currency, setCurrency] = useState("EUR");
   const [clientSince, setClientSince] = useState(""); // YYYY-MM
+  const [category, setCategory] = useState<ProjectCategory | "">("");
 
   const submit = async () => {
     if (!name.trim() || !currentUserId) return;
