@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Profile, Project, ProjectWork, Task } from "./types";
+import type { Profile, Project, ProjectWork, Task, TaskActivity } from "./types";
 
 const PROJECT_COLS = "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since";
 
@@ -172,4 +172,15 @@ export async function updateTask(id: string, patch: Partial<Task>) {
 export async function deleteTask(id: string) {
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   if (error) throw error;
+}
+
+// ---- Task activity (história zmien)
+export async function fetchTaskActivity(taskId: string): Promise<TaskActivity[]> {
+  const { data, error } = await supabase
+    .from("task_activity")
+    .select("id, task_id, actor_id, action, field, old_value, new_value, created_at")
+    .eq("task_id", taskId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as TaskActivity[];
 }
