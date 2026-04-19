@@ -25,6 +25,7 @@ import {
   useProjects,
   useSetTaskWatchers,
   useSyncProjectMembers,
+  useTasks,
   useTaskWatchers,
   useToggleTaskStatus,
   useUpdateTask,
@@ -165,6 +166,15 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
                 <CalendarDays className="h-3 w-3" />
                 {format(new Date(task.due_date), "d. MMM", { locale: sk })}
+              </span>
+            )}
+            {task.series_id && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
+                title="Opakovaná úloha"
+              >
+                <Repeat className="h-3 w-3" />
+                {seriesIndex(allTasks, task)}/{seriesSize(allTasks, task.series_id)}
               </span>
             )}
           </div>
