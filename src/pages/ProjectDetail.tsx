@@ -6,8 +6,9 @@ import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
+import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import type { Task } from "@/lib/types";
-import { useProjects, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useProjects, useTasks } from "@/lib/queries";
 
 export default function ProjectDetail() {
   const { id } = useParams();
