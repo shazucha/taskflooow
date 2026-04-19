@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useCurrentUserId, useProfiles, useTaskWatchers, useTasks } from "@/lib/queries";
 import type { Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
+import { NewTaskDialog } from "./NewTaskDialog";
 
 type View = "month" | "week" | "day";
 
