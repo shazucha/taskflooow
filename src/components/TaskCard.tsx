@@ -38,8 +38,60 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
   const { data: projects = [] } = useProjects();
   const { data: allWatchers = [] } = useTaskWatchers();
   const toggleStatus = useToggleTaskStatus();
-  const delegate = useDelegateTask();
+  const updateTask = useUpdateTask();
+  const setWatchersM = useSetTaskWatchers();
   const del = useDeleteTask();
+
+  const watcherIds = useMemo(
+    () => allWatchers.filter((w) => w.task_id === task.id).map((w) => w.user_id),
+    [allWatchers, task.id]
+  );
+
+  // Poradie vybraných: prvý = hlavný (assignee), ďalší = watchers
+  const initialSelected = useMemo(() => {
+    const arr: string[] = [];
+    if (task.assignee_id) arr.push(task.assignee_id);
+    watcherIds.forEach((id) => {
+      if (!arr.includes(id)) arr.push(id);
+    });
+    return arr;
+  }, [task.assignee_id, watcherIds]);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>(initialSelected);
+
+  // Sync keď sa otvorí menu / zmenia sa dáta
+  const openChange = (v: boolean) => {
+    if (v) setSelected(initialSelected);
+    setMenuOpen(v);
+  };
+
+  const toggleUser = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const saveAssignment = async () => {
+    try {
+      const newAssignee = selected[0] ?? task.created_by;
+      const newWatchers = selected.slice(1).filter((id) => id !== newAssignee);
+      const promises: Promise<unknown>[] = [];
+      if (newAssignee !== task.assignee_id) {
+        promises.push(updateTask.mutateAsync({ id: task.id, patch: { assignee_id: newAssignee } }));
+      }
+      const sameWatchers =
+        newWatchers.length === watcherIds.length &&
+        newWatchers.every((id) => watcherIds.includes(id));
+      if (!sameWatchers) {
+        promises.push(setWatchersM.mutateAsync({ taskId: task.id, userIds: newWatchers }));
+      }
+      if (promises.length) {
+        await Promise.all(promises);
+        toast.success("Priradenie uložené");
+      }
+      setMenuOpen(false);
+    } catch (e: any) {
+      toast.error(e.message ?? "Nepodarilo sa uložiť");
+    }
+  };
 
   const assignee = useMemo(
     () => profiles.find((p) => p.id === task.assignee_id),
