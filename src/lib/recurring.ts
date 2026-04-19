@@ -1,23 +1,53 @@
 import type { Task } from "./types";
 
 /**
- * Vráti reprezentatívnu úlohu pre každý rad opakovania pre daný mesiac.
- * - Ak má úloha series_id, ponechá sa max. 1 inštancia patriaca do daného mesiaca.
- *   Ak žiadna inštancia danej série nepatrí do mesiaca, séria sa nezobrazí.
- * - Úlohy bez series_id sa filtrujú podľa mesiaca podľa due_date (ak nie je due_date,
- *   v "all" móde sa zobrazia, v konkrétnom mesiaci sa nezobrazia).
- *
+ * Vráti "kľúč série" pre danú úlohu — buď series_id, alebo (fallback)
+ * kombinácia title|project_id|created_by, ak existujú aspoň 2 úlohy s rovnakou
+ * kombináciou (legacy úlohy bez series_id, ktoré sa očividne opakujú).
+ */
+function buildVirtualSeriesMap(tasks: Task[]): Map<string, string> {
+  // mapuje task.id -> kľúč série (alebo žiadny záznam ak nie je súčasťou série)
+  const map = new Map<string, string>();
+  // 1) explicitné series_id
+  for (const t of tasks) {
+    if (t.series_id) map.set(t.id, `sid:${t.series_id}`);
+  }
+  // 2) virtuálne podľa title+project+created_by (iba ak ≥2 a žiadna nemá series_id)
+  const groups = new Map<string, Task[]>();
+  for (const t of tasks) {
+    if (t.series_id) continue;
+    const k = `v:${t.project_id ?? ""}|${t.created_by}|${t.title.trim().toLowerCase()}`;
+    const arr = groups.get(k) ?? [];
+    arr.push(t);
+    groups.set(k, arr);
+  }
+  for (const [k, list] of groups) {
+    if (list.length >= 2) {
+      for (const t of list) map.set(t.id, k);
+    }
+  }
+  return map;
+}
+
+export function getSeriesKey(tasks: Task[], task: Task): string | null {
+  const map = buildVirtualSeriesMap(tasks);
+  return map.get(task.id) ?? null;
+}
+
+/**
+ * Filtruje úlohy podľa mesiaca a zoskupuje série (vrátane virtuálnych).
  * monthKey: "YYYY-MM" alebo null pre "všetko".
  */
 export function filterTasksByMonth<T extends Task>(tasks: T[], monthKey: string | null): T[] {
-  // Najprv zoskupíme podľa série
+  const seriesMap = buildVirtualSeriesMap(tasks);
   const seriesGroups = new Map<string, T[]>();
   const standalone: T[] = [];
   for (const t of tasks) {
-    if (t.series_id) {
-      const arr = seriesGroups.get(t.series_id) ?? [];
+    const key = seriesMap.get(t.id);
+    if (key) {
+      const arr = seriesGroups.get(key) ?? [];
       arr.push(t);
-      seriesGroups.set(t.series_id, arr);
+      seriesGroups.set(key, arr);
     } else {
       standalone.push(t);
     }
@@ -33,19 +63,16 @@ export function filterTasksByMonth<T extends Task>(tasks: T[], monthKey: string 
 
   const result: T[] = [];
 
-  // Standalone
   for (const t of standalone) {
-    if (monthKey === null || t.due_date === null || inMonth(t.due_date)) {
-      // ak nie je due_date a sme v konkrétnom mesiaci, nezobrazíme
-      if (monthKey !== null && !t.due_date) continue;
+    if (monthKey === null) {
+      result.push(t);
+    } else if (t.due_date && inMonth(t.due_date)) {
       result.push(t);
     }
   }
 
-  // Série
   for (const [, list] of seriesGroups) {
     if (monthKey === null) {
-      // V móde "všetko" zobrazíme len najbližšiu / najstaršiu otvorenú inštanciu série
       const open = list.filter((t) => t.status !== "done");
       const pick =
         (open.length ? open : list).slice().sort((a, b) => {
@@ -63,15 +90,21 @@ export function filterTasksByMonth<T extends Task>(tasks: T[], monthKey: string 
   return result;
 }
 
-export function seriesSize(tasks: Task[], seriesId: string | null | undefined): number {
-  if (!seriesId) return 0;
-  return tasks.filter((t) => t.series_id === seriesId).length;
+export function seriesSize(tasks: Task[], task: Task): number {
+  const key = getSeriesKey(tasks, task);
+  if (!key) return 0;
+  const map = buildVirtualSeriesMap(tasks);
+  let count = 0;
+  for (const t of tasks) if (map.get(t.id) === key) count++;
+  return count;
 }
 
 export function seriesIndex(tasks: Task[], task: Task): number {
-  if (!task.series_id) return 0;
+  const key = getSeriesKey(tasks, task);
+  if (!key) return 0;
+  const map = buildVirtualSeriesMap(tasks);
   const list = tasks
-    .filter((t) => t.series_id === task.series_id)
+    .filter((t) => map.get(t.id) === key)
     .sort((a, b) => {
       const da = a.due_date ? new Date(a.due_date).getTime() : 0;
       const db = b.due_date ? new Date(b.due_date).getTime() : 0;

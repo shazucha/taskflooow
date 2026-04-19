@@ -168,15 +168,20 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
                 {format(new Date(task.due_date), "d. MMM", { locale: sk })}
               </span>
             )}
-            {task.series_id && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
-                title="Opakovaná úloha"
-              >
-                <Repeat className="h-3 w-3" />
-                {seriesIndex(allTasks, task)}/{seriesSize(allTasks, task.series_id)}
-              </span>
-            )}
+            {(() => {
+              const size = seriesSize(allTasks, task);
+              if (size < 2) return null;
+              const idx = seriesIndex(allTasks, task);
+              return (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
+                  title="Opakovaná úloha"
+                >
+                  <Repeat className="h-3 w-3" />
+                  {idx}/{size}
+                </span>
+              );
+            })()}
           </div>
         </button>
 

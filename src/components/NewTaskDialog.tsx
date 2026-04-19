@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import type { Priority } from "@/lib/types";
 import { PRIORITY_META } from "@/lib/types";
@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useCreateTask, useCurrentUserId, useProfiles, useProjects } from "@/lib/queries";
 import { toast } from "sonner";
@@ -38,6 +39,13 @@ interface Props {
   trigger?: React.ReactNode;
 }
 
+function nthDayOfMonth(year: number, monthIdx0: number, day: number, hour = 9, minute = 0): string {
+  const lastDay = new Date(year, monthIdx0 + 1, 0).getDate();
+  const safeDay = Math.min(day, lastDay);
+  const d = new Date(year, monthIdx0, safeDay, hour, minute, 0);
+  return d.toISOString();
+}
+
 export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const { data: projects = [] } = useProjects();
   const { data: profiles = [] } = useProfiles();
@@ -49,8 +57,6 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
-  // Pole vybraných používateľov. PRVÝ v poradí = hlavný zodpovedný (assignee),
-  // ostatní = spolupracovníci (watchers). Default: aktuálny používateľ.
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
     currentUserId ? [currentUserId] : []
   );
@@ -58,11 +64,23 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [dueTime, setDueTime] = useState<string>("");
   const [endTime, setEndTime] = useState<string>("");
 
+  // Opakovanie
+  const [recurring, setRecurring] = useState(false);
+  const today = new Date();
+  const [recDay, setRecDay] = useState<number>(today.getDate());
+  const [recMonths, setRecMonths] = useState<number>(12);
+  const [recStartMonth, setRecStartMonth] = useState<string>(
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`
+  );
+
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
     setProjectId(defaultProjectId ?? "");
     setSelectedUserIds(currentUserId ? [currentUserId] : []);
     setDueDate(""); setDueTime(""); setEndTime("");
+    setRecurring(false);
+    setRecDay(today.getDate()); setRecMonths(12);
+    setRecStartMonth(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
   };
 
   const toggleUser = (id: string) =>
@@ -70,40 +88,88 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
 
+  const recPreview = useMemo(() => {
+    if (!recurring) return [];
+    const [yStr, mStr] = recStartMonth.split("-");
+    const y0 = Number(yStr); const m0 = Number(mStr) - 1;
+    const dates: string[] = [];
+    for (let i = 0; i < recMonths; i++) {
+      const y = y0 + Math.floor((m0 + i) / 12);
+      const m = (m0 + i) % 12;
+      const lastDay = new Date(y, m + 1, 0).getDate();
+      const safeDay = Math.min(recDay, lastDay);
+      dates.push(`${safeDay}.${m + 1}.${y}`);
+    }
+    return dates;
+  }, [recurring, recStartMonth, recMonths, recDay]);
+
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
     try {
-      let due_date: string | null = null;
-      let due_end: string | null = null;
-      if (dueDate) {
-        const start = new Date(`${dueDate}T${dueTime || "00:00"}:00`);
-        due_date = start.toISOString();
-        if (dueTime && endTime) {
-          const end = new Date(`${dueDate}T${endTime}:00`);
-          if (end.getTime() > start.getTime()) due_end = end.toISOString();
-        }
-      }
-      // Hlavný zodpovedný = prvý vybraný, fallback aktuálny používateľ
       const assignee = selectedUserIds[0] ?? currentUserId;
       const watchers = selectedUserIds.slice(1).filter((id) => id !== assignee);
-      await create.mutateAsync({
-        task: {
-          title: title.trim(),
-          description: description.trim() || null,
-          priority,
-          status: "todo",
-          project_id: projectId || null,
-          assignee_id: assignee,
-          created_by: currentUserId,
-          due_date,
-          due_end,
-          series_id: null,
-        },
-        watcherIds: watchers,
-      });
+
+      if (recurring) {
+        if (!projectId) {
+          toast.error("Pre opakovanú úlohu vyber projekt");
+          return;
+        }
+        const [yStr, mStr] = recStartMonth.split("-");
+        const y0 = Number(yStr); const m0 = Number(mStr) - 1;
+        const seriesId = (typeof crypto !== "undefined" && "randomUUID" in crypto)
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        for (let i = 0; i < recMonths; i++) {
+          const y = y0 + Math.floor((m0 + i) / 12);
+          const m = (m0 + i) % 12;
+          const due_date = nthDayOfMonth(y, m, recDay);
+          await create.mutateAsync({
+            task: {
+              title: title.trim(),
+              description: description.trim() || null,
+              priority,
+              status: "todo",
+              project_id: projectId,
+              assignee_id: assignee,
+              created_by: currentUserId,
+              due_date,
+              due_end: null,
+              series_id: seriesId,
+            },
+            watcherIds: watchers,
+          });
+        }
+        toast.success(`Vytvorených ${recMonths} opakovaných úloh`);
+      } else {
+        let due_date: string | null = null;
+        let due_end: string | null = null;
+        if (dueDate) {
+          const start = new Date(`${dueDate}T${dueTime || "00:00"}:00`);
+          due_date = start.toISOString();
+          if (dueTime && endTime) {
+            const end = new Date(`${dueDate}T${endTime}:00`);
+            if (end.getTime() > start.getTime()) due_end = end.toISOString();
+          }
+        }
+        await create.mutateAsync({
+          task: {
+            title: title.trim(),
+            description: description.trim() || null,
+            priority,
+            status: "todo",
+            project_id: projectId || null,
+            assignee_id: assignee,
+            created_by: currentUserId,
+            due_date,
+            due_end,
+            series_id: null,
+          },
+          watcherIds: watchers,
+        });
+        toast.success("Úloha vytvorená");
+      }
       setOpen(false);
       reset();
-      toast.success("Úloha vytvorená");
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa vytvoriť úlohu");
     }
@@ -118,7 +184,7 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-md rounded-2xl">
+      <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nová úloha</DialogTitle>
         </DialogHeader>
@@ -169,83 +235,125 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
             </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Termín</Label>
-            <Input
-              type="date"
-              value={dueDate}
-              onChange={(e) => {
-                setDueDate(e.target.value);
-                if (!e.target.value) {
-                  setDueTime("");
-                  setEndTime("");
-                }
-              }}
-            />
-            {dueDate && (
-              <>
-                <div className="flex gap-1.5 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => { setDueTime(""); setEndTime(""); }}
-                    className={cn(
-                      "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
-                      !dueTime
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Celý deň
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { if (!dueTime) setDueTime("09:00"); }}
-                    className={cn(
-                      "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
-                      dueTime
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Konkrétny čas
-                  </button>
-                </div>
-                {dueTime && (
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Začiatok</Label>
-                      <Select
-                        value={dueTime}
-                        onValueChange={(v) => {
-                          setDueTime(v);
-                          if (endTime && endTime <= v) setEndTime("");
-                        }}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent className="max-h-64">
-                          {HALF_HOUR_SLOTS.map((s) => (
-                            <SelectItem key={s} value={s}>{s}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Koniec</Label>
-                      <Select value={endTime || "none"} onValueChange={(v) => setEndTime(v === "none" ? "" : v)}>
-                        <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent className="max-h-64">
-                          <SelectItem value="none">— bez konca —</SelectItem>
-                          {HALF_HOUR_SLOTS.filter((s) => s > dueTime).map((s) => (
-                            <SelectItem key={s} value={s}>{s}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+          {/* Prepínač opakovania */}
+          <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
+            <div className="min-w-0">
+              <Label htmlFor="rec-switch" className="text-sm font-semibold">Opakovať mesačne</Label>
+              <p className="text-[11px] text-muted-foreground">Vytvorí sériu úloh na vybraný deň každý mesiac.</p>
+            </div>
+            <Switch id="rec-switch" checked={recurring} onCheckedChange={setRecurring} />
           </div>
+
+          {recurring ? (
+            <div className="space-y-3 rounded-xl bg-surface-muted/60 p-3">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="rday" className="text-xs">Deň v mesiaci</Label>
+                  <Input
+                    id="rday" type="number" min={1} max={31} value={recDay}
+                    onChange={(e) => setRecDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="rstart" className="text-xs">Od mesiaca</Label>
+                  <Input
+                    id="rstart" type="month" value={recStartMonth}
+                    onChange={(e) => setRecStartMonth(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="rmonths" className="text-xs">Počet mesiacov</Label>
+                  <Input
+                    id="rmonths" type="number" min={1} max={36} value={recMonths}
+                    onChange={(e) => setRecMonths(Math.max(1, Math.min(36, Number(e.target.value) || 1)))}
+                  />
+                </div>
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                <span className="font-semibold text-foreground">Náhľad ({recPreview.length}):</span>{" "}
+                <span className="line-clamp-2">{recPreview.join(" · ")}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Termín</Label>
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => {
+                  setDueDate(e.target.value);
+                  if (!e.target.value) {
+                    setDueTime("");
+                    setEndTime("");
+                  }
+                }}
+              />
+              {dueDate && (
+                <>
+                  <div className="flex gap-1.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => { setDueTime(""); setEndTime(""); }}
+                      className={cn(
+                        "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                        !dueTime
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Celý deň
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { if (!dueTime) setDueTime("09:00"); }}
+                      className={cn(
+                        "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                        dueTime
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Konkrétny čas
+                    </button>
+                  </div>
+                  {dueTime && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">Začiatok</Label>
+                        <Select
+                          value={dueTime}
+                          onValueChange={(v) => {
+                            setDueTime(v);
+                            if (endTime && endTime <= v) setEndTime("");
+                          }}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            {HALF_HOUR_SLOTS.map((s) => (
+                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">Koniec</Label>
+                        <Select value={endTime || "none"} onValueChange={(v) => setEndTime(v === "none" ? "" : v)}>
+                          <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            <SelectItem value="none">— bez konca —</SelectItem>
+                            {HALF_HOUR_SLOTS.filter((s) => s > dueTime).map((s) => (
+                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <Label className="flex items-center justify-between">
               <span>Komu úloha patrí</span>
@@ -253,9 +361,6 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
                 1. zaškrtnutý = hlavný
               </span>
             </Label>
-            <p className="text-[11px] text-muted-foreground">
-              Môžeš vybrať viac ľudí. Prvý zaškrtnutý je hlavný zodpovedný, ostatní spolupracujú.
-            </p>
             <div className="space-y-1 rounded-xl border border-border/60 p-1">
               {profiles.map((p) => {
                 const idx = selectedUserIds.indexOf(p.id);
@@ -294,7 +399,11 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Zrušiť</Button>
           <Button onClick={submit} disabled={!title.trim() || create.isPending}>
-            {create.isPending ? "Vytváram..." : "Vytvoriť"}
+            {create.isPending
+              ? "Vytváram..."
+              : recurring
+                ? `Vytvoriť ${recMonths}×`
+                : "Vytvoriť"}
           </Button>
         </DialogFooter>
       </DialogContent>

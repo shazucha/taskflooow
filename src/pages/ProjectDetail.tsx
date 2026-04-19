@@ -3,7 +3,6 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, MessagesSquare } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
-import { RecurringTaskDialog } from "@/components/RecurringTaskDialog";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
@@ -63,7 +62,6 @@ export default function ProjectDetail() {
         </div>
         <div className="flex flex-wrap items-center gap-1 justify-end">
           {isOwner && project && <DeleteProjectDialog projectId={project.id} projectName={project.name} />}
-          <RecurringTaskDialog projectId={project.id} />
           <NewTaskDialog defaultProjectId={project.id} />
         </div>
       </header>
