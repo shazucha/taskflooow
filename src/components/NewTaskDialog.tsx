@@ -103,12 +103,22 @@ export function NewTaskDialog({
 
   // Opakovanie
   const [recurring, setRecurring] = useState(false);
+  const [recMode, setRecMode] = useState<"monthly" | "weekly">("monthly");
   const today = new Date();
   const [recDay, setRecDay] = useState<number>(today.getDate());
   const [recMonths, setRecMonths] = useState<number>(12);
   const [recStartMonth, setRecStartMonth] = useState<string>(
     `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`
   );
+  // Týždenné opakovanie
+  const isoToday = (() => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  })();
+  const [recWeekStart, setRecWeekStart] = useState<string>(isoToday);
+  const [recWeeks, setRecWeeks] = useState<number>(12);
+  const [recWeekTime, setRecWeekTime] = useState<string>("");
+  const [recWeekEnd, setRecWeekEnd] = useState<string>("");
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
