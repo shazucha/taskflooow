@@ -41,6 +41,7 @@ export function ProjectMetaCard({ project }: { project: Project }) {
   const { data: works = [] } = useProjectWorks(project.id);
   const createWork = useCreateProjectWork();
   const delWork = useDeleteProjectWork(project.id);
+  const updateProject = useUpdateProject();
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
