@@ -67,6 +67,11 @@ export async function updateProject(id: string, patch: Partial<Project>): Promis
   return data as Project;
 }
 
+export async function deleteProject(id: string): Promise<void> {
+  const { error } = await supabase.from("projects").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ---- Project works (jednotlivé práce pre klienta)
 export async function fetchProjectWorks(projectId: string): Promise<ProjectWork[]> {
   const { data, error } = await supabase
