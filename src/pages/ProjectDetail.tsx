@@ -54,7 +54,10 @@ export default function ProjectDetail() {
             <p className="mt-1 text-sm text-muted-foreground">{project.description}</p>
           )}
         </div>
-        <NewTaskDialog defaultProjectId={project.id} />
+        <div className="flex items-center gap-1">
+          {isOwner && project && <DeleteProjectDialog projectId={project.id} projectName={project.name} />}
+          <NewTaskDialog defaultProjectId={project.id} />
+        </div>
       </header>
 
       <div className="mt-4">
