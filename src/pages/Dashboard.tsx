@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, MessagesSquare, CalendarDays } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
@@ -6,7 +6,9 @@ import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Chat } from "@/components/Chat";
 import { CalendarWidget } from "@/components/CalendarWidget";
+import { MonthFilter } from "@/components/MonthFilter";
 import { PRIORITY_META } from "@/lib/types";
+import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
 import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
 
 export default function Dashboard() {
@@ -16,6 +18,8 @@ export default function Dashboard() {
   const { data: watchers = [] } = useTaskWatchers();
   const currentUserId = useCurrentUserId();
   const me = profiles.find((p) => p.id === currentUserId);
+  const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
+
   const visibleTasks = useMemo(
     () =>
       tasks.filter(
@@ -25,27 +29,33 @@ export default function Dashboard() {
     [tasks, watchers, currentUserId]
   );
 
+  // Filtrovanie podľa mesiaca + zoskupenie sérií
+  const monthFiltered = useMemo(
+    () => filterTasksByMonth(visibleTasks, monthKey),
+    [visibleTasks, monthKey]
+  );
+
   const myOpen = useMemo(
     () =>
-      visibleTasks
+      monthFiltered
         .filter((t) => t.assignee_id === currentUserId && t.status !== "done")
         .sort((a, b) => {
           const order = { high: 0, medium: 1, low: 2 } as const;
           return order[a.priority] - order[b.priority];
         }),
-    [visibleTasks, currentUserId]
+    [monthFiltered, currentUserId]
   );
 
   const counts = useMemo(() => {
-    const open = visibleTasks.filter((t) => t.status !== "done");
+    const open = monthFiltered.filter((t) => t.status !== "done");
     return {
       total: open.length,
       high: open.filter((t) => t.priority === "high").length,
       medium: open.filter((t) => t.priority === "medium").length,
       low: open.filter((t) => t.priority === "low").length,
-      done: visibleTasks.filter((t) => t.status === "done").length,
+      done: monthFiltered.filter((t) => t.status === "done").length,
     };
-  }, [visibleTasks]);
+  }, [monthFiltered]);
 
   return (
     <div className="px-4 pt-6">
