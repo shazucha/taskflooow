@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUserId, useProfiles, useTasks } from "@/lib/queries";
-import { Link } from "react-router-dom";
 import type { Task } from "@/lib/types";
+import { TaskDetailDialog } from "./TaskDetailDialog";
 
 type View = "month" | "week" | "day";
 
