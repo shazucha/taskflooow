@@ -71,6 +71,10 @@ export default function ProjectDetail() {
         <ProjectMetaCard project={project} />
       </div>
 
+      <div className="mt-4">
+        <ProjectServicesCard projectId={project.id} />
+      </div>
+
       <div className="mt-5 flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Úlohy</h2>
         <MonthFilter value={monthKey} onChange={setMonthKey} />
