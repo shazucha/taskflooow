@@ -147,7 +147,10 @@ export function useSetTaskWatchers() {
   return useMutation({
     mutationFn: ({ taskId, userIds }: { taskId: string; userIds: string[] }) =>
       setTaskWatchers(taskId, userIds),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["task_watchers"] }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["task_watchers"] });
+      qc.invalidateQueries({ queryKey: ["task_activity", vars.taskId] });
+    },
   });
 }
 
@@ -164,7 +167,10 @@ export function useUpdateTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<Task> }) => updateTask(id, patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["task_activity", vars.id] });
+    },
   });
 }
 
