@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUserId, useProfiles, useTaskWatchers, useTasks } from "@/lib/queries";
 import type { Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
+import { NewTaskDialog } from "./NewTaskDialog";
 
 type View = "month" | "week" | "day";
 
@@ -37,11 +38,22 @@ function hasTime(t: Task) {
   return d.getHours() !== 0 || d.getMinutes() !== 0;
 }
 
+function fmtDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function fmtTime(h: number, m: number) {
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+type Prefill = { date: string; time?: string; end?: string } | null;
+
 export function CalendarWidget() {
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<Date>(new Date());
   const [openTask, setOpenTask] = useState<Task | null>(null);
+  const [prefill, setPrefill] = useState<Prefill>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const currentUserId = useCurrentUserId();
   const { data: tasks = [] } = useTasks();
   const { data: profiles = [] } = useProfiles();
@@ -152,6 +164,10 @@ export function CalendarWidget() {
             setCursor(d);
             setView("day");
           }}
+          onCreateAt={(d) => {
+            setPrefill({ date: fmtDate(d) });
+            setCreateOpen(true);
+          }}
         />
       )}
 
@@ -168,6 +184,10 @@ export function CalendarWidget() {
             setCursor(d);
             setView("day");
           }}
+          onCreateAt={(d) => {
+            setPrefill({ date: fmtDate(d) });
+            setCreateOpen(true);
+          }}
         />
       )}
 
@@ -177,6 +197,24 @@ export function CalendarWidget() {
           tasks={tasksByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
           onOpenTask={setOpenTask}
+          onCreateSlot={(slotIdx) => {
+            const h = Math.floor(slotIdx / 2);
+            const m = slotIdx % 2 === 0 ? 0 : 30;
+            setPrefill({ date: fmtDate(cursor), time: fmtTime(h, m) });
+            setCreateOpen(true);
+          }}
+          onCreateRange={(startSlot, endSlot) => {
+            const sh = Math.floor(startSlot / 2);
+            const sm = startSlot % 2 === 0 ? 0 : 30;
+            const eh = Math.floor(endSlot / 2);
+            const em = endSlot % 2 === 0 ? 0 : 30;
+            setPrefill({
+              date: fmtDate(cursor),
+              time: fmtTime(sh, sm),
+              end: fmtTime(eh, em),
+            });
+            setCreateOpen(true);
+          }}
         />
       )}
 
@@ -195,17 +233,30 @@ export function CalendarWidget() {
         open={!!openTask}
         onOpenChange={(v) => !v && setOpenTask(null)}
       />
+
+      <NewTaskDialog
+        hideTrigger
+        open={createOpen}
+        onOpenChange={(v) => {
+          setCreateOpen(v);
+          if (!v) setPrefill(null);
+        }}
+        defaultDueDate={prefill?.date}
+        defaultDueTime={prefill?.time}
+        defaultEndTime={prefill?.end}
+      />
     </div>
   );
 }
 
 /* ---------------- Month ---------------- */
 function MonthView({
-  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay,
+  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay, onCreateAt,
 }: {
   cursor: Date; selected: Date; today: Date;
   tasksByDay: Map<string, Task[]>; myColor: string;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
+  onCreateAt: (d: Date) => void;
 }) {
   const monthStart = startOfMonth(cursor);
   const monthDays = daysInMonth(cursor);
@@ -228,22 +279,29 @@ function MonthView({
           const isToday = sameDay(d, today);
           const isSelected = sameDay(d, selected);
           return (
-            <button
+            <div
               key={key}
-              type="button"
-              onClick={() => onSelect(d)}
-              onDoubleClick={() => onDrillDay(d)}
               className={cn(
-                "relative flex aspect-square flex-col items-center justify-center rounded-lg text-xs font-medium transition",
+                "group relative flex aspect-square flex-col items-center justify-center rounded-lg text-xs font-medium transition cursor-pointer",
                 isSelected ? "ring-2 ring-primary" : "hover:bg-surface-muted",
                 isToday && !isSelected && "bg-surface-muted"
               )}
+              onClick={() => onSelect(d)}
+              onDoubleClick={() => onDrillDay(d)}
             >
               <span className={cn(isToday && "font-bold text-primary")}>{d.getDate()}</span>
               {dayTasks.length > 0 && (
                 <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
               )}
-            </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onCreateAt(d); }}
+                title="Pridať úlohu"
+                className="absolute right-0.5 top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold leading-none text-primary-foreground shadow group-hover:flex"
+              >
+                +
+              </button>
+            </div>
           );
         })}
       </div>
@@ -253,11 +311,12 @@ function MonthView({
 
 /* ---------------- Week ---------------- */
 function WeekView({
-  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay,
+  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay, onCreateAt,
 }: {
   cursor: Date; selected: Date; today: Date;
   tasksByDay: Map<string, Task[]>; myColor: string;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
+  onCreateAt: (d: Date) => void;
 }) {
   const start = startOfWeek(cursor);
   const days = Array.from({ length: 7 }, (_, i) =>
@@ -272,16 +331,15 @@ function WeekView({
         const isToday = sameDay(d, today);
         const isSelected = sameDay(d, selected);
         return (
-          <button
+          <div
             key={key}
-            type="button"
-            onClick={() => onSelect(d)}
-            onDoubleClick={() => onDrillDay(d)}
             className={cn(
-              "flex flex-col items-center gap-1 rounded-lg p-2 text-xs transition",
+              "group relative flex flex-col items-center gap-1 rounded-lg p-2 text-xs transition cursor-pointer",
               isSelected ? "ring-2 ring-primary" : "hover:bg-surface-muted",
               isToday && !isSelected && "bg-surface-muted"
             )}
+            onClick={() => onSelect(d)}
+            onDoubleClick={() => onDrillDay(d)}
           >
             <span className="text-[10px] font-bold uppercase text-muted-foreground">{WEEKDAYS[i]}</span>
             <span className={cn("text-base font-semibold", isToday && "text-primary")}>{d.getDate()}</span>
@@ -290,7 +348,15 @@ function WeekView({
                 <span key={t.id} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
               ))}
             </span>
-          </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onCreateAt(d); }}
+              title="Pridať úlohu"
+              className="absolute right-1 top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold leading-none text-primary-foreground shadow group-hover:flex"
+            >
+              +
+            </button>
+          </div>
         );
       })}
     </div>
@@ -302,9 +368,12 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, myColor, onOpenTask,
+  date, tasks, myColor, onOpenTask, onCreateSlot, onCreateRange,
 }: {
-  date: Date; tasks: Task[]; myColor: string; onOpenTask: (t: Task) => void;
+  date: Date; tasks: Task[]; myColor: string;
+  onOpenTask: (t: Task) => void;
+  onCreateSlot: (slotIdx: number) => void;
+  onCreateRange: (startSlot: number, endSlot: number) => void;
 }) {
   const allDay = tasks.filter((t) => !hasTime(t));
   const timed = tasks
@@ -323,6 +392,16 @@ function DayView({
     return { task: t, startSlot, lengthSlots };
   });
 
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<{ startSlot: number; currSlot: number } | null>(null);
+
+  const slotFromEvent = (clientY: number): number => {
+    const rect = gridRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const y = clientY - rect.top + (gridRef.current?.parentElement?.scrollTop ?? 0);
+    return Math.max(0, Math.min(SLOTS_PER_DAY - 1, Math.floor(y / SLOT_PX)));
+  };
+
   return (
     <div className="space-y-3">
       {allDay.length > 0 && (
@@ -335,7 +414,31 @@ function DayView({
       )}
 
       <div className="max-h-[420px] overflow-y-auto rounded-lg border border-border/60">
-        <div className="relative" style={{ height: SLOTS_PER_DAY * SLOT_PX }}>
+        <div
+          ref={gridRef}
+          className="relative select-none"
+          style={{ height: SLOTS_PER_DAY * SLOT_PX }}
+          onMouseDown={(e) => {
+            if ((e.target as HTMLElement).closest("[data-task-block]")) return;
+            const s = slotFromEvent(e.clientY);
+            setDrag({ startSlot: s, currSlot: s });
+          }}
+          onMouseMove={(e) => {
+            if (!drag) return;
+            const s = slotFromEvent(e.clientY);
+            if (s !== drag.currSlot) setDrag({ ...drag, currSlot: s });
+          }}
+          onMouseUp={(e) => {
+            if (!drag) return;
+            const s = slotFromEvent(e.clientY);
+            const a = Math.min(drag.startSlot, s);
+            const b = Math.max(drag.startSlot, s);
+            setDrag(null);
+            if (a === b) onCreateSlot(a);
+            else onCreateRange(a, b + 1);
+          }}
+          onMouseLeave={() => setDrag(null)}
+        >
           {Array.from({ length: SLOTS_PER_DAY }).map((_, i) => {
             const isHour = i % 2 === 0;
             return (
@@ -356,6 +459,22 @@ function DayView({
             );
           })}
 
+          {/* Drag preview */}
+          {drag && (() => {
+            const a = Math.min(drag.startSlot, drag.currSlot);
+            const b = Math.max(drag.startSlot, drag.currSlot);
+            return (
+              <div
+                className="pointer-events-none absolute left-12 right-2 rounded-md ring-2 ring-primary"
+                style={{
+                  top: a * SLOT_PX + 1,
+                  height: (b - a + 1) * SLOT_PX - 2,
+                  backgroundColor: "hsl(var(--primary) / 0.15)",
+                }}
+              />
+            );
+          })()}
+
           {blocks.map(({ task, startSlot, lengthSlots }) => {
             const d = new Date(task.due_date!);
             const e = task.due_end ? new Date(task.due_end) : null;
@@ -363,6 +482,7 @@ function DayView({
               <button
                 key={task.id}
                 type="button"
+                data-task-block
                 onClick={() => onOpenTask(task)}
                 className="absolute left-12 right-2 overflow-hidden rounded-md px-2 py-1 text-left text-[11px] hover:opacity-90"
                 style={{
@@ -382,6 +502,10 @@ function DayView({
           })}
         </div>
       </div>
+
+      <p className="text-center text-[11px] text-muted-foreground">
+        Klikni na hodinu alebo potiahni pre vytvorenie úlohy. Bez konca = 30 min.
+      </p>
 
       {tasks.length === 0 && (
         <p className="text-center text-xs text-muted-foreground">Žiadne úlohy v tento deň.</p>

@@ -37,6 +37,15 @@ const HALF_HOUR_SLOTS = Array.from({ length: 48 }, (_, i) => {
 interface Props {
   defaultProjectId?: string;
   trigger?: React.ReactNode;
+  /** Controlled open (optional). If provided together with onOpenChange, dialog is controlled. */
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
+  /** Prefill values when opening (e.g. from calendar click). */
+  defaultDueDate?: string; // "YYYY-MM-DD"
+  defaultDueTime?: string; // "HH:MM"
+  defaultEndTime?: string; // "HH:MM"
+  /** Hide the default trigger button (used when controlled). */
+  hideTrigger?: boolean;
 }
 
 function nthDayOfMonth(year: number, monthIdx0: number, day: number, hour = 9, minute = 0): string {
@@ -46,13 +55,29 @@ function nthDayOfMonth(year: number, monthIdx0: number, day: number, hour = 9, m
   return d.toISOString();
 }
 
-export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
+export function NewTaskDialog({
+  defaultProjectId,
+  trigger,
+  open: openProp,
+  onOpenChange,
+  defaultDueDate,
+  defaultDueTime,
+  defaultEndTime,
+  hideTrigger,
+}: Props) {
   const { data: projects = [] } = useProjects();
   const { data: profiles = [] } = useProfiles();
   const currentUserId = useCurrentUserId();
   const create = useCreateTask();
 
-  const [open, setOpen] = useState(false);
+  const isControlled = openProp !== undefined && onOpenChange !== undefined;
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = isControlled ? !!openProp : openInternal;
+  const setOpen = (v: boolean) => {
+    if (isControlled) onOpenChange!(v);
+    else setOpenInternal(v);
+  };
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
@@ -60,9 +85,21 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
     currentUserId ? [currentUserId] : []
   );
-  const [dueDate, setDueDate] = useState<string>("");
-  const [dueTime, setDueTime] = useState<string>("");
-  const [endTime, setEndTime] = useState<string>("");
+  const [dueDate, setDueDate] = useState<string>(defaultDueDate ?? "");
+  const [dueTime, setDueTime] = useState<string>(defaultDueTime ?? "");
+  const [endTime, setEndTime] = useState<string>(defaultEndTime ?? "");
+
+  // Sync prefill values when dialog is opened from outside with new defaults
+  const prefillKey = `${defaultDueDate ?? ""}|${defaultDueTime ?? ""}|${defaultEndTime ?? ""}`;
+  const [lastPrefillKey, setLastPrefillKey] = useState<string>(open ? prefillKey : "");
+  if (open && prefillKey !== lastPrefillKey) {
+    queueMicrotask(() => {
+      setDueDate(defaultDueDate ?? "");
+      setDueTime(defaultDueTime ?? "");
+      setEndTime(defaultEndTime ?? "");
+      setLastPrefillKey(prefillKey);
+    });
+  }
 
   // Opakovanie
   const [recurring, setRecurring] = useState(false);
@@ -77,7 +114,8 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
     setTitle(""); setDescription(""); setPriority("medium");
     setProjectId(defaultProjectId ?? "");
     setSelectedUserIds(currentUserId ? [currentUserId] : []);
-    setDueDate(""); setDueTime(""); setEndTime("");
+    setDueDate(defaultDueDate ?? ""); setDueTime(defaultDueTime ?? ""); setEndTime(defaultEndTime ?? "");
+    setLastPrefillKey("");
     setRecurring(false);
     setRecDay(today.getDate()); setRecMonths(12);
     setRecStartMonth(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
@@ -146,9 +184,14 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
         if (dueDate) {
           const start = new Date(`${dueDate}T${dueTime || "00:00"}:00`);
           due_date = start.toISOString();
-          if (dueTime && endTime) {
-            const end = new Date(`${dueDate}T${endTime}:00`);
-            if (end.getTime() > start.getTime()) due_end = end.toISOString();
+          if (dueTime) {
+            if (endTime) {
+              const end = new Date(`${dueDate}T${endTime}:00`);
+              if (end.getTime() > start.getTime()) due_end = end.toISOString();
+            } else {
+              // Default 30 min slot when start time is set without explicit end
+              due_end = new Date(start.getTime() + 30 * 60 * 1000).toISOString();
+            }
           }
         }
         await create.mutateAsync({
@@ -177,13 +220,15 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button className="gap-1.5 rounded-full shadow-md">
-            <Plus className="h-4 w-4" /> Nová úloha
-          </Button>
-        )}
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          {trigger ?? (
+            <Button className="gap-1.5 rounded-full shadow-md">
+              <Plus className="h-4 w-4" /> Nová úloha
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nová úloha</DialogTitle>
