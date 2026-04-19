@@ -368,10 +368,151 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, myColor, onOpenTask,
+  date, tasks, myColor, onOpenTask, onCreateSlot, onCreateRange,
 }: {
-  date: Date; tasks: Task[]; myColor: string; onOpenTask: (t: Task) => void;
+  date: Date; tasks: Task[]; myColor: string;
+  onOpenTask: (t: Task) => void;
+  onCreateSlot: (slotIdx: number) => void;
+  onCreateRange: (startSlot: number, endSlot: number) => void;
 }) {
+  const allDay = tasks.filter((t) => !hasTime(t));
+  const timed = tasks
+    .filter((t) => hasTime(t))
+    .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+
+  const blocks = timed.map((t) => {
+    const s = new Date(t.due_date!);
+    const startSlot = s.getHours() * 2 + (s.getMinutes() >= 30 ? 1 : 0);
+    let lengthSlots = 1;
+    if (t.due_end) {
+      const e = new Date(t.due_end);
+      const endSlot = e.getHours() * 2 + Math.ceil(e.getMinutes() / 30);
+      lengthSlots = Math.max(1, endSlot - startSlot);
+    }
+    return { task: t, startSlot, lengthSlots };
+  });
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<{ startSlot: number; currSlot: number } | null>(null);
+
+  const slotFromEvent = (clientY: number): number => {
+    const rect = gridRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const y = clientY - rect.top + (gridRef.current?.parentElement?.scrollTop ?? 0);
+    return Math.max(0, Math.min(SLOTS_PER_DAY - 1, Math.floor(y / SLOT_PX)));
+  };
+
+  return (
+    <div className="space-y-3">
+      {allDay.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
+          <ul className="space-y-1">
+            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} onOpenTask={onOpenTask} />)}
+          </ul>
+        </div>
+      )}
+
+      <div className="max-h-[420px] overflow-y-auto rounded-lg border border-border/60">
+        <div
+          ref={gridRef}
+          className="relative select-none"
+          style={{ height: SLOTS_PER_DAY * SLOT_PX }}
+          onMouseDown={(e) => {
+            if ((e.target as HTMLElement).closest("[data-task-block]")) return;
+            const s = slotFromEvent(e.clientY);
+            setDrag({ startSlot: s, currSlot: s });
+          }}
+          onMouseMove={(e) => {
+            if (!drag) return;
+            const s = slotFromEvent(e.clientY);
+            if (s !== drag.currSlot) setDrag({ ...drag, currSlot: s });
+          }}
+          onMouseUp={(e) => {
+            if (!drag) return;
+            const s = slotFromEvent(e.clientY);
+            const a = Math.min(drag.startSlot, s);
+            const b = Math.max(drag.startSlot, s);
+            setDrag(null);
+            if (a === b) onCreateSlot(a);
+            else onCreateRange(a, b + 1);
+          }}
+          onMouseLeave={() => setDrag(null)}
+        >
+          {Array.from({ length: SLOTS_PER_DAY }).map((_, i) => {
+            const isHour = i % 2 === 0;
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "absolute left-0 right-0 flex items-start gap-2 px-2",
+                  isHour ? "border-t border-border/60" : "border-t border-dashed border-border/30"
+                )}
+                style={{ top: i * SLOT_PX, height: SLOT_PX }}
+              >
+                {isHour && (
+                  <span className="w-10 shrink-0 pt-0.5 text-[10px] font-semibold text-muted-foreground">
+                    {String(i / 2).padStart(2, "0")}:00
+                  </span>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Drag preview */}
+          {drag && (() => {
+            const a = Math.min(drag.startSlot, drag.currSlot);
+            const b = Math.max(drag.startSlot, drag.currSlot);
+            return (
+              <div
+                className="pointer-events-none absolute left-12 right-2 rounded-md ring-2 ring-primary"
+                style={{
+                  top: a * SLOT_PX + 1,
+                  height: (b - a + 1) * SLOT_PX - 2,
+                  backgroundColor: "hsl(var(--primary) / 0.15)",
+                }}
+              />
+            );
+          })()}
+
+          {blocks.map(({ task, startSlot, lengthSlots }) => {
+            const d = new Date(task.due_date!);
+            const e = task.due_end ? new Date(task.due_end) : null;
+            return (
+              <button
+                key={task.id}
+                type="button"
+                data-task-block
+                onClick={() => onOpenTask(task)}
+                className="absolute left-12 right-2 overflow-hidden rounded-md px-2 py-1 text-left text-[11px] hover:opacity-90"
+                style={{
+                  top: startSlot * SLOT_PX + 1,
+                  height: lengthSlots * SLOT_PX - 2,
+                  backgroundColor: `${myColor}22`,
+                  borderLeft: `3px solid ${myColor}`,
+                }}
+              >
+                <div className="font-mono text-[10px] text-muted-foreground">
+                  {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
+                  {e && ` – ${String(e.getHours()).padStart(2, "0")}:${String(e.getMinutes()).padStart(2, "0")}`}
+                </div>
+                <div className="truncate font-semibold">{task.title}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <p className="text-center text-[11px] text-muted-foreground">
+        Klikni na hodinu alebo potiahni pre vytvorenie úlohy. Bez konca = 30 min.
+      </p>
+
+      {tasks.length === 0 && (
+        <p className="text-center text-xs text-muted-foreground">Žiadne úlohy v tento deň.</p>
+      )}
+    </div>
+  );
+}
   const allDay = tasks.filter((t) => !hasTime(t));
   const timed = tasks
     .filter((t) => hasTime(t))
