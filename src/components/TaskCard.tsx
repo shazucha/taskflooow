@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, MoreHorizontal, Trash2, Check, Users } from "lucide-react";
+import { CalendarDays, MoreHorizontal, Trash2, Check, Users, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
+import { seriesIndex, seriesSize } from "@/lib/recurring";
 import { PriorityBadge } from "./PriorityBadge";
 import { UserAvatar } from "./UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
   const { data: profiles = [] } = useProfiles();
   const { data: projects = [] } = useProjects();
   const { data: allWatchers = [] } = useTaskWatchers();
+  const { data: allTasks = [] } = useTasks();
   const toggleStatus = useToggleTaskStatus();
   const updateTask = useUpdateTask();
   const setWatchersM = useSetTaskWatchers();
