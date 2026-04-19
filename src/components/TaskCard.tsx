@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
+  useCurrentUserId,
   useDeleteTask,
   useProfiles,
   useProjects,
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export function TaskCard({ task, onOpen, showProject }: Props) {
+  const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
   const { data: projects = [] } = useProjects();
   const { data: allWatchers = [] } = useTaskWatchers();
@@ -81,7 +83,9 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
       if (task.project_id) {
         await syncProjectMembers.mutateAsync({
           projectId: task.project_id,
-          userIds: [task.created_by, newAssignee, ...newWatchers],
+          userIds: [task.created_by, currentUserId, newAssignee, ...newWatchers].filter(
+            (value): value is string => !!value
+          ),
         });
       }
       if (newAssignee !== task.assignee_id) {
