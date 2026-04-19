@@ -126,6 +126,75 @@ export function useDeleteProjectWork(projectId: string) {
   });
 }
 
+// ---- Recurring works (mesačná náplň)
+export function useProjectRecurringWorks(projectId: string | undefined) {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+  useEffect(() => {
+    if (!isReady || !user || !projectId) return;
+    const channel = supabase
+      .channel(`recurring-works-${projectId}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_recurring_works", filter: `project_id=eq.${projectId}` },
+        () => qc.invalidateQueries({ queryKey: ["project_recurring_works", projectId] })
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_recurring_work_completions" },
+        () => qc.invalidateQueries({ queryKey: ["recurring_work_completions", projectId] })
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc, isReady, user, projectId]);
+  return useQuery({
+    queryKey: ["project_recurring_works", projectId],
+    queryFn: () => fetchProjectRecurringWorks(projectId!),
+    enabled: !!projectId && isReady && !!user,
+  });
+}
+
+export function useRecurringWorkCompletions(projectId: string | undefined) {
+  const { isReady, user } = useAuthReady();
+  return useQuery({
+    queryKey: ["recurring_work_completions", projectId],
+    queryFn: () => fetchRecurringWorkCompletions(projectId!),
+    enabled: !!projectId && isReady && !!user,
+  });
+}
+
+export function useCreateRecurringWork(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createProjectRecurringWork,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_recurring_works", projectId] }),
+  });
+}
+
+export function useDeleteRecurringWork(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteProjectRecurringWork(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project_recurring_works", projectId] });
+      qc.invalidateQueries({ queryKey: ["recurring_work_completions", projectId] });
+    },
+  });
+}
+
+export function useToggleRecurringWorkDone(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: { work_id: string; month_key: string; user_id: string; done: boolean }) => {
+      if (vars.done) {
+        return markRecurringWorkDone({ work_id: vars.work_id, month_key: vars.month_key, user_id: vars.user_id });
+      }
+      await unmarkRecurringWorkDone(vars.work_id, vars.month_key);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["recurring_work_completions", projectId] }),
+  });
+}
+
 export function useCreateTask() {
   const qc = useQueryClient();
   return useMutation({
