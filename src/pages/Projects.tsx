@@ -6,10 +6,9 @@ import { useProjects, useTasks } from "@/lib/queries";
 import { PROJECT_CATEGORIES, type Project, type ProjectCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | ProjectCategory | "uncategorized";
+type Filter = ProjectCategory | "uncategorized";
 
 const FILTER_LABEL: Record<Filter, string> = {
-  all: "Všetky",
   "odstartujto.sk": "odstartujto.sk",
   "shazucha.sk": "shazucha.sk",
   uncategorized: "Bez kategórie",
@@ -18,7 +17,7 @@ const FILTER_LABEL: Record<Filter, string> = {
 export default function Projects() {
   const { data: projects = [], isLoading } = useProjects();
   const { data: tasks = [] } = useTasks();
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("shazucha.sk");
 
   const groups = useMemo(() => {
     const map = new Map<Filter, Project[]>();
@@ -31,7 +30,7 @@ export default function Projects() {
     return map;
   }, [projects]);
 
-  const filters: Filter[] = ["all", ...PROJECT_CATEGORIES, "uncategorized"];
+  const filters: Filter[] = [...PROJECT_CATEGORIES, "uncategorized"];
 
   const renderProject = (p: Project) => {
     const projectTasks = tasks.filter((t) => t.project_id === p.id);
