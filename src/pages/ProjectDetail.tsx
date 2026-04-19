@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, MessagesSquare } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
+import { RecurringTaskDialog } from "@/components/RecurringTaskDialog";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
