@@ -6,10 +6,9 @@ import { useProjects, useTasks } from "@/lib/queries";
 import { PROJECT_CATEGORIES, type Project, type ProjectCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | ProjectCategory | "uncategorized";
+type Filter = ProjectCategory | "uncategorized";
 
 const FILTER_LABEL: Record<Filter, string> = {
-  all: "Všetky",
   "odstartujto.sk": "odstartujto.sk",
   "shazucha.sk": "shazucha.sk",
   uncategorized: "Bez kategórie",
@@ -18,7 +17,7 @@ const FILTER_LABEL: Record<Filter, string> = {
 export default function Projects() {
   const { data: projects = [], isLoading } = useProjects();
   const { data: tasks = [] } = useTasks();
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("shazucha.sk");
 
   const groups = useMemo(() => {
     const map = new Map<Filter, Project[]>();
@@ -31,7 +30,7 @@ export default function Projects() {
     return map;
   }, [projects]);
 
-  const filters: Filter[] = ["all", ...PROJECT_CATEGORIES, "uncategorized"];
+  const filters: Filter[] = [...PROJECT_CATEGORIES, "uncategorized"];
 
   const renderProject = (p: Project) => {
     const projectTasks = tasks.filter((t) => t.project_id === p.id);
@@ -81,11 +80,8 @@ export default function Projects() {
       {/* Filter chips */}
       <div className="mt-4 flex gap-1.5 overflow-x-auto rounded-xl bg-surface-muted p-1">
         {filters.map((f) => {
-          const count =
-            f === "all"
-              ? projects.length
-              : (groups.get(f)?.length ?? 0);
-          if (f !== "all" && count === 0 && f === "uncategorized") return null;
+          const count = groups.get(f)?.length ?? 0;
+          if (count === 0 && f === "uncategorized") return null;
           return (
             <button
               key={f}
@@ -109,20 +105,6 @@ export default function Projects() {
           <p className="rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground">
             Zatiaľ žiadne projekty. Klikni na „Nový" hore.
           </p>
-        ) : filter === "all" ? (
-          // Grouped sections
-          (["odstartujto.sk", "shazucha.sk", "uncategorized"] as const).map((key) => {
-            const list = groups.get(key) ?? [];
-            if (list.length === 0) return null;
-            return (
-              <section key={key} className="space-y-2">
-                <h2 className="px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {FILTER_LABEL[key]} <span className="opacity-60">· {list.length}</span>
-                </h2>
-                <div className="space-y-3">{list.map(renderProject)}</div>
-              </section>
-            );
-          })
         ) : (
           <div className="space-y-3">
             {(groups.get(filter) ?? []).length === 0 ? (
