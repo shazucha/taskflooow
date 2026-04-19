@@ -205,6 +205,12 @@ export async function deleteTask(id: string) {
   if (error) throw error;
 }
 
+export async function deleteTasks(ids: string[]) {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from("tasks").delete().in("id", ids);
+  if (error) throw error;
+}
+
 // ---- Task activity (história zmien)
 export async function fetchTaskActivity(taskId: string): Promise<TaskActivity[]> {
   const { data, error } = await supabase

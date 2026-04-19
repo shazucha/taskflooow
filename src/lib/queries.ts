@@ -8,6 +8,7 @@ import {
   deleteProject,
   deleteProjectWork,
   deleteTask,
+  deleteTasks,
   fetchProfiles,
   fetchProjects,
   fetchProjectWorks,
@@ -190,6 +191,14 @@ export function useDeleteTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteTask(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+}
+
+export function useDeleteTasks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => deleteTasks(ids),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 }
