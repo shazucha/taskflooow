@@ -67,6 +67,19 @@ export function NewProjectDialog() {
             <Textarea id="pdesc" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="pcat">Kategória</Label>
+            <select
+              id="pcat"
+              value={category}
+              onChange={(e) => setCategory(e.target.value as ProjectCategory | "")}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">Bez kategórie</option>
+              {PROJECT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+
           <div className="grid grid-cols-[1fr_90px] gap-2">
             <div className="space-y-1.5">
               <Label htmlFor="pprice">Mesačná cena</Label>
