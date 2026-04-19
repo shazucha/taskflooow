@@ -8,6 +8,8 @@ import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
 import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
+import { MonthFilter } from "@/components/MonthFilter";
+import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
 import type { Task } from "@/lib/types";
 import { useCurrentUserId, useProjects, useTasks } from "@/lib/queries";
 
@@ -20,14 +22,18 @@ export default function ProjectDetail() {
   const isOwner = !!project && project.owner_id === currentUserId;
   const [openTask, setOpenTask] = useState<Task | null>(null);
 
+  const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
+
+  const projectTasks = useMemo(() => tasks.filter((t) => t.project_id === id), [tasks, id]);
+  const monthFiltered = useMemo(() => filterTasksByMonth(projectTasks, monthKey), [projectTasks, monthKey]);
+
   const grouped = useMemo(() => {
-    const list = tasks.filter((t) => t.project_id === id);
     return {
-      todo: list.filter((t) => t.status === "todo"),
-      in_progress: list.filter((t) => t.status === "in_progress"),
-      done: list.filter((t) => t.status === "done"),
+      todo: monthFiltered.filter((t) => t.status === "todo"),
+      in_progress: monthFiltered.filter((t) => t.status === "in_progress"),
+      done: monthFiltered.filter((t) => t.status === "done"),
     };
-  }, [tasks, id]);
+  }, [monthFiltered]);
 
   if (!project) {
     return (
@@ -66,12 +72,17 @@ export default function ProjectDetail() {
         <ProjectMetaCard project={project} />
       </div>
 
+      <div className="mt-5 flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Úlohy</h2>
+        <MonthFilter value={monthKey} onChange={setMonthKey} />
+      </div>
+
       {(["in_progress", "todo", "done"] as const).map((s) => {
         const list = grouped[s];
         if (list.length === 0) return null;
         const labels = { in_progress: "Prebieha", todo: "Nezačaté", done: "Hotové" };
         return (
-          <section key={s} className="mt-6">
+          <section key={s} className="mt-4">
             <h2 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {labels[s]} · {list.length}
             </h2>
@@ -82,9 +93,9 @@ export default function ProjectDetail() {
         );
       })}
 
-      {tasks.filter((t) => t.project_id === id).length === 0 && (
+      {monthFiltered.length === 0 && (
         <p className="mt-6 rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground">
-          Zatiaľ žiadne úlohy.
+          {projectTasks.length === 0 ? "Zatiaľ žiadne úlohy." : "V tomto mesiaci žiadne úlohy."}
         </p>
       )}
 

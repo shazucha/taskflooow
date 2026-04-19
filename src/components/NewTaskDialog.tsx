@@ -97,6 +97,7 @@ export function NewTaskDialog({ defaultProjectId, trigger }: Props) {
           created_by: currentUserId,
           due_date,
           due_end,
+          series_id: null,
         },
         watcherIds: watchers,
       });

@@ -79,6 +79,9 @@ export function RecurringTaskDialog({ projectId }: Props) {
     const watchers = selectedUserIds.slice(1).filter((id) => id !== assignee);
     const [yStr, mStr] = startMonth.split("-");
     const y0 = Number(yStr); const m0 = Number(mStr) - 1;
+    const seriesId = (typeof crypto !== "undefined" && "randomUUID" in crypto)
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     try {
       for (let i = 0; i < months; i++) {
         const y = y0 + Math.floor((m0 + i) / 12);
@@ -95,6 +98,7 @@ export function RecurringTaskDialog({ projectId }: Props) {
             created_by: currentUserId,
             due_date,
             due_end: null,
+            series_id: seriesId,
           },
           watcherIds: watchers,
         });

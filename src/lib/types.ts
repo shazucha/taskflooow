@@ -41,6 +41,7 @@ export interface Task {
   created_by: string;
   due_date: string | null;
   due_end: string | null;
+  series_id: string | null;
   created_at: string;
   updated_at: string;
 }

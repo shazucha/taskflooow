@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, MoreHorizontal, Trash2, Check, Users } from "lucide-react";
+import { CalendarDays, MoreHorizontal, Trash2, Check, Users, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
+import { seriesIndex, seriesSize } from "@/lib/recurring";
 import { PriorityBadge } from "./PriorityBadge";
 import { UserAvatar } from "./UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
   useProjects,
   useSetTaskWatchers,
   useSyncProjectMembers,
+  useTasks,
   useTaskWatchers,
   useToggleTaskStatus,
   useUpdateTask,
@@ -40,6 +42,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
   const { data: profiles = [] } = useProfiles();
   const { data: projects = [] } = useProjects();
   const { data: allWatchers = [] } = useTaskWatchers();
+  const { data: allTasks = [] } = useTasks();
   const toggleStatus = useToggleTaskStatus();
   const updateTask = useUpdateTask();
   const setWatchersM = useSetTaskWatchers();
@@ -163,6 +166,15 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
                 <CalendarDays className="h-3 w-3" />
                 {format(new Date(task.due_date), "d. MMM", { locale: sk })}
+              </span>
+            )}
+            {task.series_id && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
+                title="Opakovaná úloha"
+              >
+                <Repeat className="h-3 w-3" />
+                {seriesIndex(allTasks, task)}/{seriesSize(allTasks, task.series_id)}
               </span>
             )}
           </div>
