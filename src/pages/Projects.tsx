@@ -35,10 +35,8 @@ export default function Projects() {
   const renderProject = (p: Project) => {
     const projectTasks = tasks.filter((t) => t.project_id === p.id);
     const total = projectTasks.length;
-    const done = projectTasks.filter((t) => t.status === "done").length;
-    const open = total - done;
+    const open = projectTasks.filter((t) => t.status !== "done").length;
     const high = projectTasks.filter((t) => t.priority === "high" && t.status !== "done").length;
-    const progress = total === 0 ? 0 : Math.round((done / total) * 100);
     return (
       <Link key={p.id} to={`/projects/${p.id}`} className="card-elevated flex items-center gap-3 p-4">
         <div
@@ -50,7 +48,7 @@ export default function Projects() {
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-[15px] font-semibold">{p.name}</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {open} otvorených · {done}/{total} hotových ({progress}%)
+            {open} otvorených z {total}
             {high > 0 && (
               <>
                 {" · "}
@@ -58,12 +56,6 @@ export default function Projects() {
               </>
             )}
           </p>
-          <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-surface-muted">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${progress}%`, backgroundColor: p.color ?? "hsl(var(--primary))" }}
-            />
-          </div>
         </div>
         <ChevronRight className="h-4 w-4 text-muted-foreground" />
       </Link>
