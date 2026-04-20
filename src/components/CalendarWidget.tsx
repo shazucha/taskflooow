@@ -202,6 +202,7 @@ export function CalendarWidget() {
           date={cursor}
           tasks={tasksByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
+          projectsById={projectsById}
           onOpenTask={setOpenTask}
           onCreateSlot={(slotIdx) => {
             const h = Math.floor(slotIdx / 2);
@@ -230,6 +231,7 @@ export function CalendarWidget() {
           selected={selected}
           tasks={tasksByDay.get(dayKey(selected)) ?? []}
           myColor={myColor}
+          projectsById={projectsById}
           onOpenTask={setOpenTask}
         />
       )}
