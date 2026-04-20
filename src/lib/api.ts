@@ -344,3 +344,41 @@ export async function unmarkRecurringWorkDone(work_id: string, month_key: string
   if (error) throw error;
 }
 
+
+// ---- Task materials
+const MATERIAL_COLS = "id, task_id, url, label, created_by, created_at";
+
+export async function fetchTaskMaterials(taskId: string): Promise<TaskMaterial[]> {
+  const { data, error } = await supabase
+    .from("task_materials")
+    .select(MATERIAL_COLS)
+    .eq("task_id", taskId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as TaskMaterial[];
+}
+
+export async function createTaskMaterial(input: {
+  task_id: string;
+  url: string;
+  label: string | null;
+  created_by: string;
+}): Promise<TaskMaterial> {
+  const { data, error } = await supabase
+    .from("task_materials")
+    .insert({
+      task_id: input.task_id,
+      url: input.url,
+      label: input.label,
+      created_by: input.created_by,
+    })
+    .select(MATERIAL_COLS)
+    .single();
+  if (error) throw error;
+  return data as TaskMaterial;
+}
+
+export async function deleteTaskMaterial(id: string): Promise<void> {
+  const { error } = await supabase.from("task_materials").delete().eq("id", id);
+  if (error) throw error;
+}
