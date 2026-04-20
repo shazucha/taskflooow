@@ -19,6 +19,7 @@ export default function ProjectDetail() {
   const { data: tasks = [] } = useTasks();
   const currentUserId = useCurrentUserId();
   const project = projects.find((p) => p.id === id);
+  const isAdmin = useIsAppAdmin();
   const isOwner = !!project && project.owner_id === currentUserId;
   const [openTask, setOpenTask] = useState<Task | null>(null);
 
