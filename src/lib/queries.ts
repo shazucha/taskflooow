@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "./supabase";
 import {
+  addProjectMember,
   createProject,
   createProjectRecurringWork,
   createProjectWork,
@@ -12,6 +13,7 @@ import {
   deleteTask,
   deleteTasks,
   fetchProfiles,
+  fetchProjectMembers,
   fetchProjectRecurringWorks,
   fetchProjects,
   fetchProjectWorks,
@@ -20,6 +22,7 @@ import {
   fetchTasks,
   fetchTaskWatchers,
   markRecurringWorkDone,
+  removeProjectMember,
   setTaskWatchers,
   syncProjectMembers,
   unmarkRecurringWorkDone,
