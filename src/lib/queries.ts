@@ -370,3 +370,46 @@ export function useTaskActivity(taskId: string | null | undefined) {
     enabled: isReady && !!user && !!taskId,
   });
 }
+
+export function useTaskMaterials(taskId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+
+  useEffect(() => {
+    if (!isReady || !user || !taskId) return;
+    const channel = supabase
+      .channel(`task-materials-${taskId}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_materials", filter: `task_id=eq.${taskId}` },
+        () => qc.invalidateQueries({ queryKey: ["task_materials", taskId] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isReady, user, taskId, qc]);
+
+  return useQuery({
+    queryKey: ["task_materials", taskId],
+    queryFn: () => fetchTaskMaterials(taskId as string),
+    enabled: isReady && !!user && !!taskId,
+  });
+}
+
+export function useCreateTaskMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createTaskMaterial,
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ["task_materials", vars.task_id] }),
+  });
+}
+
+export function useDeleteTaskMaterial(taskId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteTaskMaterial(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["task_materials", taskId] }),
+  });
+}
