@@ -26,6 +26,7 @@ import {
 } from "@/lib/queries";
 import { toast } from "sonner";
 import { TaskActivityList } from "./TaskActivityList";
+import { TaskMaterialsList } from "./TaskMaterialsList";
 
 interface Props {
   task: Task | null;
@@ -202,11 +203,19 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
             <Textarea
               id="t-desc"
               value={description}
-              disabled={disabled}
+              readOnly={disabled}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder="Voliteľné"
+              placeholder={disabled ? "Bez popisu" : "Voliteľné"}
+              className={cn(
+                "whitespace-pre-wrap",
+                disabled && "bg-surface-muted/60 cursor-text focus-visible:ring-1"
+              )}
             />
+          </div>
+
+          <div className="pt-1">
+            <TaskMaterialsList taskId={task.id} taskCreatorId={task.created_by} />
           </div>
 
           <div className="space-y-1.5">
