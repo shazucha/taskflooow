@@ -57,7 +57,13 @@ export function CalendarWidget() {
   const currentUserId = useCurrentUserId();
   const { data: tasks = [] } = useTasks();
   const { data: profiles = [] } = useProfiles();
+  const { data: projects = [] } = useProjects();
   const { data: watchers = [] } = useTaskWatchers();
+  const projectsById = useMemo(() => {
+    const m = new Map<string, Project>();
+    for (const p of projects) m.set(p.id, p);
+    return m;
+  }, [projects]);
 
   const me = profiles.find((p) => p.id === currentUserId);
   const myColor = me?.color || "hsl(var(--primary))";
