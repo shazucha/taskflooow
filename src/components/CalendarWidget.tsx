@@ -487,6 +487,8 @@ function DayView({
           {blocks.map(({ task, startSlot, lengthSlots }) => {
             const d = new Date(task.due_date!);
             const e = task.due_end ? new Date(task.due_end) : null;
+            const proj = task.project_id ? projectsById.get(task.project_id) ?? null : null;
+            const accent = proj?.color || myColor;
             return (
               <button
                 key={task.id}
@@ -497,10 +499,16 @@ function DayView({
                 style={{
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
-                  backgroundColor: `${myColor}22`,
-                  borderLeft: `3px solid ${myColor}`,
+                  backgroundColor: `${accent}22`,
+                  borderLeft: `3px solid ${accent}`,
                 }}
               >
+                {proj && (
+                  <div className="flex items-center gap-1 truncate text-[10px] font-semibold" style={{ color: accent }}>
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+                    <span className="truncate">{proj.name}</span>
+                  </div>
+                )}
                 <div className="font-mono text-[10px] text-muted-foreground">
                   {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
                   {e && ` – ${String(e.getHours()).padStart(2, "0")}:${String(e.getMinutes()).padStart(2, "0")}`}
