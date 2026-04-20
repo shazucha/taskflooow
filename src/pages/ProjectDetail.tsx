@@ -8,10 +8,11 @@ import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
 import { MonthlyDeliverablesCard } from "@/components/MonthlyDeliverablesCard";
 import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
+import { ProjectAccessCard } from "@/components/ProjectAccessCard";
 import { MonthFilter } from "@/components/MonthFilter";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
 import type { Task } from "@/lib/types";
-import { useCurrentUserId, useProjects, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useIsAppAdmin, useProjects, useTasks } from "@/lib/queries";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export default function ProjectDetail() {
   const { data: tasks = [] } = useTasks();
   const currentUserId = useCurrentUserId();
   const project = projects.find((p) => p.id === id);
+  const isAdmin = useIsAppAdmin();
   const isOwner = !!project && project.owner_id === currentUserId;
   const [openTask, setOpenTask] = useState<Task | null>(null);
 
@@ -74,6 +76,12 @@ export default function ProjectDetail() {
       <div className="mt-4">
         <MonthlyDeliverablesCard projectId={project.id} />
       </div>
+
+      {isAdmin && (
+        <div className="mt-4">
+          <ProjectAccessCard project={project} />
+        </div>
+      )}
 
       <div className="mt-5 flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Úlohy</h2>

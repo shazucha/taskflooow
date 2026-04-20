@@ -189,6 +189,26 @@ export async function setTaskWatchers(taskId: string, userIds: string[]) {
   if (error) throw error;
 }
 
+// ---- Project members management (admin/owner)
+export async function fetchProjectMembers(projectId: string): Promise<{ project_id: string; user_id: string; role: string }[]> {
+  const { data, error } = await supabase
+    .from("project_members")
+    .select("project_id, user_id, role")
+    .eq("project_id", projectId);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function addProjectMember(projectId: string, userId: string) {
+  const { error } = await supabase.rpc("add_project_member", { _project_id: projectId, _user_id: userId });
+  if (error) throw error;
+}
+
+export async function removeProjectMember(projectId: string, userId: string) {
+  const { error } = await supabase.rpc("remove_project_member", { _project_id: projectId, _user_id: userId });
+  if (error) throw error;
+}
+
 export async function syncProjectMembers(projectId: string | null, userIds: string[]) {
   if (!projectId || userIds.length === 0) return;
   const uniqueUserIds = Array.from(new Set(userIds));
