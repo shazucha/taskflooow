@@ -417,7 +417,7 @@ function DayView({
         <div>
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
           <ul className="space-y-1">
-            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} onOpenTask={onOpenTask} />)}
+            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} onOpenTask={onOpenTask} />)}
           </ul>
         </div>
       )}
