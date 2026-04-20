@@ -38,6 +38,43 @@ export function useCurrentUserId() {
   return user?.id ?? null;
 }
 
+const ADMIN_EMAIL = "hazucha.stano@gmail.com";
+export function useIsAppAdmin() {
+  const { user } = useSession();
+  return !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL;
+}
+
+export function useProjectMembers(projectId: string | undefined) {
+  const { isReady, user } = useAuthReady();
+  return useQuery({
+    queryKey: ["project_members", projectId],
+    queryFn: () => fetchProjectMembers(projectId!),
+    enabled: !!projectId && isReady && !!user,
+  });
+}
+
+export function useAddProjectMember(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => addProjectMember(projectId, userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project_members", projectId] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
+
+export function useRemoveProjectMember(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => removeProjectMember(projectId, userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project_members", projectId] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
+
 function useAuthReady() {
   const { user, loading } = useSession();
   return { user, isReady: !loading };
