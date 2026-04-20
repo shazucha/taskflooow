@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCurrentUserId, useProfiles, useTaskWatchers, useTasks } from "@/lib/queries";
-import type { Task } from "@/lib/types";
+import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
+import type { Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
 
@@ -57,7 +57,13 @@ export function CalendarWidget() {
   const currentUserId = useCurrentUserId();
   const { data: tasks = [] } = useTasks();
   const { data: profiles = [] } = useProfiles();
+  const { data: projects = [] } = useProjects();
   const { data: watchers = [] } = useTaskWatchers();
+  const projectsById = useMemo(() => {
+    const m = new Map<string, Project>();
+    for (const p of projects) m.set(p.id, p);
+    return m;
+  }, [projects]);
 
   const me = profiles.find((p) => p.id === currentUserId);
   const myColor = me?.color || "hsl(var(--primary))";
@@ -196,6 +202,7 @@ export function CalendarWidget() {
           date={cursor}
           tasks={tasksByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
+          projectsById={projectsById}
           onOpenTask={setOpenTask}
           onCreateSlot={(slotIdx) => {
             const h = Math.floor(slotIdx / 2);
@@ -224,6 +231,7 @@ export function CalendarWidget() {
           selected={selected}
           tasks={tasksByDay.get(dayKey(selected)) ?? []}
           myColor={myColor}
+          projectsById={projectsById}
           onOpenTask={setOpenTask}
         />
       )}
@@ -368,9 +376,10 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, myColor, onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, myColor, projectsById, onOpenTask, onCreateSlot, onCreateRange,
 }: {
   date: Date; tasks: Task[]; myColor: string;
+  projectsById: Map<string, Project>;
   onOpenTask: (t: Task) => void;
   onCreateSlot: (slotIdx: number) => void;
   onCreateRange: (startSlot: number, endSlot: number) => void;
@@ -408,7 +417,7 @@ function DayView({
         <div>
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
           <ul className="space-y-1">
-            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} onOpenTask={onOpenTask} />)}
+            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} onOpenTask={onOpenTask} />)}
           </ul>
         </div>
       )}
@@ -478,6 +487,8 @@ function DayView({
           {blocks.map(({ task, startSlot, lengthSlots }) => {
             const d = new Date(task.due_date!);
             const e = task.due_end ? new Date(task.due_end) : null;
+            const proj = task.project_id ? projectsById.get(task.project_id) ?? null : null;
+            const accent = proj?.color || myColor;
             return (
               <button
                 key={task.id}
@@ -488,10 +499,16 @@ function DayView({
                 style={{
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
-                  backgroundColor: `${myColor}22`,
-                  borderLeft: `3px solid ${myColor}`,
+                  backgroundColor: `${accent}22`,
+                  borderLeft: `3px solid ${accent}`,
                 }}
               >
+                {proj && (
+                  <div className="flex items-center gap-1 truncate text-[10px] font-semibold" style={{ color: accent }}>
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+                    <span className="truncate">{proj.name}</span>
+                  </div>
+                )}
                 <div className="font-mono text-[10px] text-muted-foreground">
                   {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
                   {e && ` – ${String(e.getHours()).padStart(2, "0")}:${String(e.getMinutes()).padStart(2, "0")}`}
@@ -516,9 +533,11 @@ function DayView({
 
 /* ---------------- Helpers ---------------- */
 function SelectedDayList({
-  selected, tasks, myColor, onOpenTask,
+  selected, tasks, myColor, projectsById, onOpenTask,
 }: {
-  selected: Date; tasks: Task[]; myColor: string; onOpenTask: (t: Task) => void;
+  selected: Date; tasks: Task[]; myColor: string;
+  projectsById: Map<string, Project>;
+  onOpenTask: (t: Task) => void;
 }) {
   return (
     <div className="mt-3 border-t border-border/60 pt-3">
@@ -529,7 +548,15 @@ function SelectedDayList({
         <p className="mt-2 text-xs text-muted-foreground">Žiadne úlohy.</p>
       ) : (
         <ul className="mt-2 space-y-1.5">
-          {tasks.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} onOpenTask={onOpenTask} />)}
+          {tasks.map((t) => (
+            <TaskRow
+              key={t.id}
+              task={t}
+              myColor={myColor}
+              project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
+              onOpenTask={onOpenTask}
+            />
+          ))}
         </ul>
       )}
     </div>
@@ -537,26 +564,35 @@ function SelectedDayList({
 }
 
 function TaskRow({
-  task, myColor, onOpenTask,
+  task, myColor, project, onOpenTask,
 }: {
-  task: Task; myColor: string; onOpenTask: (t: Task) => void;
+  task: Task; myColor: string; project: Project | null; onOpenTask: (t: Task) => void;
 }) {
   const timed = hasTime(task);
   const d = task.due_date ? new Date(task.due_date) : null;
+  const accent = project?.color || myColor;
   return (
     <li>
       <button
         type="button"
         onClick={() => onOpenTask(task)}
-        className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left text-xs hover:bg-surface-muted"
+        className="flex w-full flex-col gap-0.5 rounded-lg p-1.5 text-left text-xs hover:bg-surface-muted"
       >
-        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: myColor }} />
-        {timed && d && (
-          <span className="font-mono text-[10px] text-muted-foreground">
-            {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
+        {project && (
+          <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: accent }}>
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+            <span className="truncate">{project.name}</span>
           </span>
         )}
-        <span className="flex-1 truncate">{task.title}</span>
+        <span className="flex items-center gap-2">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+          {timed && d && (
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
+            </span>
+          )}
+          <span className="flex-1 truncate">{task.title}</span>
+        </span>
       </button>
     </li>
   );
