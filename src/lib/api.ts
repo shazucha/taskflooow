@@ -7,6 +7,7 @@ import type {
   ProjectWork,
   Task,
   TaskActivity,
+  TaskMaterial,
 } from "./types";
 
 const PROJECT_COLS = "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since, category";
