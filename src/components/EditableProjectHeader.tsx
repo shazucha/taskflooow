@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Pencil, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ export function EditableProjectHeader({ project, canEdit }: Props) {
   const update = useUpdateProject();
   const [editingName, setEditingName] = useState(false);
   const [editingDesc, setEditingDesc] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [name, setName] = useState(project.name);
   const [desc, setDesc] = useState(project.description ?? "");
   const nameRef = useRef<HTMLInputElement>(null);
@@ -115,17 +116,31 @@ export function EditableProjectHeader({ project, canEdit }: Props) {
             </div>
           </div>
         ) : project.description ? (
-          <div className="group flex items-start gap-1.5">
-            <p className="text-sm text-muted-foreground">{project.description}</p>
-            {canEdit && (
-              <button
-                onClick={() => setEditingDesc(true)}
-                className="mt-0.5 text-muted-foreground opacity-60 hover:text-foreground hover:opacity-100"
-                aria-label="Upraviť popis"
-              >
-                <Pencil className="h-3 w-3" />
-              </button>
-            )}
+          <div className="space-y-1">
+            <div className="group flex items-start gap-1.5">
+              <p className={`text-sm text-muted-foreground whitespace-pre-wrap ${expanded ? "" : "line-clamp-2"}`}>
+                {project.description}
+              </p>
+              {canEdit && (
+                <button
+                  onClick={() => setEditingDesc(true)}
+                  className="mt-0.5 shrink-0 text-muted-foreground opacity-60 hover:text-foreground hover:opacity-100"
+                  aria-label="Upraviť popis"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="inline-flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              {expanded ? (
+                <>Zobraziť menej <ChevronUp className="h-3 w-3" /></>
+              ) : (
+                <>Zobraziť viac <ChevronDown className="h-3 w-3" /></>
+              )}
+            </button>
           </div>
         ) : canEdit ? (
           <button
