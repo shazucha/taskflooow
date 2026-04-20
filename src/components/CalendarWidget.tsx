@@ -376,9 +376,10 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, myColor, onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, myColor, projectsById, onOpenTask, onCreateSlot, onCreateRange,
 }: {
   date: Date; tasks: Task[]; myColor: string;
+  projectsById: Map<string, Project>;
   onOpenTask: (t: Task) => void;
   onCreateSlot: (slotIdx: number) => void;
   onCreateRange: (startSlot: number, endSlot: number) => void;
