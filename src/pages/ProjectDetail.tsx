@@ -9,6 +9,7 @@ import { ProjectMetaCard } from "@/components/ProjectMetaCard";
 import { MonthlyDeliverablesCard } from "@/components/MonthlyDeliverablesCard";
 import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import { ProjectAccessCard } from "@/components/ProjectAccessCard";
+import { EditableProjectHeader } from "@/components/EditableProjectHeader";
 import { MonthFilter } from "@/components/MonthFilter";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
 import type { Task } from "@/lib/types";
@@ -54,27 +55,19 @@ export default function ProjectDetail() {
         <ArrowLeft className="h-4 w-4" /> Projekty
       </Link>
       <header className="mt-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: project.color ?? "#3b82f6" }} />
-            <h1 className="text-2xl font-bold tracking-tight truncate">{project.name}</h1>
-          </div>
-          {project.description && (
-            <p className="mt-1 text-sm text-muted-foreground">{project.description}</p>
-          )}
-        </div>
+        <EditableProjectHeader project={project} canEdit={isAdmin || isOwner} />
         <div className="flex flex-wrap items-center gap-1 justify-end">
-          {isOwner && project && <DeleteProjectDialog projectId={project.id} projectName={project.name} />}
+          {(isOwner || isAdmin) && <DeleteProjectDialog projectId={project.id} projectName={project.name} />}
           <NewTaskDialog defaultProjectId={project.id} />
         </div>
       </header>
 
       <div className="mt-4">
-        <ProjectMetaCard project={project} />
+        <MonthlyDeliverablesCard projectId={project.id} />
       </div>
 
       <div className="mt-4">
-        <MonthlyDeliverablesCard projectId={project.id} />
+        <ProjectMetaCard project={project} />
       </div>
 
       {isAdmin && (
