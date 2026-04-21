@@ -134,6 +134,15 @@ export default function Dashboard() {
         </h2>
         <Chat scope="team" />
       </section>
+
+      {isAdmin && (
+        <section className="mt-6 mb-6">
+          <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
+            <ShieldCheck className="h-4 w-4" /> Prehľad spolupracovníkov
+          </h2>
+          <AdminCollaboratorsOverview />
+        </section>
+      )}
     </div>
   );
 }
