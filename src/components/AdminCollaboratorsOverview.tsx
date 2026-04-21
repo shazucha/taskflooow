@@ -27,6 +27,116 @@ function formatDateTime(iso: string) {
   });
 }
 
+function dayKey(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function formatDayShort(d: Date) {
+  return d.toLocaleDateString("sk-SK", { day: "numeric", month: "numeric" });
+}
+
+function formatDayLong(d: Date) {
+  return d.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long" });
+}
+
+type HeatCell = { date: Date; key: string; count: number };
+
+function CompletionHeatmap({
+  doneTasks,
+  range,
+  color,
+}: {
+  doneTasks: { updated_at: string }[];
+  range: RangeKey;
+  color: string;
+}) {
+  const cells = useMemo<HeatCell[]>(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let start: Date;
+    if (range === "7d") {
+      start = new Date(today);
+      start.setDate(start.getDate() - 6);
+    } else if (range === "30d") {
+      start = new Date(today);
+      start.setDate(start.getDate() - 29);
+    } else {
+      // All: zober od najstaršej dokončenej úlohy, max 60 dní pre čitateľnosť
+      const earliest = doneTasks.reduce<Date | null>((acc, t) => {
+        const d = new Date(t.updated_at);
+        d.setHours(0, 0, 0, 0);
+        return !acc || d < acc ? d : acc;
+      }, null);
+      const fallback = new Date(today);
+      fallback.setDate(fallback.getDate() - 29);
+      start = earliest ?? fallback;
+      const maxStart = new Date(today);
+      maxStart.setDate(maxStart.getDate() - 59);
+      if (start < maxStart) start = maxStart;
+    }
+
+    const counts = new Map<string, number>();
+    for (const t of doneTasks) {
+      const d = new Date(t.updated_at);
+      d.setHours(0, 0, 0, 0);
+      if (d < start || d > today) continue;
+      const k = dayKey(d);
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+
+    const result: HeatCell[] = [];
+    const cur = new Date(start);
+    while (cur <= today) {
+      const k = dayKey(cur);
+      result.push({ date: new Date(cur), key: k, count: counts.get(k) ?? 0 });
+      cur.setDate(cur.getDate() + 1);
+    }
+    return result;
+  }, [doneTasks, range]);
+
+  const max = cells.reduce((m, c) => Math.max(m, c.count), 0);
+  const peak = cells.reduce<HeatCell | null>(
+    (best, c) => (c.count > 0 && (!best || c.count > best.count) ? c : best),
+    null
+  );
+
+  return (
+    <div className="px-3.5 pb-3 pt-3">
+      <div className="mb-1.5 flex items-center justify-between text-[10px] font-medium text-muted-foreground">
+        <span>Aktivita po dňoch</span>
+        {peak ? (
+          <span>
+            Top: {formatDayShort(peak.date)} · {peak.count}
+          </span>
+        ) : (
+          <span>Bez dokončených</span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-[3px]">
+        {cells.map((c) => {
+          const intensity = max === 0 ? 0 : c.count / max;
+          const opacity = c.count === 0 ? 0.08 : 0.25 + intensity * 0.75;
+          return (
+            <div
+              key={c.key}
+              title={`${formatDayLong(c.date)} — ${c.count} dokončených`}
+              className="h-3.5 w-3.5 rounded-[3px] border border-border/40"
+              style={{
+                backgroundColor: color,
+                opacity,
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function AdminCollaboratorsOverview() {
   const { data: tasks = [] } = useTasks();
   const { data: profiles = [] } = useProfiles();
@@ -150,6 +260,11 @@ export function AdminCollaboratorsOverview() {
 
             {isOpen && (
               <div className="border-t border-border/60 bg-surface-muted/40">
+                <CompletionHeatmap
+                  doneTasks={g.done}
+                  range={range}
+                  color="hsl(var(--primary))"
+                />
                 {g.done.length === 0 ? (
                   <p className="p-4 text-center text-xs text-muted-foreground">
                     V tomto období nedokončil žiadnu úlohu.
