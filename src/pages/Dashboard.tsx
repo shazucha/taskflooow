@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, MessagesSquare, CalendarDays } from "lucide-react";
+import { ChevronRight, MessagesSquare, CalendarDays, ShieldCheck } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Chat } from "@/components/Chat";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { MonthFilter } from "@/components/MonthFilter";
+import { AdminCollaboratorsOverview } from "@/components/AdminCollaboratorsOverview";
 import { PRIORITY_META } from "@/lib/types";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
-import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useIsAppAdmin, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
 
 export default function Dashboard() {
   const { data: tasks = [] } = useTasks();
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const { data: profiles = [] } = useProfiles();
   const { data: watchers = [] } = useTaskWatchers();
   const currentUserId = useCurrentUserId();
+  const isAdmin = useIsAppAdmin();
   const me = profiles.find((p) => p.id === currentUserId);
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
 
