@@ -5,8 +5,9 @@ import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks }
 import type { Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
-import { fetchGoogleEvents, GoogleReconnectRequiredError, type GoogleEvent } from "@/lib/googleCalendar";
+import { fetchGoogleEvents, GoogleReconnectRequiredError, pullGoogleEvents, type GoogleEvent } from "@/lib/googleCalendar";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 type View = "month" | "week" | "day";
 
@@ -104,6 +105,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const warnedReconnectRef = useRef(false);
   const showGoogle = !userId || userId === currentUserId;
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (!showGoogle) {
@@ -130,6 +132,38 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
       cancelled = true;
     };
   }, [cursor, showGoogle]);
+
+  // ---- Pull Google -> TaskFlow (bidirectional sync)
+  // Runs on mount, every 60s, and when the tab is refocused.
+  useEffect(() => {
+    if (!showGoogle) return;
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const r = await pullGoogleEvents();
+        if (cancelled) return;
+        if (r && (r.imported > 0 || r.updated > 0 || r.deleted > 0)) {
+          qc.invalidateQueries({ queryKey: ["tasks"] });
+        }
+      } catch (error) {
+        if (error instanceof GoogleReconnectRequiredError && !warnedReconnectRef.current) {
+          warnedReconnectRef.current = true;
+          toast.error("Google kalendár treba znova pripojiť");
+        }
+      }
+    };
+
+    run();
+    const id = window.setInterval(run, 60_000);
+    const onFocus = () => run();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [showGoogle, qc]);
 
   const googleByDay = useMemo(() => {
     const map = new Map<string, GoogleEvent[]>();
