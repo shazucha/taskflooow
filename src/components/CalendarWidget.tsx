@@ -477,11 +477,12 @@ function DayView({
 
   return (
     <div className="space-y-3">
-      {allDay.length > 0 && (
+      {(allDay.length > 0 || googleAllDay.length > 0) && (
         <div>
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
           <ul className="space-y-1">
             {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} onOpenTask={onOpenTask} />)}
+            {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
           </ul>
         </div>
       )}
@@ -579,6 +580,40 @@ function DayView({
                 </div>
                 <div className="truncate font-semibold">{task.title}</div>
               </button>
+            );
+          })}
+
+          {/* Google Calendar timed events — read-only, on the right half */}
+          {googleTimed.map((ev) => {
+            const s = new Date(ev.start!);
+            const e = ev.end ? new Date(ev.end) : new Date(s.getTime() + 30 * 60 * 1000);
+            const startSlot = s.getHours() * 2 + (s.getMinutes() >= 30 ? 1 : 0);
+            const endSlot = e.getHours() * 2 + Math.ceil(e.getMinutes() / 30);
+            const lengthSlots = Math.max(1, endSlot - startSlot);
+            return (
+              <a
+                key={ev.id}
+                href={ev.url ?? "#"}
+                target="_blank"
+                rel="noreferrer"
+                data-task-block
+                className="absolute right-2 overflow-hidden rounded-md border border-dashed border-border/70 bg-surface-muted/60 px-2 py-1 text-left text-[11px] text-muted-foreground hover:bg-surface-muted"
+                style={{
+                  left: "55%",
+                  top: startSlot * SLOT_PX + 1,
+                  height: lengthSlots * SLOT_PX - 2,
+                }}
+                title="Google Calendar"
+              >
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider">
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                  Google
+                </div>
+                <div className="font-mono text-[10px]">
+                  {String(s.getHours()).padStart(2, "0")}:{String(s.getMinutes()).padStart(2, "0")}
+                </div>
+                <div className="truncate font-semibold">{ev.title}</div>
+              </a>
             );
           })}
         </div>
