@@ -174,6 +174,11 @@ export function NewTaskDialog({
 
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
+    // Ne-admin musí mať aspoň jedného riešiteľa (predvolene seba).
+    if (!isAdmin && selectedUserIds.length === 0) {
+      toast.error("Vyber aspoň jedného riešiteľa (napr. seba).");
+      return;
+    }
     try {
       const assignee = selectedUserIds[0] ?? currentUserId;
       const watchers = selectedUserIds.slice(1).filter((id) => id !== assignee);
