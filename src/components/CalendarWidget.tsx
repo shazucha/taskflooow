@@ -336,10 +336,10 @@ function MonthView({
 
 /* ---------------- Week ---------------- */
 function WeekView({
-  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay, onCreateAt,
+  cursor, selected, today, tasksByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt,
 }: {
   cursor: Date; selected: Date; today: Date;
-  tasksByDay: Map<string, Task[]>; myColor: string;
+  tasksByDay: Map<string, Task[]>; myColor: string; readOnly?: boolean;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
   onCreateAt: (d: Date) => void;
 }) {
@@ -373,6 +373,7 @@ function WeekView({
                 <span key={t.id} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
               ))}
             </span>
+            {!readOnly && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onCreateAt(d); }}
@@ -381,6 +382,7 @@ function WeekView({
             >
               +
             </button>
+            )}
           </div>
         );
       })}
