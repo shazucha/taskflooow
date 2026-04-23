@@ -24,7 +24,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { useCreateTask, useCurrentUserId, useProfiles, useProjects } from "@/lib/queries";
+import { useCreateTask, useCurrentUserId, useIsAppAdmin, useProfiles, useProjects } from "@/lib/queries";
 import { toast } from "sonner";
 import { UserAvatar } from "./UserAvatar";
 
@@ -71,6 +71,7 @@ export function NewTaskDialog({
   const { data: projects = [] } = useProjects();
   const { data: profiles = [] } = useProfiles();
   const currentUserId = useCurrentUserId();
+  const isAdmin = useIsAppAdmin();
   const create = useCreateTask();
 
   const isControlled = openProp !== undefined && onOpenChange !== undefined;
@@ -85,8 +86,10 @@ export function NewTaskDialog({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
+  // Spolupracovník (ne-admin) má sám seba prednastaveného ako riešiteľa.
+  // Admin (Stanley) zvyčajne prideľuje úlohy iným, takže preňho nič nepredvyplňujeme.
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
-    currentUserId ? [currentUserId] : []
+    !isAdmin && currentUserId ? [currentUserId] : []
   );
   const [dueDate, setDueDate] = useState<string>(defaultDueDate ?? "");
   const [dueTime, setDueTime] = useState<string>(defaultDueTime ?? "");
@@ -128,7 +131,7 @@ export function NewTaskDialog({
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
     setProjectId(defaultProjectId ?? "");
-    setSelectedUserIds(currentUserId ? [currentUserId] : []);
+    setSelectedUserIds(!isAdmin && currentUserId ? [currentUserId] : []);
     setDueDate(defaultDueDate ?? ""); setDueTime(defaultDueTime ?? ""); setEndTime(defaultEndTime ?? "");
     setLastPrefillKey("");
     setRecurring(false);
