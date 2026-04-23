@@ -82,6 +82,10 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
     setSelected(initialWatchers);
   }, [initialWatchers]);
 
+  // Reset form fields ONLY when the opened task identity changes.
+  // Including the whole `task` object or memoized derivatives in deps caused
+  // an infinite re-render loop because `useTasks` returns a fresh array on
+  // every realtime invalidation (new object identity for the same task).
   useEffect(() => {
     if (!task) return;
     setTitle(task.title);
@@ -89,10 +93,13 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
     setPriority(task.priority);
     setProjectId(task.project_id ?? "");
     setStatus(task.status);
-    setDueDate(initialStart.date);
-    setDueTime(initialStart.time);
-    setEndTime(initialEnd.time);
-  }, [task, initialStart.date, initialStart.time, initialEnd.time]);
+    const s = splitISO(task.due_date ?? null);
+    const e = splitISO(task.due_end ?? null);
+    setDueDate(s.date);
+    setDueTime(s.time);
+    setEndTime(e.time);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task?.id]);
 
   if (!task) return null;
 

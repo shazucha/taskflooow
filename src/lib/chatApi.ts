@@ -49,26 +49,38 @@ export async function uploadChatImage(userId: string, file: File): Promise<strin
 }
 
 export async function markChatRead(userId: string, scope: ChatScope, projectId: string | null) {
-  // Try update first
-  const projFilter = projectId ?? null;
-  const { data: existing } = await supabase
+  // SELECT-then-UPDATE/INSERT. Predošlá verzia mala rozbitý filter
+  // (.is + .eq súčasne na project_id), takže SELECT vždy vrátil 0 a INSERT
+  // padol s 409 v nekonečnej slučke.
+  const now = new Date().toISOString();
+  let query = supabase
     .from("chat_reads")
     .select("id")
     .eq("user_id", userId)
-    .eq("scope", scope)
-    .is("project_id", projFilter === null ? null : undefined)
-    .eq("project_id", projFilter ?? "00000000-0000-0000-0000-000000000000")
-    .maybeSingle();
-
+    .eq("scope", scope);
+  query = projectId ? query.eq("project_id", projectId) : query.is("project_id", null);
+  const { data: existing, error: selErr } = await query.maybeSingle();
+  if (selErr) {
+    console.warn("markChatRead select failed:", selErr.message);
+    return;
+  }
   if (existing?.id) {
-    await supabase.from("chat_reads").update({ last_read_at: new Date().toISOString() }).eq("id", existing.id);
+    const { error } = await supabase
+      .from("chat_reads")
+      .update({ last_read_at: now })
+      .eq("id", existing.id);
+    if (error) console.warn("markChatRead update failed:", error.message);
   } else {
-    await supabase.from("chat_reads").insert({
+    const { error } = await supabase.from("chat_reads").insert({
       user_id: userId,
       scope,
       project_id: projectId,
-      last_read_at: new Date().toISOString(),
+      last_read_at: now,
     });
+    // 23505 = unique violation: znamená, že riadok medzitým vznikol — ignoruj.
+    if (error && (error as { code?: string }).code !== "23505") {
+      console.warn("markChatRead insert failed:", error.message);
+    }
   }
 }
 
