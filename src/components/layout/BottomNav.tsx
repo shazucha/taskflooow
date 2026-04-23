@@ -4,8 +4,16 @@ import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { useIsAppAdmin } from "@/lib/queries";
 
-const baseItems = [
-  { to: "/", label: "Prehľad", icon: LayoutDashboard, end: true, badgeKey: "team" as const },
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  end?: boolean;
+  badgeKey?: "team";
+};
+
+const baseItems: NavItem[] = [
+  { to: "/", label: "Prehľad", icon: LayoutDashboard, end: true, badgeKey: "team" },
   { to: "/projects", label: "Projekty", icon: FolderKanban },
   { to: "/tasks", label: "Úlohy", icon: ListChecks },
   { to: "/me", label: "Profil", icon: User },
@@ -14,12 +22,12 @@ const baseItems = [
 export function BottomNav() {
   const teamUnread = useUnreadTeamChat();
   const isAdmin = useIsAppAdmin();
-  const items = isAdmin
+  const items: NavItem[] = isAdmin
     ? [
         baseItems[0],
         baseItems[1],
         baseItems[2],
-        { to: "/admin/team", label: "Tím", icon: Users2, end: false, badgeKey: undefined as undefined },
+        { to: "/admin/team", label: "Tím", icon: Users2 },
         baseItems[3],
       ]
     : baseItems;
