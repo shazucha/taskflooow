@@ -264,7 +264,7 @@ export function Chat({ scope, projectId = null, title, className }: Props) {
               >
                 <span className="relative">
                   <UserAvatar profile={p} size="sm" />
-                  <span className="absolute -bottom-0 -right-0 h-2 w-2 rounded-full border border-card bg-emerald-500" />
+                  <span className="absolute -bottom-0 -right-0 h-2 w-2 rounded-full border border-card bg-success" />
                 </span>
                 <span className="font-medium">{p.full_name ?? p.email}</span>
               </button>
@@ -356,7 +356,28 @@ export function Chat({ scope, projectId = null, title, className }: Props) {
         </div>
       )}
 
-      <form onSubmit={send} className="flex items-center gap-2 border-t border-border/60 bg-card p-2.5">
+      <form onSubmit={send} className="relative flex items-center gap-2 border-t border-border/60 bg-card p-2.5">
+        {mentionQuery !== null && mentionCandidates.length > 0 && (
+          <div className="absolute bottom-full left-2 right-2 mb-1 max-h-56 overflow-y-auto rounded-xl border border-border/60 bg-popover p-1 shadow-lg">
+            {mentionCandidates.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  insertMention(p);
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-surface-muted"
+              >
+                <UserAvatar profile={p} size="sm" />
+                <span className="flex-1 truncate">{p.full_name ?? p.email}</span>
+                {onlineIds.has(p.id) && (
+                  <span className="h-2 w-2 rounded-full bg-success" title="Online" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -373,10 +394,36 @@ export function Chat({ scope, projectId = null, title, className }: Props) {
         >
           <ImagePlus className="h-4 w-4" />
         </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            const next = `${text}${text.endsWith(" ") || text.length === 0 ? "" : " "}@`;
+            setText(next);
+            setMentionQuery("");
+            requestAnimationFrame(() => {
+              inputRef.current?.focus();
+              const pos = next.length;
+              inputRef.current?.setSelectionRange(pos, pos);
+            });
+          }}
+          className="h-9 w-9 shrink-0"
+          title="Spomenúť používateľa"
+        >
+          <AtSign className="h-4 w-4" />
+        </Button>
         <input
+          ref={inputRef}
           type="text"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => handleTextChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && mentionQuery !== null) {
+              e.preventDefault();
+              setMentionQuery(null);
+            }
+          }}
           placeholder="Napíš správu…"
           className="flex-1 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
