@@ -10,6 +10,13 @@ export interface GoogleEvent {
   url: string | null;
 }
 
+export class GoogleReconnectRequiredError extends Error {
+  constructor(message = "Google kalendár treba znova pripojiť") {
+    super(message);
+    this.name = "GoogleReconnectRequiredError";
+  }
+}
+
 function callbackRedirectUri() {
   return `${window.location.origin}/auth/google/callback`;
 }
@@ -42,7 +49,13 @@ export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<G
     "google-calendar-fetch",
     { body: { time_min: timeMin.toISOString(), time_max: timeMax.toISOString() } }
   );
-  if (error) throw error;
+  if (error) {
+    const message = error.message || "";
+    if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
+      throw new GoogleReconnectRequiredError();
+    }
+    throw error;
+  }
   if (data?.not_connected) return [];
   return data?.events ?? [];
 }

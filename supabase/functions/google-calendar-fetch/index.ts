@@ -6,6 +6,7 @@ import {
   adminClient,
   getUserFromAuthHeader,
   getValidAccessToken,
+  hasRequiredGoogleCalendarScope,
 } from "../_shared/google.ts";
 
 Deno.serve(async (req) => {
@@ -29,6 +30,19 @@ Deno.serve(async (req) => {
     }
 
     const admin = adminClient();
+    const { data: tokenRow } = await admin
+      .from("google_calendar_tokens")
+      .select("scope")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (tokenRow && !hasRequiredGoogleCalendarScope(tokenRow.scope)) {
+      return new Response(JSON.stringify({ error: "reauth_required", detail: "missing_calendar_scope" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const tok = await getValidAccessToken(admin, user.id);
     if (!tok) {
       return new Response(JSON.stringify({ ok: true, events: [], not_connected: true }), {
