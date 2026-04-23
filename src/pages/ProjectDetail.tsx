@@ -40,7 +40,7 @@ export default function ProjectDetail() {
 
   if (!project) {
     return (
-      <div className="px-4 pt-6">
+      <div className="page-container">
         <Link to="/projects" className="inline-flex items-center gap-1 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Projekty
         </Link>
@@ -50,7 +50,7 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="px-4 pt-6">
+    <div className="page-container">
       <Link to="/projects" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Projekty
       </Link>
@@ -62,53 +62,50 @@ export default function ProjectDetail() {
         </div>
       </header>
 
-      <div className="mt-4">
-        <MonthlyDeliverablesCard projectId={project.id} />
-      </div>
+      <div className="mt-4 md:grid md:grid-cols-3 md:gap-6">
+        <div className="space-y-4 md:col-span-2">
+          <MonthlyDeliverablesCard projectId={project.id} />
 
-      <div className="mt-4">
-        <ProjectMetaCard project={project} />
-      </div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Úlohy</h2>
+            <MonthFilter value={monthKey} onChange={setMonthKey} />
+          </div>
 
-      {isAdmin && (
-        <div className="mt-4">
-          <ProjectAccessCard project={project} />
-        </div>
-      )}
+          {(["in_progress", "todo", "done"] as const).map((s) => {
+            const list = grouped[s];
+            if (list.length === 0) return null;
+            const labels = { in_progress: "Prebieha", todo: "Nezačaté", done: "Hotové" };
+            return (
+              <section key={s}>
+                <h2 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {labels[s]} · {list.length}
+                </h2>
+                <div className="space-y-2.5 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
+                  {list.map((t) => <TaskCard key={t.id} task={t} onOpen={setOpenTask} />)}
+                </div>
+              </section>
+            );
+          })}
 
-      <div className="mt-5 flex items-center justify-between">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Úlohy</h2>
-        <MonthFilter value={monthKey} onChange={setMonthKey} />
-      </div>
+          {monthFiltered.length === 0 && (
+            <p className="rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground">
+              {projectTasks.length === 0 ? "Zatiaľ žiadne úlohy." : "V tomto mesiaci žiadne úlohy."}
+            </p>
+          )}
 
-      {(["in_progress", "todo", "done"] as const).map((s) => {
-        const list = grouped[s];
-        if (list.length === 0) return null;
-        const labels = { in_progress: "Prebieha", todo: "Nezačaté", done: "Hotové" };
-        return (
-          <section key={s} className="mt-4">
-            <h2 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {labels[s]} · {list.length}
+          <section className="pt-4">
+            <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
+              <MessagesSquare className="h-4 w-4" /> Chat projektu
             </h2>
-            <div className="space-y-2.5">
-              {list.map((t) => <TaskCard key={t.id} task={t} onOpen={setOpenTask} />)}
-            </div>
+            <Chat scope="project" projectId={project.id} />
           </section>
-        );
-      })}
+        </div>
 
-      {monthFiltered.length === 0 && (
-        <p className="mt-6 rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground">
-          {projectTasks.length === 0 ? "Zatiaľ žiadne úlohy." : "V tomto mesiaci žiadne úlohy."}
-        </p>
-      )}
-
-      <section className="mt-8">
-        <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
-          <MessagesSquare className="h-4 w-4" /> Chat projektu
-        </h2>
-        <Chat scope="project" projectId={project.id} />
-      </section>
+        <aside className="mt-4 space-y-4 md:mt-0">
+          <ProjectMetaCard project={project} />
+          {isAdmin && <ProjectAccessCard project={project} />}
+        </aside>
+      </div>
 
       <TaskDetailDialog task={openTask} open={!!openTask} onOpenChange={(v) => !v && setOpenTask(null)} />
     </div>

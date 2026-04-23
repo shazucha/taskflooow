@@ -63,9 +63,9 @@ export default function Projects() {
   };
 
   return (
-    <div className="px-4 pt-6">
+    <div className="page-container">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Projekty</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Projekty</h1>
         <NewProjectDialog />
       </header>
 
@@ -98,9 +98,9 @@ export default function Projects() {
             Zatiaľ žiadne projekty. Klikni na „Nový" hore.
           </p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 lg:grid-cols-3">
             {(groups.get(filter) ?? []).length === 0 ? (
-              <p className="rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground">
+              <p className="rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground md:col-span-full">
                 V tejto kategórii zatiaľ nie sú žiadne projekty.
               </p>
             ) : (

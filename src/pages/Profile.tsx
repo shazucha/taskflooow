@@ -114,8 +114,10 @@ export default function Profile() {
   };
 
   return (
-    <div className="px-4 pt-6">
-      <h1 className="text-2xl font-bold tracking-tight">Profil</h1>
+    <div className="page-container">
+      <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Profil</h1>
+      <div className="md:grid md:grid-cols-2 md:gap-6">
+        <div>
 
       <div className="card-elevated mt-5 flex items-center gap-4 p-5">
         <UserAvatar profile={me} size="lg" />
@@ -191,8 +193,10 @@ export default function Profile() {
           <p className="mt-1 text-2xl font-bold text-success">{myDone}</p>
         </div>
       </div>
+        </div>
+        <div>
 
-      <section className="mt-6">
+      <section className="mt-6 md:mt-5">
         <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
           <Users className="h-4 w-4" /> Tím
         </h2>
@@ -223,6 +227,8 @@ export default function Profile() {
       <Button variant="outline" className="mt-3 w-full gap-2 rounded-xl" onClick={signOut}>
         <LogOut className="h-4 w-4" /> Odhlásiť
       </Button>
+        </div>
+      </div>
 
       <Dialog open={pwOpen} onOpenChange={setPwOpen}>
         <DialogContent>
