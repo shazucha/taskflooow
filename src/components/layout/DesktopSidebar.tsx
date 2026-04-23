@@ -35,7 +35,7 @@ export function DesktopSidebar() {
         <span className="text-base font-bold tracking-tight">Taskflow</span>
       </div>
 
-      <nav className="flex-1 px-3">
+      <nav className="flex-1 overflow-y-auto px-3 pb-2">
         <ul className="space-y-1">
           {items.map(({ to, label, icon: Icon, end, badgeKey }) => {
             const badge = badgeKey === "team" ? teamUnread : 0;
