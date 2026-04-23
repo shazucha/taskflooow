@@ -274,10 +274,10 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
 
 /* ---------------- Month ---------------- */
 function MonthView({
-  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay, onCreateAt,
+  cursor, selected, today, tasksByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt,
 }: {
   cursor: Date; selected: Date; today: Date;
-  tasksByDay: Map<string, Task[]>; myColor: string;
+  tasksByDay: Map<string, Task[]>; myColor: string; readOnly?: boolean;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
   onCreateAt: (d: Date) => void;
 }) {
@@ -316,6 +316,7 @@ function MonthView({
               {dayTasks.length > 0 && (
                 <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
               )}
+              {!readOnly && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onCreateAt(d); }}
@@ -324,6 +325,7 @@ function MonthView({
               >
                 +
               </button>
+              )}
             </div>
           );
         })}
