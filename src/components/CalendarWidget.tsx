@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
 import type { Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
+import { fetchGoogleEvents, type GoogleEvent } from "@/lib/googleCalendar";
 
 type View = "month" | "week" | "day";
 
@@ -97,6 +98,44 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
     }
     return map;
   }, [myTasks]);
+
+  // ---- Google Calendar events (only for the current user, not when viewing others)
+  const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
+  const showGoogle = !userId || userId === currentUserId;
+
+  useEffect(() => {
+    if (!showGoogle) {
+      setGoogleEvents([]);
+      return;
+    }
+    // Fetch a wide window around the cursor: previous, current and next month
+    const from = new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1);
+    const to = new Date(cursor.getFullYear(), cursor.getMonth() + 2, 0, 23, 59, 59);
+    let cancelled = false;
+    fetchGoogleEvents(from, to)
+      .then((evs) => {
+        if (!cancelled) setGoogleEvents(evs);
+      })
+      .catch(() => {
+        if (!cancelled) setGoogleEvents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cursor, showGoogle]);
+
+  const googleByDay = useMemo(() => {
+    const map = new Map<string, GoogleEvent[]>();
+    for (const e of googleEvents) {
+      if (!e.start) continue;
+      const d = new Date(e.start);
+      const key = dayKey(d);
+      const arr = map.get(key) ?? [];
+      arr.push(e);
+      map.set(key, arr);
+    }
+    return map;
+  }, [googleEvents]);
 
   const today = new Date();
 
@@ -213,6 +252,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
         <DayView
           date={cursor}
           tasks={tasksByDay.get(dayKey(cursor)) ?? []}
+          googleEvents={googleByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
           projectsById={projectsById}
           readOnly={isReadOnly}
@@ -245,6 +285,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
         <SelectedDayList
           selected={selected}
           tasks={tasksByDay.get(dayKey(selected)) ?? []}
+          googleEvents={googleByDay.get(dayKey(selected)) ?? []}
           myColor={myColor}
           projectsById={projectsById}
           onOpenTask={setOpenTask}
@@ -395,9 +436,9 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, myColor, projectsById, readOnly, onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, googleEvents = [], myColor, projectsById, readOnly, onOpenTask, onCreateSlot, onCreateRange,
 }: {
-  date: Date; tasks: Task[]; myColor: string;
+  date: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
   readOnly?: boolean;
   onOpenTask: (t: Task) => void;
@@ -408,6 +449,9 @@ function DayView({
   const timed = tasks
     .filter((t) => hasTime(t))
     .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+
+  const googleAllDay = googleEvents.filter((e) => e.all_day);
+  const googleTimed = googleEvents.filter((e) => !e.all_day && e.start);
 
   const blocks = timed.map((t) => {
     const s = new Date(t.due_date!);
@@ -433,11 +477,12 @@ function DayView({
 
   return (
     <div className="space-y-3">
-      {allDay.length > 0 && (
+      {(allDay.length > 0 || googleAllDay.length > 0) && (
         <div>
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
           <ul className="space-y-1">
             {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} onOpenTask={onOpenTask} />)}
+            {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
           </ul>
         </div>
       )}
@@ -537,6 +582,40 @@ function DayView({
               </button>
             );
           })}
+
+          {/* Google Calendar timed events — read-only, on the right half */}
+          {googleTimed.map((ev) => {
+            const s = new Date(ev.start!);
+            const e = ev.end ? new Date(ev.end) : new Date(s.getTime() + 30 * 60 * 1000);
+            const startSlot = s.getHours() * 2 + (s.getMinutes() >= 30 ? 1 : 0);
+            const endSlot = e.getHours() * 2 + Math.ceil(e.getMinutes() / 30);
+            const lengthSlots = Math.max(1, endSlot - startSlot);
+            return (
+              <a
+                key={ev.id}
+                href={ev.url ?? "#"}
+                target="_blank"
+                rel="noreferrer"
+                data-task-block
+                className="absolute right-2 overflow-hidden rounded-md border border-dashed border-border/70 bg-surface-muted/60 px-2 py-1 text-left text-[11px] text-muted-foreground hover:bg-surface-muted"
+                style={{
+                  left: "55%",
+                  top: startSlot * SLOT_PX + 1,
+                  height: lengthSlots * SLOT_PX - 2,
+                }}
+                title="Google Calendar"
+              >
+                <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider">
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                  Google
+                </div>
+                <div className="font-mono text-[10px]">
+                  {String(s.getHours()).padStart(2, "0")}:{String(s.getMinutes()).padStart(2, "0")}
+                </div>
+                <div className="truncate font-semibold">{ev.title}</div>
+              </a>
+            );
+          })}
         </div>
       </div>
 
@@ -553,9 +632,9 @@ function DayView({
 
 /* ---------------- Helpers ---------------- */
 function SelectedDayList({
-  selected, tasks, myColor, projectsById, onOpenTask,
+  selected, tasks, googleEvents = [], myColor, projectsById, onOpenTask,
 }: {
-  selected: Date; tasks: Task[]; myColor: string;
+  selected: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
   onOpenTask: (t: Task) => void;
 }) {
@@ -564,20 +643,29 @@ function SelectedDayList({
       <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
         {selected.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long" })}
       </p>
-      {tasks.length === 0 ? (
+      {tasks.length === 0 && googleEvents.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">Žiadne úlohy.</p>
       ) : (
-        <ul className="mt-2 space-y-1.5">
-          {tasks.map((t) => (
-            <TaskRow
-              key={t.id}
-              task={t}
-              myColor={myColor}
-              project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
-              onOpenTask={onOpenTask}
-            />
-          ))}
-        </ul>
+        <>
+          <ul className="mt-2 space-y-1.5">
+            {tasks.map((t) => (
+              <TaskRow
+                key={t.id}
+                task={t}
+                myColor={myColor}
+                project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
+                onOpenTask={onOpenTask}
+              />
+            ))}
+          </ul>
+          {googleEvents.length > 0 && (
+            <ul className="mt-2 space-y-1.5">
+              {googleEvents.map((e) => (
+                <GoogleEventRow key={e.id} event={e} />
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   );
@@ -614,6 +702,30 @@ function TaskRow({
           <span className="flex-1 truncate">{task.title}</span>
         </span>
       </button>
+    </li>
+  );
+}
+
+function GoogleEventRow({ event }: { event: GoogleEvent }) {
+  const d = event.start ? new Date(event.start) : null;
+  return (
+    <li>
+      <a
+        href={event.url ?? "#"}
+        target="_blank"
+        rel="noreferrer"
+        className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border/60 bg-surface-muted/40 p-1.5 text-xs text-muted-foreground hover:bg-surface-muted"
+        title="Google Calendar"
+      >
+        <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/60" />
+        {!event.all_day && d && (
+          <span className="font-mono text-[10px]">
+            {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
+          </span>
+        )}
+        <span className="flex-1 truncate">{event.title}</span>
+        <span className="text-[9px] uppercase tracking-wider">G</span>
+      </a>
     </li>
   );
 }

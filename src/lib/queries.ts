@@ -35,6 +35,7 @@ import {
 } from "./api";
 import type { Profile, Project, Task, TaskStatus } from "./types";
 import { useSession } from "./useSession";
+import { syncTaskToGoogle } from "./googleCalendar";
 
 export function useCurrentUserId() {
   const { user } = useSession();
@@ -248,9 +249,10 @@ export function useCreateTask() {
       task: Parameters<typeof createTask>[0];
       watcherIds?: string[];
     }) => createTask(task, watcherIds),
-    onSuccess: () => {
+    onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
       qc.invalidateQueries({ queryKey: ["task_watchers"] });
+      if (created?.id) void syncTaskToGoogle(created.id, "upsert");
     },
   });
 }
@@ -301,6 +303,7 @@ export function useUpdateTask() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
       qc.invalidateQueries({ queryKey: ["task_activity", vars.id] });
+      void syncTaskToGoogle(vars.id, "upsert");
     },
   });
 }
@@ -308,7 +311,11 @@ export function useUpdateTask() {
 export function useDeleteTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteTask(id),
+    mutationFn: async (id: string) => {
+      // Delete Google event BEFORE removing the task row (we need its mapping).
+      await syncTaskToGoogle(id, "delete");
+      return deleteTask(id);
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 }
@@ -316,7 +323,10 @@ export function useDeleteTask() {
 export function useDeleteTasks() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (ids: string[]) => deleteTasks(ids),
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map((id) => syncTaskToGoogle(id, "delete")));
+      return deleteTasks(ids);
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 }

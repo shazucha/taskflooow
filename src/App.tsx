@@ -12,6 +12,7 @@ import Tasks from "./pages/Tasks";
 import Profile from "./pages/Profile";
 import TeamOverview from "./pages/TeamOverview";
 import Auth from "./pages/Auth";
+import GoogleOAuthCallback from "./pages/GoogleOAuthCallback";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/google/callback" element={<GoogleOAuthCallback />} />
           <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/projects" element={<Projects />} />

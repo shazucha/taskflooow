@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect";
 
 const COLOR_OPTIONS = [
   "#3b82f6", // blue
@@ -193,6 +194,8 @@ export default function Profile() {
           <p className="mt-1 text-2xl font-bold text-success">{myDone}</p>
         </div>
       </div>
+
+      <GoogleCalendarConnect />
         </div>
         <div>
 
