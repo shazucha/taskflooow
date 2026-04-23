@@ -59,6 +59,11 @@ Deno.serve(async (req) => {
       });
     }
     const task = taskData as TaskRow;
+
+    // Determine which user's calendar should hold this event.
+    // Prefer existing owner mapping; otherwise the assignee.
+    const targetUserId = task.google_calendar_owner ?? task.assignee_id;
+
     if (targetUserId) {
       const { data: tokenRow } = await admin
         .from("google_calendar_tokens")
@@ -73,10 +78,6 @@ Deno.serve(async (req) => {
         });
       }
     }
-
-    // Determine which user's calendar should hold this event.
-    // Prefer existing owner mapping; otherwise the assignee.
-    const targetUserId = task.google_calendar_owner ?? task.assignee_id;
 
     // ---- DELETE
     if (action === "delete") {
