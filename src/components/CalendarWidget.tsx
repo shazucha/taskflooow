@@ -210,6 +210,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           selected={selected}
           today={today}
           tasksByDay={tasksByDay}
+          googleByDay={googleByDay}
           myColor={myColor}
           readOnly={isReadOnly}
           onSelect={(d) => setSelected(d)}
@@ -232,6 +233,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           selected={selected}
           today={today}
           tasksByDay={tasksByDay}
+          googleByDay={googleByDay}
           myColor={myColor}
           readOnly={isReadOnly}
           onSelect={(d) => setSelected(d)}
