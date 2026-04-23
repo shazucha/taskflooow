@@ -79,7 +79,11 @@
 
 @layer components {
   .app-shell {
-    @apply mx-auto w-full max-w-md min-h-screen bg-background relative pb-24;
+    @apply mx-auto w-full max-w-md min-h-screen bg-background relative pb-24
+           md:max-w-none md:pb-0 md:pl-64;
+  }
+  .page-container {
+    @apply px-4 pt-6 md:px-10 md:pt-10 md:max-w-7xl md:mx-auto;
   }
   .card-elevated {
     @apply bg-card rounded-2xl border border-border/60;
