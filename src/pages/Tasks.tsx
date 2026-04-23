@@ -40,9 +40,9 @@ export default function Tasks() {
   ];
 
   return (
-    <div className="px-4 pt-6">
+    <div className="page-container">
       <header className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Úlohy</h1>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Úlohy</h1>
         <NewTaskDialog />
       </header>
 
@@ -50,7 +50,7 @@ export default function Tasks() {
         <MonthFilter value={monthKey} onChange={setMonthKey} />
       </div>
 
-      <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0">
         {chips.map((c) => (
           <button
             key={c.id}
@@ -67,9 +67,9 @@ export default function Tasks() {
         ))}
       </div>
 
-      <div className="mt-5 space-y-2.5">
+      <div className="mt-5 space-y-2.5 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0 lg:grid-cols-3">
         {filtered.length === 0 ? (
-          <p className="rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground">
+          <p className="rounded-2xl bg-surface-muted p-6 text-center text-sm text-muted-foreground md:col-span-full">
             Žiadne úlohy v tomto filtri.
           </p>
         ) : (

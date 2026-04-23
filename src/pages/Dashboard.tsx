@@ -47,8 +47,8 @@ export default function Dashboard() {
   }, [monthFiltered]);
 
   return (
-    <div className="px-4 pt-6">
-      <header className="flex items-center justify-between">
+    <div className="page-container">
+      <header className="flex items-center justify-between md:hidden">
         <div>
           <p className="text-sm text-muted-foreground">Dobrý deň</p>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -57,20 +57,29 @@ export default function Dashboard() {
         </div>
         <Link to="/me"><UserAvatar profile={me} size="lg" /></Link>
       </header>
+      <header className="hidden md:flex md:items-end md:justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">Dobrý deň</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {me?.full_name?.trim() || "Tím"}
+          </h1>
+        </div>
+      </header>
 
-      <section className="mt-6">
+      <div className="mt-6 md:mt-8 md:grid md:grid-cols-3 md:gap-6">
+        <section className="md:col-span-2">
         <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
           <CalendarDays className="h-4 w-4" /> Kalendár
         </h2>
         <CalendarWidget />
-      </section>
+        </section>
 
-      <section className="mt-6 flex items-center justify-between">
-        <h2 className="text-base font-semibold">Prehľad</h2>
-        <MonthFilter value={monthKey} onChange={setMonthKey} />
-      </section>
-
-      <section className="mt-3 grid grid-cols-3 gap-2.5">
+        <div className="mt-6 md:mt-0">
+          <section className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Prehľad</h2>
+            <MonthFilter value={monthKey} onChange={setMonthKey} />
+          </section>
+          <section className="mt-3 grid grid-cols-3 gap-2.5">
         {(["high", "medium", "low"] as const).map((p) => {
           const meta = PRIORITY_META[p];
           return (
@@ -83,7 +92,9 @@ export default function Dashboard() {
             </div>
           );
         })}
-      </section>
+          </section>
+        </div>
+      </div>
 
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between">
@@ -97,7 +108,7 @@ export default function Dashboard() {
             Zatiaľ žiadne projekty. Vytvor prvý v sekcii Projekty.
           </p>
         ) : (
-          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-5">
             {projects.map((p) => {
               const projectTasks = tasks.filter((t) => t.project_id === p.id);
               const open = projectTasks.filter((t) => t.status !== "done").length;
@@ -107,7 +118,7 @@ export default function Dashboard() {
                 <Link
                   key={p.id}
                   to={`/projects/${p.id}`}
-                  className="card-elevated min-w-[170px] flex-shrink-0 p-3.5"
+                  className="card-elevated min-w-[170px] flex-shrink-0 p-3.5 md:min-w-0"
                 >
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color ?? "#3b82f6" }} />
@@ -128,7 +139,7 @@ export default function Dashboard() {
         )}
       </section>
 
-      <section className="mt-6">
+      <section className="mt-6 md:mt-8">
         <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
           <MessagesSquare className="h-4 w-4" /> Tímový chat
         </h2>
@@ -136,7 +147,7 @@ export default function Dashboard() {
       </section>
 
       {isAdmin && (
-        <section className="mt-6 mb-6">
+        <section className="mt-6 mb-6 md:mt-8">
           <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
             <ShieldCheck className="h-4 w-4" /> Prehľad spolupracovníkov
           </h2>
