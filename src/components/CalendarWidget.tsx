@@ -104,6 +104,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
   // ---- Google Calendar events (only for the current user, not when viewing others)
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const warnedReconnectRef = useRef(false);
+  const googlePullInFlightRef = useRef<Promise<void> | null>(null);
   const showGoogle = !userId || userId === currentUserId;
   const qc = useQueryClient();
 
@@ -140,23 +141,46 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
     let cancelled = false;
 
     const run = async () => {
-      try {
-        const r = await pullGoogleEvents();
-        if (cancelled) return;
-        if (r && (r.imported > 0 || r.updated > 0 || r.deleted > 0)) {
-          qc.invalidateQueries({ queryKey: ["tasks"] });
+      if (googlePullInFlightRef.current) return googlePullInFlightRef.current;
+
+      let request: Promise<void> | null = null;
+      request = (async () => {
+        try {
+          const r = await pullGoogleEvents();
+          if (cancelled) return;
+          if (r && (r.imported > 0 || r.updated > 0 || r.deleted > 0)) {
+            qc.invalidateQueries({ queryKey: ["tasks"] });
+          }
+        } catch (error) {
+          if (error instanceof GoogleReconnectRequiredError && !warnedReconnectRef.current) {
+            warnedReconnectRef.current = true;
+            toast.error("Google kalendár treba znova pripojiť");
+          }
+        } finally {
+          if (googlePullInFlightRef.current === request) {
+            googlePullInFlightRef.current = null;
+          }
         }
-      } catch (error) {
-        if (error instanceof GoogleReconnectRequiredError && !warnedReconnectRef.current) {
-          warnedReconnectRef.current = true;
-          toast.error("Google kalendár treba znova pripojiť");
+      })();
+
+      googlePullInFlightRef.current = request;
+
+      try {
+        await request;
+      } finally {
+        if (cancelled && googlePullInFlightRef.current === request) {
+          googlePullInFlightRef.current = null;
         }
       }
     };
 
-    run();
-    const id = window.setInterval(run, 60_000);
-    const onFocus = () => run();
+    void run();
+    const id = window.setInterval(() => {
+      void run();
+    }, 60_000);
+    const onFocus = () => {
+      void run();
+    };
     window.addEventListener("focus", onFocus);
     return () => {
       cancelled = true;
