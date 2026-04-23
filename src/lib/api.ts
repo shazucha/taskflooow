@@ -185,10 +185,16 @@ export async function setTaskWatchers(taskId: string, userIds: string[]) {
     .single();
   if (taskError) throw taskError;
 
-  await syncProjectMembers(
-    task.project_id,
-    [task.created_by, task.assignee_id, ...userIds].filter((value): value is string => !!value)
-  );
+  // Best-effort — sync členov projektu nesmie zhodiť priradenie watcherov
+  // (napr. ak ide o projekt s kategorickým prístupom alebo RPC zlyhá).
+  try {
+    await syncProjectMembers(
+      task.project_id,
+      [task.created_by, task.assignee_id, ...userIds].filter((value): value is string => !!value)
+    );
+  } catch (e) {
+    console.warn("syncProjectMembers failed in setTaskWatchers (non-fatal):", e);
+  }
 
   const { error: deleteError } = await supabase.from("task_watchers").delete().eq("task_id", taskId);
   if (deleteError) throw deleteError;
