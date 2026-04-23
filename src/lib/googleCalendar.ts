@@ -62,6 +62,27 @@ export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<G
   return data?.events ?? [];
 }
 
+export interface PullResult {
+  ok: boolean;
+  imported: number;
+  updated: number;
+  deleted: number;
+  not_connected?: boolean;
+}
+
+/** Pull events FROM Google INTO TaskFlow tasks. Returns counts of changes. */
+export async function pullGoogleEvents(): Promise<PullResult | null> {
+  const { data, error } = await supabase.functions.invoke<PullResult>("google-calendar-pull", { body: {} });
+  if (error) {
+    const message = error.message || "";
+    if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
+      throw new GoogleReconnectRequiredError();
+    }
+    return null;
+  }
+  return data ?? null;
+}
+
 export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delete" = "upsert"): Promise<void> {
   // Fire and forget — never block UI on Google.
   try {
