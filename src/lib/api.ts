@@ -153,11 +153,19 @@ export async function createTask(
   const relatedUserIds = [input.created_by, input.assignee_id, ...watcherIds].filter(
     (value): value is string => !!value
   );
-  await syncProjectMembers(input.project_id, relatedUserIds);
+  // Best-effort — pridanie členov projektu nesmie zhodiť celé vytvorenie úlohy
+  // (napr. ak používateľ nemá oprávnenie na sync alebo RPC dočasne zlyhá).
+  try {
+    await syncProjectMembers(input.project_id, relatedUserIds);
+  } catch (e) {
+    console.warn("syncProjectMembers failed (non-fatal):", e);
+  }
   if (watcherIds.length > 0) {
     const rows = watcherIds.map((user_id) => ({ task_id: task.id, user_id }));
     const { error: wErr } = await supabase.from("task_watchers").insert(rows);
-    if (wErr) throw wErr;
+    if (wErr) {
+      console.warn("Failed to insert watchers (non-fatal):", wErr);
+    }
   }
   return task;
 }
