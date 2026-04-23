@@ -10,13 +10,25 @@ import {
   useTasks,
   useTaskWatchers,
 } from "@/lib/queries";
+import { useSession } from "@/lib/useSession";
 
 export default function TeamOverview() {
+  const { loading } = useSession();
   const isAdmin = useIsAppAdmin();
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
   const { data: tasks = [] } = useTasks();
   const { data: watchers = [] } = useTaskWatchers();
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="rounded-2xl bg-surface-muted p-6 text-sm text-muted-foreground">
+          Načítavam prehľad zamestnancov…
+        </div>
+      </div>
+    );
+  }
 
   if (!isAdmin) return <Navigate to="/" replace />;
 
