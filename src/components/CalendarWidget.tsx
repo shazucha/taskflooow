@@ -387,10 +387,10 @@ function MonthView({
 
 /* ---------------- Week ---------------- */
 function WeekView({
-  cursor, selected, today, tasksByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt,
+  cursor, selected, today, tasksByDay, googleByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt,
 }: {
   cursor: Date; selected: Date; today: Date;
-  tasksByDay: Map<string, Task[]>; myColor: string; readOnly?: boolean;
+  tasksByDay: Map<string, Task[]>; googleByDay: Map<string, GoogleEvent[]>; myColor: string; readOnly?: boolean;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
   onCreateAt: (d: Date) => void;
 }) {
@@ -404,6 +404,7 @@ function WeekView({
       {days.map((d, i) => {
         const key = dayKey(d);
         const dayTasks = tasksByDay.get(key) ?? [];
+        const dayGoogle = googleByDay.get(key) ?? [];
         const isToday = sameDay(d, today);
         const isSelected = sameDay(d, selected);
         return (
@@ -423,6 +424,9 @@ function WeekView({
               {dayTasks.slice(0, 3).map((t) => (
                 <span key={t.id} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
               ))}
+              {dayGoogle.length > 0 && (
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" title="Google Calendar" />
+              )}
             </span>
             {!readOnly && (
             <button
