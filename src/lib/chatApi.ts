@@ -49,22 +49,38 @@ export async function uploadChatImage(userId: string, file: File): Promise<strin
 }
 
 export async function markChatRead(userId: string, scope: ChatScope, projectId: string | null) {
-  // Use upsert against the unique index on (user_id, scope, project_id).
-  // Previous SELECT-then-INSERT logic had a broken filter and caused infinite
-  // 409 duplicate-key retries.
-  const onConflict = projectId ? "user_id,scope,project_id" : "user_id,scope";
-  const { error } = await supabase.from("chat_reads").upsert(
-    {
+  // SELECT-then-UPDATE/INSERT. Predošlá verzia mala rozbitý filter
+  // (.is + .eq súčasne na project_id), takže SELECT vždy vrátil 0 a INSERT
+  // padol s 409 v nekonečnej slučke.
+  const now = new Date().toISOString();
+  let query = supabase
+    .from("chat_reads")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("scope", scope);
+  query = projectId ? query.eq("project_id", projectId) : query.is("project_id", null);
+  const { data: existing, error: selErr } = await query.maybeSingle();
+  if (selErr) {
+    console.warn("markChatRead select failed:", selErr.message);
+    return;
+  }
+  if (existing?.id) {
+    const { error } = await supabase
+      .from("chat_reads")
+      .update({ last_read_at: now })
+      .eq("id", existing.id);
+    if (error) console.warn("markChatRead update failed:", error.message);
+  } else {
+    const { error } = await supabase.from("chat_reads").insert({
       user_id: userId,
       scope,
       project_id: projectId,
-      last_read_at: new Date().toISOString(),
-    },
-    { onConflict, ignoreDuplicates: false }
-  );
-  if (error) {
-    // Don't loop — just log. Unread badge can be slightly stale.
-    console.warn("markChatRead failed:", error.message);
+      last_read_at: now,
+    });
+    // 23505 = unique violation: znamená, že riadok medzitým vznikol — ignoruj.
+    if (error && (error as { code?: string }).code !== "23505") {
+      console.warn("markChatRead insert failed:", error.message);
+    }
   }
 }
 
