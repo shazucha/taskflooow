@@ -172,6 +172,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           today={today}
           tasksByDay={tasksByDay}
           myColor={myColor}
+          readOnly={isReadOnly}
           onSelect={(d) => setSelected(d)}
           onDrillDay={(d) => {
             setSelected(d);
@@ -179,6 +180,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
             setView("day");
           }}
           onCreateAt={(d) => {
+            if (isReadOnly) return;
             setPrefill({ date: fmtDate(d) });
             setCreateOpen(true);
           }}
@@ -192,6 +194,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           today={today}
           tasksByDay={tasksByDay}
           myColor={myColor}
+          readOnly={isReadOnly}
           onSelect={(d) => setSelected(d)}
           onDrillDay={(d) => {
             setSelected(d);
@@ -199,6 +202,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
             setView("day");
           }}
           onCreateAt={(d) => {
+            if (isReadOnly) return;
             setPrefill({ date: fmtDate(d) });
             setCreateOpen(true);
           }}
@@ -211,14 +215,17 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           tasks={tasksByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
           projectsById={projectsById}
+          readOnly={isReadOnly}
           onOpenTask={setOpenTask}
           onCreateSlot={(slotIdx) => {
+            if (isReadOnly) return;
             const h = Math.floor(slotIdx / 2);
             const m = slotIdx % 2 === 0 ? 0 : 30;
             setPrefill({ date: fmtDate(cursor), time: fmtTime(h, m) });
             setCreateOpen(true);
           }}
           onCreateRange={(startSlot, endSlot) => {
+            if (isReadOnly) return;
             const sh = Math.floor(startSlot / 2);
             const sm = startSlot % 2 === 0 ? 0 : 30;
             const eh = Math.floor(endSlot / 2);
