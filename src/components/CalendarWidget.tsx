@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
 import type { Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
+import { fetchGoogleEvents, type GoogleEvent } from "@/lib/googleCalendar";
 
 type View = "month" | "week" | "day";
 
@@ -97,6 +98,44 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
     }
     return map;
   }, [myTasks]);
+
+  // ---- Google Calendar events (only for the current user, not when viewing others)
+  const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
+  const showGoogle = !userId || userId === currentUserId;
+
+  useEffect(() => {
+    if (!showGoogle) {
+      setGoogleEvents([]);
+      return;
+    }
+    // Fetch a wide window around the cursor: previous, current and next month
+    const from = new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1);
+    const to = new Date(cursor.getFullYear(), cursor.getMonth() + 2, 0, 23, 59, 59);
+    let cancelled = false;
+    fetchGoogleEvents(from, to)
+      .then((evs) => {
+        if (!cancelled) setGoogleEvents(evs);
+      })
+      .catch(() => {
+        if (!cancelled) setGoogleEvents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cursor, showGoogle]);
+
+  const googleByDay = useMemo(() => {
+    const map = new Map<string, GoogleEvent[]>();
+    for (const e of googleEvents) {
+      if (!e.start) continue;
+      const d = new Date(e.start);
+      const key = dayKey(d);
+      const arr = map.get(key) ?? [];
+      arr.push(e);
+      map.set(key, arr);
+    }
+    return map;
+  }, [googleEvents]);
 
   const today = new Date();
 
