@@ -395,10 +395,11 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, myColor, projectsById, onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, myColor, projectsById, readOnly, onOpenTask, onCreateSlot, onCreateRange,
 }: {
   date: Date; tasks: Task[]; myColor: string;
   projectsById: Map<string, Project>;
+  readOnly?: boolean;
   onOpenTask: (t: Task) => void;
   onCreateSlot: (slotIdx: number) => void;
   onCreateRange: (startSlot: number, endSlot: number) => void;
@@ -446,17 +447,17 @@ function DayView({
           ref={gridRef}
           className="relative select-none"
           style={{ height: SLOTS_PER_DAY * SLOT_PX }}
-          onMouseDown={(e) => {
+          onMouseDown={readOnly ? undefined : (e) => {
             if ((e.target as HTMLElement).closest("[data-task-block]")) return;
             const s = slotFromEvent(e.clientY);
             setDrag({ startSlot: s, currSlot: s });
           }}
-          onMouseMove={(e) => {
+          onMouseMove={readOnly ? undefined : (e) => {
             if (!drag) return;
             const s = slotFromEvent(e.clientY);
             if (s !== drag.currSlot) setDrag({ ...drag, currSlot: s });
           }}
-          onMouseUp={(e) => {
+          onMouseUp={readOnly ? undefined : (e) => {
             if (!drag) return;
             const s = slotFromEvent(e.clientY);
             const a = Math.min(drag.startSlot, s);
@@ -465,7 +466,7 @@ function DayView({
             if (a === b) onCreateSlot(a);
             else onCreateRange(a, b + 1);
           }}
-          onMouseLeave={() => setDrag(null)}
+          onMouseLeave={readOnly ? undefined : () => setDrag(null)}
         >
           {Array.from({ length: SLOTS_PER_DAY }).map((_, i) => {
             const isHour = i % 2 === 0;
@@ -540,7 +541,7 @@ function DayView({
       </div>
 
       <p className="text-center text-[11px] text-muted-foreground">
-        Klikni na hodinu alebo potiahni pre vytvorenie úlohy. Bez konca = 30 min.
+        {readOnly ? "Náhľad iba na čítanie." : "Klikni na hodinu alebo potiahni pre vytvorenie úlohy. Bez konca = 30 min."}
       </p>
 
       {tasks.length === 0 && (
