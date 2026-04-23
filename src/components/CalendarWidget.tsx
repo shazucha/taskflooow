@@ -252,6 +252,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
         <DayView
           date={cursor}
           tasks={tasksByDay.get(dayKey(cursor)) ?? []}
+          googleEvents={googleByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
           projectsById={projectsById}
           readOnly={isReadOnly}
@@ -284,6 +285,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
         <SelectedDayList
           selected={selected}
           tasks={tasksByDay.get(dayKey(selected)) ?? []}
+          googleEvents={googleByDay.get(dayKey(selected)) ?? []}
           myColor={myColor}
           projectsById={projectsById}
           onOpenTask={setOpenTask}
@@ -434,9 +436,9 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, myColor, projectsById, readOnly, onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, googleEvents = [], myColor, projectsById, readOnly, onOpenTask, onCreateSlot, onCreateRange,
 }: {
-  date: Date; tasks: Task[]; myColor: string;
+  date: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
   readOnly?: boolean;
   onOpenTask: (t: Task) => void;
@@ -447,6 +449,9 @@ function DayView({
   const timed = tasks
     .filter((t) => hasTime(t))
     .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+
+  const googleAllDay = googleEvents.filter((e) => e.all_day);
+  const googleTimed = googleEvents.filter((e) => !e.all_day && e.start);
 
   const blocks = timed.map((t) => {
     const s = new Date(t.due_date!);
