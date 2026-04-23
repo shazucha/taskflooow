@@ -5,7 +5,8 @@ import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks }
 import type { Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
-import { fetchGoogleEvents, type GoogleEvent } from "@/lib/googleCalendar";
+import { fetchGoogleEvents, GoogleReconnectRequiredError, type GoogleEvent } from "@/lib/googleCalendar";
+import { toast } from "sonner";
 
 type View = "month" | "week" | "day";
 
@@ -101,6 +102,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
 
   // ---- Google Calendar events (only for the current user, not when viewing others)
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
+  const warnedReconnectRef = useRef(false);
   const showGoogle = !userId || userId === currentUserId;
 
   useEffect(() => {
@@ -114,9 +116,14 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
     let cancelled = false;
     fetchGoogleEvents(from, to)
       .then((evs) => {
+        warnedReconnectRef.current = false;
         if (!cancelled) setGoogleEvents(evs);
       })
-      .catch(() => {
+      .catch((error) => {
+        if (error instanceof GoogleReconnectRequiredError && !warnedReconnectRef.current) {
+          warnedReconnectRef.current = true;
+          toast.error("Google kalendár treba znova pripojiť");
+        }
         if (!cancelled) setGoogleEvents([]);
       });
     return () => {

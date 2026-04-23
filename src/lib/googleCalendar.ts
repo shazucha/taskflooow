@@ -1,5 +1,7 @@
 import { supabase } from "./supabase";
 
+const REQUIRED_GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar";
+
 export interface GoogleEvent {
   id: string;
   title: string;
@@ -8,6 +10,13 @@ export interface GoogleEvent {
   end: string | null;
   all_day: boolean;
   url: string | null;
+}
+
+export class GoogleReconnectRequiredError extends Error {
+  constructor(message = "Google kalendár treba znova pripojiť") {
+    super(message);
+    this.name = "GoogleReconnectRequiredError";
+  }
 }
 
 function callbackRedirectUri() {
@@ -42,7 +51,13 @@ export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<G
     "google-calendar-fetch",
     { body: { time_min: timeMin.toISOString(), time_max: timeMax.toISOString() } }
   );
-  if (error) throw error;
+  if (error) {
+    const message = error.message || "";
+    if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
+      throw new GoogleReconnectRequiredError();
+    }
+    throw error;
+  }
   if (data?.not_connected) return [];
   return data?.events ?? [];
 }
@@ -59,8 +74,9 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
 export async function isGoogleConnected(): Promise<{ connected: boolean; email: string | null }> {
   const { data, error } = await supabase
     .from("google_calendar_tokens")
-    .select("google_email")
+    .select("google_email, scope")
     .maybeSingle();
   if (error) return { connected: false, email: null };
-  return { connected: !!data, email: data?.google_email ?? null };
+  const connected = !!data && !!data.scope?.split(/\s+/).includes(REQUIRED_GOOGLE_SCOPE);
+  return { connected, email: connected ? (data?.google_email ?? null) : null };
 }
