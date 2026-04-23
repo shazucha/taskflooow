@@ -597,9 +597,9 @@ function DayView({
 
 /* ---------------- Helpers ---------------- */
 function SelectedDayList({
-  selected, tasks, myColor, projectsById, onOpenTask,
+  selected, tasks, googleEvents = [], myColor, projectsById, onOpenTask,
 }: {
-  selected: Date; tasks: Task[]; myColor: string;
+  selected: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
   onOpenTask: (t: Task) => void;
 }) {
@@ -608,20 +608,29 @@ function SelectedDayList({
       <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
         {selected.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long" })}
       </p>
-      {tasks.length === 0 ? (
+      {tasks.length === 0 && googleEvents.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">Žiadne úlohy.</p>
       ) : (
-        <ul className="mt-2 space-y-1.5">
-          {tasks.map((t) => (
-            <TaskRow
-              key={t.id}
-              task={t}
-              myColor={myColor}
-              project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
-              onOpenTask={onOpenTask}
-            />
-          ))}
-        </ul>
+        <>
+          <ul className="mt-2 space-y-1.5">
+            {tasks.map((t) => (
+              <TaskRow
+                key={t.id}
+                task={t}
+                myColor={myColor}
+                project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
+                onOpenTask={onOpenTask}
+              />
+            ))}
+          </ul>
+          {googleEvents.length > 0 && (
+            <ul className="mt-2 space-y-1.5">
+              {googleEvents.map((e) => (
+                <GoogleEventRow key={e.id} event={e} />
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   );
@@ -658,6 +667,30 @@ function TaskRow({
           <span className="flex-1 truncate">{task.title}</span>
         </span>
       </button>
+    </li>
+  );
+}
+
+function GoogleEventRow({ event }: { event: GoogleEvent }) {
+  const d = event.start ? new Date(event.start) : null;
+  return (
+    <li>
+      <a
+        href={event.url ?? "#"}
+        target="_blank"
+        rel="noreferrer"
+        className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border/60 bg-surface-muted/40 p-1.5 text-xs text-muted-foreground hover:bg-surface-muted"
+        title="Google Calendar"
+      >
+        <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/60" />
+        {!event.all_day && d && (
+          <span className="font-mono text-[10px]">
+            {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
+          </span>
+        )}
+        <span className="flex-1 truncate">{event.title}</span>
+        <span className="text-[9px] uppercase tracking-wider">G</span>
+      </a>
     </li>
   );
 }
