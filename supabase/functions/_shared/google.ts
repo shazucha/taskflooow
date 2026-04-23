@@ -8,12 +8,18 @@ export const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") ?
 export const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 export const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 export const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+export const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
 
 export const GOOGLE_SCOPES = [
-  "https://www.googleapis.com/auth/calendar",
+  GOOGLE_CALENDAR_SCOPE,
   "https://www.googleapis.com/auth/userinfo.email",
   "openid",
 ].join(" ");
+
+export function hasRequiredGoogleCalendarScope(scope: string | null | undefined) {
+  if (!scope) return false;
+  return scope.split(/\s+/).includes(GOOGLE_CALENDAR_SCOPE);
+}
 
 export function adminClient(): SupabaseClient {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -41,6 +47,7 @@ export interface GoogleTokenRow {
   expiry: string;
   calendar_id: string;
   google_email: string | null;
+  scope: string | null;
 }
 
 /** Returns a valid access token (refreshes if needed). */
@@ -50,11 +57,12 @@ export async function getValidAccessToken(
 ): Promise<{ token: string; calendarId: string } | null> {
   const { data, error } = await admin
     .from("google_calendar_tokens")
-    .select("user_id, access_token, refresh_token, expiry, calendar_id, google_email")
+    .select("user_id, access_token, refresh_token, expiry, calendar_id, google_email, scope")
     .eq("user_id", userId)
     .maybeSingle();
   if (error || !data) return null;
   const row = data as GoogleTokenRow;
+  if (!hasRequiredGoogleCalendarScope(row.scope)) return null;
 
   const expiresAt = new Date(row.expiry).getTime();
   // Refresh 60s before expiry
