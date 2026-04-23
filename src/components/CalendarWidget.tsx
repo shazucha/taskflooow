@@ -47,7 +47,13 @@ function fmtTime(h: number, m: number) {
 
 type Prefill = { date: string; time?: string; end?: string } | null;
 
-export function CalendarWidget() {
+interface CalendarWidgetProps {
+  /** If set, calendar shows tasks for this user instead of the current user, in read-only mode. */
+  userId?: string;
+  readOnly?: boolean;
+}
+
+export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps = {}) {
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<Date>(new Date());
@@ -55,6 +61,8 @@ export function CalendarWidget() {
   const [prefill, setPrefill] = useState<Prefill>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const currentUserId = useCurrentUserId();
+  const targetUserId = userId ?? currentUserId;
+  const isReadOnly = readOnly || (!!userId && userId !== currentUserId);
   const { data: tasks = [] } = useTasks();
   const { data: profiles = [] } = useProfiles();
   const { data: projects = [] } = useProjects();
@@ -65,17 +73,17 @@ export function CalendarWidget() {
     return m;
   }, [projects]);
 
-  const me = profiles.find((p) => p.id === currentUserId);
-  const myColor = me?.color || "hsl(var(--primary))";
+  const owner = profiles.find((p) => p.id === targetUserId);
+  const myColor = owner?.color || "hsl(var(--primary))";
 
   const myTasks = useMemo(
     () =>
       tasks.filter(
         (t) =>
           t.due_date &&
-          (t.assignee_id === currentUserId || watchers.some((w) => w.task_id === t.id && w.user_id === currentUserId))
+          (t.assignee_id === targetUserId || watchers.some((w) => w.task_id === t.id && w.user_id === targetUserId))
       ),
-    [tasks, watchers, currentUserId]
+    [tasks, watchers, targetUserId]
   );
 
   const tasksByDay = useMemo(() => {
