@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, MessagesSquare, CalendarDays, ShieldCheck } from "lucide-react";
+import { ChevronRight, MessagesSquare, CalendarDays, ShieldCheck, Users2 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Chat } from "@/components/Chat";
 import { CalendarWidget } from "@/components/CalendarWidget";
@@ -148,9 +148,17 @@ export default function Dashboard() {
 
       {isAdmin && (
         <section className="mt-6 mb-6 md:mt-8">
-          <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
-            <ShieldCheck className="h-4 w-4" /> Prehľad spolupracovníkov
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="inline-flex items-center gap-2 text-base font-semibold">
+              <ShieldCheck className="h-4 w-4" /> Prehľad spolupracovníkov
+            </h2>
+            <Link
+              to="/admin/team"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:opacity-90"
+            >
+              <Users2 className="h-3.5 w-3.5" /> Otvoriť kalendáre
+            </Link>
+          </div>
           <AdminCollaboratorsOverview />
         </section>
       )}
