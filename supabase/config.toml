@@ -1,0 +1,19 @@
+# Supabase Edge Functions config.
+# JWT verification is enabled — functions read the user from the Authorization header.
+
+project_id = "kpypflyulfrduyagbrcv"
+
+[functions.google-oauth-start]
+verify_jwt = true
+
+[functions.google-oauth-callback]
+verify_jwt = true
+
+[functions.google-calendar-sync]
+verify_jwt = true
+
+[functions.google-calendar-fetch]
+verify_jwt = true
+
+[functions.google-calendar-disconnect]
+verify_jwt = true
