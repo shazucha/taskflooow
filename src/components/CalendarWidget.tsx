@@ -47,7 +47,13 @@ function fmtTime(h: number, m: number) {
 
 type Prefill = { date: string; time?: string; end?: string } | null;
 
-export function CalendarWidget() {
+interface CalendarWidgetProps {
+  /** If set, calendar shows tasks for this user instead of the current user, in read-only mode. */
+  userId?: string;
+  readOnly?: boolean;
+}
+
+export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps = {}) {
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<Date>(new Date());
@@ -55,6 +61,8 @@ export function CalendarWidget() {
   const [prefill, setPrefill] = useState<Prefill>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const currentUserId = useCurrentUserId();
+  const targetUserId = userId ?? currentUserId;
+  const isReadOnly = readOnly || (!!userId && userId !== currentUserId);
   const { data: tasks = [] } = useTasks();
   const { data: profiles = [] } = useProfiles();
   const { data: projects = [] } = useProjects();
@@ -65,17 +73,17 @@ export function CalendarWidget() {
     return m;
   }, [projects]);
 
-  const me = profiles.find((p) => p.id === currentUserId);
-  const myColor = me?.color || "hsl(var(--primary))";
+  const owner = profiles.find((p) => p.id === targetUserId);
+  const myColor = owner?.color || "hsl(var(--primary))";
 
   const myTasks = useMemo(
     () =>
       tasks.filter(
         (t) =>
           t.due_date &&
-          (t.assignee_id === currentUserId || watchers.some((w) => w.task_id === t.id && w.user_id === currentUserId))
+          (t.assignee_id === targetUserId || watchers.some((w) => w.task_id === t.id && w.user_id === targetUserId))
       ),
-    [tasks, watchers, currentUserId]
+    [tasks, watchers, targetUserId]
   );
 
   const tasksByDay = useMemo(() => {
@@ -164,6 +172,7 @@ export function CalendarWidget() {
           today={today}
           tasksByDay={tasksByDay}
           myColor={myColor}
+          readOnly={isReadOnly}
           onSelect={(d) => setSelected(d)}
           onDrillDay={(d) => {
             setSelected(d);
@@ -171,6 +180,7 @@ export function CalendarWidget() {
             setView("day");
           }}
           onCreateAt={(d) => {
+            if (isReadOnly) return;
             setPrefill({ date: fmtDate(d) });
             setCreateOpen(true);
           }}
@@ -184,6 +194,7 @@ export function CalendarWidget() {
           today={today}
           tasksByDay={tasksByDay}
           myColor={myColor}
+          readOnly={isReadOnly}
           onSelect={(d) => setSelected(d)}
           onDrillDay={(d) => {
             setSelected(d);
@@ -191,6 +202,7 @@ export function CalendarWidget() {
             setView("day");
           }}
           onCreateAt={(d) => {
+            if (isReadOnly) return;
             setPrefill({ date: fmtDate(d) });
             setCreateOpen(true);
           }}
@@ -203,14 +215,17 @@ export function CalendarWidget() {
           tasks={tasksByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
           projectsById={projectsById}
+          readOnly={isReadOnly}
           onOpenTask={setOpenTask}
           onCreateSlot={(slotIdx) => {
+            if (isReadOnly) return;
             const h = Math.floor(slotIdx / 2);
             const m = slotIdx % 2 === 0 ? 0 : 30;
             setPrefill({ date: fmtDate(cursor), time: fmtTime(h, m) });
             setCreateOpen(true);
           }}
           onCreateRange={(startSlot, endSlot) => {
+            if (isReadOnly) return;
             const sh = Math.floor(startSlot / 2);
             const sm = startSlot % 2 === 0 ? 0 : 30;
             const eh = Math.floor(endSlot / 2);
@@ -259,10 +274,10 @@ export function CalendarWidget() {
 
 /* ---------------- Month ---------------- */
 function MonthView({
-  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay, onCreateAt,
+  cursor, selected, today, tasksByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt,
 }: {
   cursor: Date; selected: Date; today: Date;
-  tasksByDay: Map<string, Task[]>; myColor: string;
+  tasksByDay: Map<string, Task[]>; myColor: string; readOnly?: boolean;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
   onCreateAt: (d: Date) => void;
 }) {
@@ -301,6 +316,7 @@ function MonthView({
               {dayTasks.length > 0 && (
                 <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
               )}
+              {!readOnly && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onCreateAt(d); }}
@@ -309,6 +325,7 @@ function MonthView({
               >
                 +
               </button>
+              )}
             </div>
           );
         })}
@@ -319,10 +336,10 @@ function MonthView({
 
 /* ---------------- Week ---------------- */
 function WeekView({
-  cursor, selected, today, tasksByDay, myColor, onSelect, onDrillDay, onCreateAt,
+  cursor, selected, today, tasksByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt,
 }: {
   cursor: Date; selected: Date; today: Date;
-  tasksByDay: Map<string, Task[]>; myColor: string;
+  tasksByDay: Map<string, Task[]>; myColor: string; readOnly?: boolean;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
   onCreateAt: (d: Date) => void;
 }) {
@@ -356,6 +373,7 @@ function WeekView({
                 <span key={t.id} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
               ))}
             </span>
+            {!readOnly && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onCreateAt(d); }}
@@ -364,6 +382,7 @@ function WeekView({
             >
               +
             </button>
+            )}
           </div>
         );
       })}
@@ -376,10 +395,11 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, myColor, projectsById, onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, myColor, projectsById, readOnly, onOpenTask, onCreateSlot, onCreateRange,
 }: {
   date: Date; tasks: Task[]; myColor: string;
   projectsById: Map<string, Project>;
+  readOnly?: boolean;
   onOpenTask: (t: Task) => void;
   onCreateSlot: (slotIdx: number) => void;
   onCreateRange: (startSlot: number, endSlot: number) => void;
@@ -427,17 +447,17 @@ function DayView({
           ref={gridRef}
           className="relative select-none"
           style={{ height: SLOTS_PER_DAY * SLOT_PX }}
-          onMouseDown={(e) => {
+          onMouseDown={readOnly ? undefined : (e) => {
             if ((e.target as HTMLElement).closest("[data-task-block]")) return;
             const s = slotFromEvent(e.clientY);
             setDrag({ startSlot: s, currSlot: s });
           }}
-          onMouseMove={(e) => {
+          onMouseMove={readOnly ? undefined : (e) => {
             if (!drag) return;
             const s = slotFromEvent(e.clientY);
             if (s !== drag.currSlot) setDrag({ ...drag, currSlot: s });
           }}
-          onMouseUp={(e) => {
+          onMouseUp={readOnly ? undefined : (e) => {
             if (!drag) return;
             const s = slotFromEvent(e.clientY);
             const a = Math.min(drag.startSlot, s);
@@ -446,7 +466,7 @@ function DayView({
             if (a === b) onCreateSlot(a);
             else onCreateRange(a, b + 1);
           }}
-          onMouseLeave={() => setDrag(null)}
+          onMouseLeave={readOnly ? undefined : () => setDrag(null)}
         >
           {Array.from({ length: SLOTS_PER_DAY }).map((_, i) => {
             const isHour = i % 2 === 0;
@@ -521,7 +541,7 @@ function DayView({
       </div>
 
       <p className="text-center text-[11px] text-muted-foreground">
-        Klikni na hodinu alebo potiahni pre vytvorenie úlohy. Bez konca = 30 min.
+        {readOnly ? "Náhľad iba na čítanie." : "Klikni na hodinu alebo potiahni pre vytvorenie úlohy. Bez konca = 30 min."}
       </p>
 
       {tasks.length === 0 && (

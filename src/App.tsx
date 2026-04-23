@@ -10,6 +10,7 @@ import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import Tasks from "./pages/Tasks";
 import Profile from "./pages/Profile";
+import TeamOverview from "./pages/TeamOverview";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/me" element={<Profile />} />
+            <Route path="/admin/team" element={<TeamOverview />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

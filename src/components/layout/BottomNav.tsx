@@ -1,9 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, User } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, User, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
+import { useIsAppAdmin } from "@/lib/queries";
 
-const items = [
+const baseItems = [
   { to: "/", label: "Prehľad", icon: LayoutDashboard, end: true, badgeKey: "team" as const },
   { to: "/projects", label: "Projekty", icon: FolderKanban },
   { to: "/tasks", label: "Úlohy", icon: ListChecks },
@@ -12,10 +13,20 @@ const items = [
 
 export function BottomNav() {
   const teamUnread = useUnreadTeamChat();
+  const isAdmin = useIsAppAdmin();
+  const items = isAdmin
+    ? [
+        baseItems[0],
+        baseItems[1],
+        baseItems[2],
+        { to: "/admin/team", label: "Tím", icon: Users2, end: false, badgeKey: undefined as undefined },
+        baseItems[3],
+      ]
+    : baseItems;
 
   return (
     <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 border-t border-border/60 bg-card/90 backdrop-blur-xl md:hidden">
-      <ul className="grid grid-cols-4">
+      <ul className={cn("grid", isAdmin ? "grid-cols-5" : "grid-cols-4")}>
         {items.map(({ to, label, icon: Icon, end, badgeKey }) => {
           const badge = badgeKey === "team" ? teamUnread : 0;
           return (
