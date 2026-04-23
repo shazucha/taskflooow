@@ -317,10 +317,10 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
 
 /* ---------------- Month ---------------- */
 function MonthView({
-  cursor, selected, today, tasksByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt,
+  cursor, selected, today, tasksByDay, googleByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt,
 }: {
   cursor: Date; selected: Date; today: Date;
-  tasksByDay: Map<string, Task[]>; myColor: string; readOnly?: boolean;
+  tasksByDay: Map<string, Task[]>; googleByDay: Map<string, GoogleEvent[]>; myColor: string; readOnly?: boolean;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
   onCreateAt: (d: Date) => void;
 }) {
@@ -342,6 +342,7 @@ function MonthView({
           if (!d) return <div key={i} className="aspect-square" />;
           const key = dayKey(d);
           const dayTasks = tasksByDay.get(key) ?? [];
+          const dayGoogle = googleByDay.get(key) ?? [];
           const isToday = sameDay(d, today);
           const isSelected = sameDay(d, selected);
           return (
@@ -356,8 +357,15 @@ function MonthView({
               onDoubleClick={() => onDrillDay(d)}
             >
               <span className={cn(isToday && "font-bold text-primary")}>{d.getDate()}</span>
-              {dayTasks.length > 0 && (
-                <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
+              {(dayTasks.length > 0 || dayGoogle.length > 0) && (
+                <span className="absolute bottom-1 flex items-center gap-0.5">
+                  {dayTasks.length > 0 && (
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: myColor }} />
+                  )}
+                  {dayGoogle.length > 0 && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" title="Google Calendar" />
+                  )}
+                </span>
               )}
               {!readOnly && (
               <button
