@@ -49,26 +49,22 @@ export async function uploadChatImage(userId: string, file: File): Promise<strin
 }
 
 export async function markChatRead(userId: string, scope: ChatScope, projectId: string | null) {
-  // Try update first
-  const projFilter = projectId ?? null;
-  const { data: existing } = await supabase
-    .from("chat_reads")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("scope", scope)
-    .is("project_id", projFilter === null ? null : undefined)
-    .eq("project_id", projFilter ?? "00000000-0000-0000-0000-000000000000")
-    .maybeSingle();
-
-  if (existing?.id) {
-    await supabase.from("chat_reads").update({ last_read_at: new Date().toISOString() }).eq("id", existing.id);
-  } else {
-    await supabase.from("chat_reads").insert({
+  // Use upsert against the unique index on (user_id, scope, project_id).
+  // Previous SELECT-then-INSERT logic had a broken filter and caused infinite
+  // 409 duplicate-key retries.
+  const onConflict = projectId ? "user_id,scope,project_id" : "user_id,scope";
+  const { error } = await supabase.from("chat_reads").upsert(
+    {
       user_id: userId,
       scope,
       project_id: projectId,
       last_read_at: new Date().toISOString(),
-    });
+    },
+    { onConflict, ignoreDuplicates: false }
+  );
+  if (error) {
+    // Don't loop — just log. Unread badge can be slightly stale.
+    console.warn("markChatRead failed:", error.message);
   }
 }
 
