@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.google-calendar-disconnect]
 verify_jwt = true
+
+[functions.google-calendar-pull]
+verify_jwt = true

@@ -30,11 +30,19 @@ Deno.serve(async (req) => {
 
     await admin.from("google_calendar_tokens").delete().eq("user_id", user.id);
 
-    // Clear sync mapping for tasks that were synced into this user's calendar
+    // Delete tasks that were imported FROM Google (they have no value without the source).
+    await admin
+      .from("tasks")
+      .delete()
+      .eq("google_calendar_owner", user.id)
+      .eq("google_imported", true);
+
+    // Clear sync mapping for tasks that originated in TaskFlow but were synced to this user's calendar.
     await admin
       .from("tasks")
       .update({ google_event_id: null, google_calendar_owner: null })
-      .eq("google_calendar_owner", user.id);
+      .eq("google_calendar_owner", user.id)
+      .eq("google_imported", false);
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

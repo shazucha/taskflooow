@@ -1,0 +1,221 @@
+// Pull events from the user's Google primary calendar into TaskFlow tasks.
+// - Events created in Google -> new tasks (assigned to the current user, no project)
+// - Events updated in Google -> matching task gets title/description/time updated
+// - Events deleted in Google -> matching task is deleted (per user choice)
+// We only touch rows where google_calendar_owner = current user, so we never
+// overwrite tasks that belong to other people.
+
+import { corsHeaders } from "../_shared/cors.ts";
+import {
+  adminClient,
+  getUserFromAuthHeader,
+  getValidAccessToken,
+  hasRequiredGoogleCalendarScope,
+} from "../_shared/google.ts";
+
+interface GoogleEvent {
+  id: string;
+  status?: string;
+  summary?: string;
+  description?: string;
+  start?: { dateTime?: string; date?: string };
+  end?: { dateTime?: string; date?: string };
+  source?: { title?: string };
+  updated?: string;
+}
+
+function pickStart(e: GoogleEvent): string | null {
+  return e.start?.dateTime ?? (e.start?.date ? `${e.start.date}T00:00:00` : null);
+}
+function pickEnd(e: GoogleEvent): string | null {
+  return e.end?.dateTime ?? (e.end?.date ? `${e.end.date}T00:00:00` : null);
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const user = await getUserFromAuthHeader(req);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const admin = adminClient();
+    const { data: tokenRow } = await admin
+      .from("google_calendar_tokens")
+      .select("scope, sync_token")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!tokenRow) {
+      return new Response(JSON.stringify({ ok: true, not_connected: true, imported: 0, updated: 0, deleted: 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!hasRequiredGoogleCalendarScope(tokenRow.scope)) {
+      return new Response(JSON.stringify({ error: "reauth_required", detail: "missing_calendar_scope" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const tok = await getValidAccessToken(admin, user.id);
+    if (!tok) {
+      return new Response(JSON.stringify({ ok: true, not_connected: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Fetch events. Use incremental sync_token if we have one;
+    //     otherwise do a full window pull (last 30d -> +180d) and store the new sync token.
+    const events: GoogleEvent[] = [];
+    let pageToken: string | undefined;
+    let nextSyncToken: string | undefined;
+    let usedSyncToken = !!tokenRow.sync_token;
+    let attempt = 0;
+
+    while (true) {
+      attempt++;
+      const url = new URL(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(tok.calendarId)}/events`
+      );
+      url.searchParams.set("singleEvents", "true");
+      url.searchParams.set("maxResults", "250");
+      if (usedSyncToken) {
+        url.searchParams.set("syncToken", tokenRow.sync_token!);
+      } else {
+        const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const to = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+        url.searchParams.set("timeMin", from.toISOString());
+        url.searchParams.set("timeMax", to.toISOString());
+      }
+      if (pageToken) url.searchParams.set("pageToken", pageToken);
+
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${tok.token}` },
+      });
+
+      // 410 = sync token expired -> redo full pull
+      if (res.status === 410 && usedSyncToken) {
+        usedSyncToken = false;
+        pageToken = undefined;
+        await admin.from("google_calendar_tokens").update({ sync_token: null }).eq("user_id", user.id);
+        continue;
+      }
+
+      if (!res.ok) {
+        const t = await res.text();
+        console.error("calendar list failed", res.status, t);
+        return new Response(JSON.stringify({ error: "calendar_api_failed", detail: t }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const data = await res.json();
+      for (const item of data.items ?? []) events.push(item);
+      if (data.nextPageToken) {
+        pageToken = data.nextPageToken;
+      } else {
+        nextSyncToken = data.nextSyncToken;
+        break;
+      }
+      if (attempt > 20) break; // safety
+    }
+
+    // Skip events that came from us (we set source.title = "TaskFlow")
+    let imported = 0, updated = 0, deleted = 0;
+
+    // Pre-fetch user's existing google-linked tasks for this owner so we don't
+    // do one query per event.
+    const eventIds = events.map((e) => e.id).filter(Boolean);
+    const { data: existing } = eventIds.length
+      ? await admin
+          .from("tasks")
+          .select("id, google_event_id, title, description, due_date, due_end, google_imported")
+          .eq("google_calendar_owner", user.id)
+          .in("google_event_id", eventIds)
+      : { data: [] as Array<{ id: string; google_event_id: string; title: string; description: string | null; due_date: string | null; due_end: string | null; google_imported: boolean }> };
+
+    const byEventId = new Map<string, typeof existing[number]>();
+    for (const t of existing ?? []) byEventId.set(t.google_event_id, t);
+
+    for (const ev of events) {
+      // Cancelled/deleted in Google
+      if (ev.status === "cancelled") {
+        const t = byEventId.get(ev.id);
+        if (t) {
+          await admin.from("tasks").delete().eq("id", t.id);
+          deleted++;
+        }
+        continue;
+      }
+
+      // Skip events we created from TaskFlow (already in sync the other way)
+      if (ev.source?.title === "TaskFlow") continue;
+
+      const start = pickStart(ev);
+      const end = pickEnd(ev);
+      if (!start) continue; // ignore events with no time at all
+
+      const title = ev.summary?.trim() || "(bez názvu)";
+      const description = ev.description ?? null;
+
+      const existingTask = byEventId.get(ev.id);
+      if (existingTask) {
+        // Update if anything changed
+        const changed =
+          existingTask.title !== title ||
+          existingTask.description !== description ||
+          existingTask.due_date !== start ||
+          existingTask.due_end !== end;
+        if (changed) {
+          await admin
+            .from("tasks")
+            .update({ title, description, due_date: start, due_end: end })
+            .eq("id", existingTask.id);
+          updated++;
+        }
+      } else {
+        // New event from Google -> create task
+        const { error: insertErr } = await admin.from("tasks").insert({
+          title,
+          description,
+          priority: "low",
+          status: "todo",
+          assignee_id: user.id,
+          created_by: user.id,
+          due_date: start,
+          due_end: end,
+          google_event_id: ev.id,
+          google_calendar_owner: user.id,
+          google_imported: true,
+        });
+        if (insertErr) {
+          console.error("insert task failed", insertErr);
+        } else {
+          imported++;
+        }
+      }
+    }
+
+    if (nextSyncToken) {
+      await admin
+        .from("google_calendar_tokens")
+        .update({ sync_token: nextSyncToken, last_pulled_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+    }
+
+    return new Response(JSON.stringify({ ok: true, imported, updated, deleted }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error(e);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
