@@ -11,7 +11,7 @@ import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import { ProjectAccessCard } from "@/components/ProjectAccessCard";
 import { EditableProjectHeader } from "@/components/EditableProjectHeader";
 import { MonthFilter } from "@/components/MonthFilter";
-import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
+import { currentMonthKey } from "@/lib/recurring";
 import type { Task } from "@/lib/types";
 import { useCurrentUserId, useIsAppAdmin, useProjects, useTasks } from "@/lib/queries";
 
@@ -28,7 +28,17 @@ export default function ProjectDetail() {
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
 
   const projectTasks = useMemo(() => tasks.filter((t) => t.project_id === id), [tasks, id]);
-  const monthFiltered = useMemo(() => filterTasksByMonth(projectTasks, monthKey), [projectTasks, monthKey]);
+  // V detaile projektu zobrazujeme VŠETKY úlohy (vrátane všetkých výskytov sérií),
+  // aby bolo vidno celú históriu prác v rámci projektu.
+  const monthFiltered = useMemo(() => {
+    if (!monthKey) return projectTasks;
+    return projectTasks.filter((t) => {
+      if (!t.due_date) return false;
+      const d = new Date(t.due_date);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      return k === monthKey;
+    });
+  }, [projectTasks, monthKey]);
 
   const grouped = useMemo(() => {
     return {
