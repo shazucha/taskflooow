@@ -36,7 +36,7 @@ export function useUnreadTeamChat(): number {
     refresh();
 
     const channel = supabase
-      .channel("unread-team-chat")
+      .channel(`unread-team-chat-${userId}-${Math.random().toString(36).slice(2, 8)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: "scope=eq.team" },
