@@ -40,6 +40,12 @@ const HALF_HOUR_SLOTS = Array.from({ length: 48 }, (_, i) => {
   return `${String(h).padStart(2, "0")}:${m}`;
 });
 
+const EMPTY_IDS: string[] = [];
+
+function sameIds(a: string[], b: string[]) {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
 function splitISO(iso: string | null): { date: string; time: string } {
   if (!iso) return { date: "", time: "" };
   const d = new Date(iso);
@@ -59,9 +65,10 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const syncProjectMembers = useSyncProjectMembers();
 
   const initialWatchers = useMemo(
-    () => (task ? allWatchers.filter((w) => w.task_id === task.id).map((w) => w.user_id) : []),
+    () => (task ? allWatchers.filter((w) => w.task_id === task.id).map((w) => w.user_id) : EMPTY_IDS),
     [allWatchers, task]
   );
+  const initialWatchersKey = initialWatchers.join("|");
   const [selected, setSelected] = useState<string[]>(initialWatchers);
 
   // Základné polia
@@ -79,8 +86,8 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const [endTime, setEndTime] = useState(initialEnd.time);
 
   useEffect(() => {
-    setSelected(initialWatchers);
-  }, [initialWatchers]);
+    setSelected((prev) => (sameIds(prev, initialWatchers) ? prev : initialWatchers));
+  }, [task?.id, initialWatchersKey]);
 
   // Reset form fields ONLY when the opened task identity changes.
   // Including the whole `task` object or memoized derivatives in deps caused

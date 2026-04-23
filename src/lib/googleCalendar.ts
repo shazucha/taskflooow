@@ -1,5 +1,7 @@
 import { supabase } from "./supabase";
 
+const REQUIRED_GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar";
+
 export interface GoogleEvent {
   id: string;
   title: string;
@@ -72,8 +74,9 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
 export async function isGoogleConnected(): Promise<{ connected: boolean; email: string | null }> {
   const { data, error } = await supabase
     .from("google_calendar_tokens")
-    .select("google_email")
+    .select("google_email, scope")
     .maybeSingle();
   if (error) return { connected: false, email: null };
-  return { connected: !!data, email: data?.google_email ?? null };
+  const connected = !!data && !!data.scope?.split(/\s+/).includes(REQUIRED_GOOGLE_SCOPE);
+  return { connected, email: connected ? (data?.google_email ?? null) : null };
 }
