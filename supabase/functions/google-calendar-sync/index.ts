@@ -7,6 +7,7 @@ import {
   adminClient,
   getUserFromAuthHeader,
   getValidAccessToken,
+  hasRequiredGoogleCalendarScope,
 } from "../_shared/google.ts";
 
 interface TaskRow {
@@ -58,6 +59,20 @@ Deno.serve(async (req) => {
       });
     }
     const task = taskData as TaskRow;
+    if (targetUserId) {
+      const { data: tokenRow } = await admin
+        .from("google_calendar_tokens")
+        .select("scope")
+        .eq("user_id", targetUserId)
+        .maybeSingle();
+
+      if (tokenRow && !hasRequiredGoogleCalendarScope(tokenRow.scope)) {
+        return new Response(JSON.stringify({ error: "reauth_required", detail: "missing_calendar_scope" }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Determine which user's calendar should hold this event.
     // Prefer existing owner mapping; otherwise the assignee.
