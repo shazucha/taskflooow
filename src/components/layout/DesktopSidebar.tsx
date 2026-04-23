@@ -5,8 +5,16 @@ import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useCurrentUserId, useIsAppAdmin, useProfiles } from "@/lib/queries";
 
-const baseItems = [
-  { to: "/", label: "Prehľad", icon: LayoutDashboard, end: true, badgeKey: "team" as const },
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  end?: boolean;
+  badgeKey?: "team";
+};
+
+const baseItems: NavItem[] = [
+  { to: "/", label: "Prehľad", icon: LayoutDashboard, end: true, badgeKey: "team" },
   { to: "/projects", label: "Projekty", icon: FolderKanban },
   { to: "/tasks", label: "Úlohy", icon: ListChecks },
   { to: "/me", label: "Profil", icon: User },
@@ -18,10 +26,10 @@ export function DesktopSidebar() {
   const { data: profiles = [] } = useProfiles();
   const isAdmin = useIsAppAdmin();
   const me = profiles.find((p) => p.id === currentUserId);
-  const items = isAdmin
+  const items: NavItem[] = isAdmin
     ? [
         ...baseItems.slice(0, 3),
-        { to: "/admin/team", label: "Prehľad zamestnancov", icon: Users2, end: false, badgeKey: undefined as undefined },
+        { to: "/admin/team", label: "Prehľad zamestnancov", icon: Users2 },
         baseItems[3],
       ]
     : baseItems;
