@@ -758,29 +758,46 @@ function TaskRow({
   const timed = hasTime(task);
   const d = task.due_date ? new Date(task.due_date) : null;
   const accent = project?.color || myColor;
+  const toggleStatus = useToggleTaskStatus();
+  const isDone = task.status === "done";
   return (
     <li>
-      <button
-        type="button"
-        onClick={() => onOpenTask(task)}
-        className="flex w-full flex-col gap-0.5 rounded-lg p-1.5 text-left text-xs hover:bg-surface-muted"
-      >
-        {project && (
-          <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: accent }}>
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
-            <span className="truncate">{project.name}</span>
-          </span>
-        )}
-        <span className="flex items-center gap-2">
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
-          {timed && d && (
-            <span className="font-mono text-[10px] text-muted-foreground">
-              {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
+      <div className="group flex items-start gap-1 rounded-lg p-1.5 hover:bg-surface-muted">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); toggleStatus(task); }}
+          title={isDone ? "Označiť ako nedokončenú" : "Označiť ako dokončenú"}
+          className={cn(
+            "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition",
+            isDone
+              ? "border-transparent bg-primary text-primary-foreground"
+              : "border-border bg-card hover:border-primary"
+          )}
+        >
+          {isDone && <Check className="h-3 w-3" strokeWidth={3} />}
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpenTask(task)}
+          className="flex flex-1 flex-col gap-0.5 text-left text-xs"
+        >
+          {project && (
+            <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: accent }}>
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+              <span className="truncate">{project.name}</span>
             </span>
           )}
-          <span className="flex-1 truncate">{task.title}</span>
-        </span>
-      </button>
+          <span className="flex items-center gap-2">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+            {timed && d && (
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
+              </span>
+            )}
+            <span className={cn("flex-1 truncate", isDone && "line-through text-muted-foreground")}>{task.title}</span>
+          </span>
+        </button>
+      </div>
     </li>
   );
 }
