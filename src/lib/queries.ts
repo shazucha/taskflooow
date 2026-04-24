@@ -300,6 +300,23 @@ export function useUpdateTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<Task> }) => updateTask(id, patch),
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["tasks"] });
+      const snapshots = qc.getQueriesData<Task[]>({ queryKey: ["tasks"] });
+      snapshots.forEach(([key, data]) => {
+        if (!data) return;
+        qc.setQueryData<Task[]>(
+          key,
+          data.map((t) => (t.id === vars.id ? { ...t, ...vars.patch } : t))
+        );
+      });
+      return { snapshots };
+    },
+    onError: (_err, _vars, ctx) => {
+      ctx?.snapshots.forEach(([key, data]) => {
+        qc.setQueryData(key, data);
+      });
+    },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
       qc.invalidateQueries({ queryKey: ["task_activity", vars.id] });
