@@ -467,6 +467,20 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
         </div>
 
         <DialogFooter>
+          {canEdit && hasTime && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleResync}
+              disabled={resyncing || dirty}
+              title={dirty ? "Najprv ulož zmeny" : "Znovu odoslať do Google kalendára"}
+              className="mr-auto"
+            >
+              <RefreshCw className={cn("h-4 w-4", resyncing && "animate-spin")} />
+              {resyncing ? "Synchronizujem..." : "Znovu synchronizovať"}
+            </Button>
+          )}
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Zavrieť
           </Button>
