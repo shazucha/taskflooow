@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks, useToggleTaskStatus } from "@/lib/queries";
+import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks, useToggleTaskDone } from "@/lib/queries";
 import type { Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
@@ -524,7 +524,7 @@ function DayView({
   onCreateSlot: (slotIdx: number) => void;
   onCreateRange: (startSlot: number, endSlot: number) => void;
 }) {
-  const toggleStatus = useToggleTaskStatus();
+  const toggleStatus = useToggleTaskDone();
   const allDay = tasks.filter((t) => !hasTime(t));
   const timed = tasks
     .filter((t) => hasTime(t))
@@ -778,7 +778,7 @@ function TaskRow({
   const timed = hasTime(task);
   const d = task.due_date ? new Date(task.due_date) : null;
   const accent = project?.color || myColor;
-  const toggleStatus = useToggleTaskStatus();
+  const toggleStatus = useToggleTaskDone();
   const isDone = task.status === "done";
   return (
     <li>
