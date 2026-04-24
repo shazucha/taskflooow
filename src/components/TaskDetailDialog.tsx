@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Users } from "lucide-react";
+import { CalendarDays, RefreshCw, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { TaskActivityList } from "./TaskActivityList";
 import { TaskMaterialsList } from "./TaskMaterialsList";
+import { syncTaskToGoogle } from "@/lib/googleCalendar";
 
 interface Props {
   task: Task | null;
