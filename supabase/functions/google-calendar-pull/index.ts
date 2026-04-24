@@ -133,15 +133,25 @@ Deno.serve(async (req) => {
     // Pre-fetch user's existing google-linked tasks for this owner so we don't
     // do one query per event.
     const eventIds = events.map((e) => e.id).filter(Boolean);
+    type ExistingTaskRow = {
+      id: string;
+      google_event_id: string;
+      title: string;
+      description: string | null;
+      due_date: string | null;
+      due_end: string | null;
+      google_imported: boolean;
+    };
+
     const { data: existing } = eventIds.length
       ? await admin
           .from("tasks")
           .select("id, google_event_id, title, description, due_date, due_end, google_imported")
           .eq("google_calendar_owner", user.id)
           .in("google_event_id", eventIds)
-      : { data: [] as Array<{ id: string; google_event_id: string; title: string; description: string | null; due_date: string | null; due_end: string | null; google_imported: boolean }> };
+      : { data: [] as ExistingTaskRow[] };
 
-    const byEventId = new Map<string, typeof existing[number]>();
+    const byEventId = new Map<string, ExistingTaskRow>();
     for (const t of existing ?? []) byEventId.set(t.google_event_id, t);
 
     for (const ev of events) {

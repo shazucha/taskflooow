@@ -28,6 +28,10 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function fallbackResponse(body: Record<string, unknown>) {
+  return jsonResponse({ ok: true, fallback: true, ...body });
+}
+
 function isSpecialTypeConflict(detail: string) {
   return /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType/i.test(detail);
 }
@@ -126,6 +130,10 @@ Deno.serve(async (req) => {
       }
       task.google_event_id = null;
       targetUserId = task.assignee_id;
+    }
+
+    if (!targetUserId) {
+      return jsonResponse({ ok: true, skipped: "no_assignee" });
     }
 
     const tok = await getValidAccessToken(admin, targetUserId);
@@ -249,7 +257,7 @@ Deno.serve(async (req) => {
         // Ignore JSON parse issues and fall back to generic error response.
       }
 
-      return jsonResponse({ error: "calendar_api_failed", detail: t }, 500);
+      return fallbackResponse({ error: "calendar_api_failed", detail: t, skipped: "calendar_api_failed" });
     }
 
     const ev = await evRes.json();
@@ -261,6 +269,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ ok: true, event_id: ev.id });
   } catch (e) {
     console.error(e);
-    return jsonResponse({ error: e instanceof Error ? e.message : "error" }, 500);
+    return fallbackResponse({ error: e instanceof Error ? e.message : "error" });
   }
 });
