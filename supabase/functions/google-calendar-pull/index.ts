@@ -87,7 +87,9 @@ Deno.serve(async (req) => {
       if (usedSyncToken) {
         url.searchParams.set("syncToken", tokenRow.sync_token!);
       } else {
-        const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        // Only pull from "now" forward — never import past events.
+        const from = new Date();
+        from.setHours(0, 0, 0, 0);
         const to = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
         url.searchParams.set("timeMin", from.toISOString());
         url.searchParams.set("timeMax", to.toISOString());
