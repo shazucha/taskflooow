@@ -221,6 +221,33 @@ Deno.serve(async (req) => {
           });
         }
       }
+      // If PATCH failed because the existing event is a special type
+      // (focus time, OOO, working location, fromGmail), delete + recreate.
+      const isSpecialTypeConflict =
+        evRes.status === 400 &&
+        task.google_event_id &&
+        /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType/i.test(t);
+      if (isSpecialTypeConflict) {
+        await fetch(`${base}/${task.google_event_id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${tok.token}` },
+        });
+        const retry = await fetch(base, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tok.token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(eventBody),
+        });
+        if (retry.ok) {
+          const ev = await retry.json();
+          await admin.from("tasks").update({
+            google_event_id: ev.id,
+            google_calendar_owner: task.assignee_id,
+          }).eq("id", task.id);
+          return new Response(JSON.stringify({ ok: true, event_id: ev.id, recreated: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
       return new Response(JSON.stringify({ error: "calendar_api_failed", detail: t }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
