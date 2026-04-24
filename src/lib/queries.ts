@@ -340,6 +340,14 @@ export function useToggleTaskStatus() {
   };
 }
 
+export function useToggleTaskDone() {
+  const update = useUpdateTask();
+  return (task: Task) => {
+    const next: TaskStatus = task.status === "done" ? "in_progress" : "done";
+    return update.mutateAsync({ id: task.id, patch: { status: next } });
+  };
+}
+
 export function useDelegateTask() {
   const update = useUpdateTask();
   return (taskId: string, assigneeId: string) =>
