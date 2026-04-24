@@ -27,7 +27,7 @@ import {
 import { toast } from "sonner";
 import { TaskActivityList } from "./TaskActivityList";
 import { TaskMaterialsList } from "./TaskMaterialsList";
-import { syncTaskToGoogle } from "@/lib/googleCalendar";
+import { GoogleReconnectRequiredError, syncTaskToGoogle } from "@/lib/googleCalendar";
 
 interface Props {
   task: Task | null;
@@ -205,9 +205,17 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const handleResync = async () => {
     setResyncing(true);
     try {
-      await syncTaskToGoogle(task.id, "upsert");
-      toast.success("Znovu odoslané do Google kalendára");
+      const result = await syncTaskToGoogle(task.id, "upsert");
+      if (result.skipped === "special_event_conflict") {
+        toast.message("Stará blokovaná Google udalosť bola odpojená, skúste synchronizáciu ešte raz");
+      } else {
+        toast.success("Znovu odoslané do Google kalendára");
+      }
     } catch (e: any) {
+      if (e instanceof GoogleReconnectRequiredError) {
+        toast.error("Google kalendár treba znova pripojiť");
+        return;
+      }
       toast.error(e?.message ?? "Synchronizácia zlyhala");
     } finally {
       setResyncing(false);
