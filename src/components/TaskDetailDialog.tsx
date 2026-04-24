@@ -85,6 +85,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const [dueDate, setDueDate] = useState(initialStart.date);
   const [dueTime, setDueTime] = useState(initialStart.time);
   const [endTime, setEndTime] = useState(initialEnd.time);
+  const [resyncing, setResyncing] = useState(false);
 
   useEffect(() => {
     setSelected((prev) => (sameIds(prev, initialWatchers) ? prev : initialWatchers));
@@ -194,6 +195,24 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const saving = setWatchers.isPending || updateTask.isPending || syncProjectMembers.isPending;
   const disabled = !isCreator;
   const statusDisabled = !canEdit;
+
+  const hasTime = (() => {
+    if (!task.due_date) return false;
+    const d = new Date(task.due_date);
+    return d.getHours() !== 0 || d.getMinutes() !== 0;
+  })();
+
+  const handleResync = async () => {
+    setResyncing(true);
+    try {
+      await syncTaskToGoogle(task.id, "upsert");
+      toast.success("Znovu odoslané do Google kalendára");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Synchronizácia zlyhala");
+    } finally {
+      setResyncing(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
