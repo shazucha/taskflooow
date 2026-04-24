@@ -37,6 +37,12 @@ import type { Profile, Project, Task, TaskStatus } from "./types";
 import { useSession } from "./useSession";
 import { syncTaskToGoogle } from "./googleCalendar";
 
+function fireAndForgetTaskSync(taskId: string, action: "upsert" | "delete" = "upsert") {
+  void syncTaskToGoogle(taskId, action).catch((error) => {
+    console.error("Google task sync failed", { taskId, action, error });
+  });
+}
+
 export function useCurrentUserId() {
   const { user } = useSession();
   return user?.id ?? null;
@@ -252,7 +258,7 @@ export function useCreateTask() {
     onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
       qc.invalidateQueries({ queryKey: ["task_watchers"] });
-      if (created?.id) void syncTaskToGoogle(created.id, "upsert");
+      if (created?.id) fireAndForgetTaskSync(created.id, "upsert");
     },
   });
 }
@@ -320,7 +326,7 @@ export function useUpdateTask() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
       qc.invalidateQueries({ queryKey: ["task_activity", vars.id] });
-      void syncTaskToGoogle(vars.id, "upsert");
+      fireAndForgetTaskSync(vars.id, "upsert");
     },
   });
 }
