@@ -524,6 +524,7 @@ function DayView({
   onCreateSlot: (slotIdx: number) => void;
   onCreateRange: (startSlot: number, endSlot: number) => void;
 }) {
+  const toggleStatus = useToggleTaskStatus();
   const allDay = tasks.filter((t) => !hasTime(t));
   const timed = tasks
     .filter((t) => hasTime(t))
@@ -633,32 +634,51 @@ function DayView({
             const e = task.due_end ? new Date(task.due_end) : null;
             const proj = task.project_id ? projectsById.get(task.project_id) ?? null : null;
             const accent = proj?.color || myColor;
+            const isDone = task.status === "done";
             return (
-              <button
+              <div
                 key={task.id}
-                type="button"
                 data-task-block
-                onClick={() => onOpenTask(task)}
-                className="absolute left-12 right-2 overflow-hidden rounded-md px-2 py-1 text-left text-[11px] hover:opacity-90"
+                className="group absolute left-12 right-2 flex gap-1 overflow-hidden rounded-md px-2 py-1 text-left text-[11px]"
                 style={{
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
                   backgroundColor: `${accent}22`,
                   borderLeft: `3px solid ${accent}`,
+                  opacity: isDone ? 0.6 : 1,
                 }}
               >
-                {proj && (
-                  <div className="flex items-center gap-1 truncate text-[10px] font-semibold" style={{ color: accent }}>
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
-                    <span className="truncate">{proj.name}</span>
+                <button
+                  type="button"
+                  onClick={(ev) => { ev.stopPropagation(); toggleStatus(task); }}
+                  title={isDone ? "Označiť ako nedokončenú" : "Označiť ako dokončenú"}
+                  className={cn(
+                    "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition",
+                    isDone
+                      ? "border-transparent bg-primary text-primary-foreground"
+                      : "border-border bg-card hover:border-primary"
+                  )}
+                >
+                  {isDone && <Check className="h-3 w-3" strokeWidth={3} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenTask(task)}
+                  className="flex-1 overflow-hidden text-left hover:opacity-90"
+                >
+                  {proj && (
+                    <div className="flex items-center gap-1 truncate text-[10px] font-semibold" style={{ color: accent }}>
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+                      <span className="truncate">{proj.name}</span>
+                    </div>
+                  )}
+                  <div className="font-mono text-[10px] text-muted-foreground">
+                    {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
+                    {e && ` – ${String(e.getHours()).padStart(2, "0")}:${String(e.getMinutes()).padStart(2, "0")}`}
                   </div>
-                )}
-                <div className="font-mono text-[10px] text-muted-foreground">
-                  {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
-                  {e && ` – ${String(e.getHours()).padStart(2, "0")}:${String(e.getMinutes()).padStart(2, "0")}`}
-                </div>
-                <div className="truncate font-semibold">{task.title}</div>
-              </button>
+                  <div className={cn("truncate font-semibold", isDone && "line-through")}>{task.title}</div>
+                </button>
+              </div>
             );
           })}
 
