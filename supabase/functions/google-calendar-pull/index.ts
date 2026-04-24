@@ -162,6 +162,15 @@ Deno.serve(async (req) => {
       const end = pickEnd(ev);
       if (!start) continue; // ignore events with no time at all
 
+      // Skip events that started before today — user only wants new/future stuff.
+      const startMs = new Date(start).getTime();
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      if (startMs < todayStart.getTime() && !byEventId.get(ev.id)) {
+        // Only skip NEW imports. If we already imported it earlier, keep updating it.
+        continue;
+      }
+
       const title = ev.summary?.trim() || "(bez názvu)";
       const description = ev.description ?? null;
 
