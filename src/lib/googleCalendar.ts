@@ -75,6 +75,7 @@ export interface GoogleSyncResult {
   error?: string;
   detail?: string;
   skipped?: boolean | string;
+  fallback?: boolean;
   recreated?: boolean;
   event_id?: string;
 }
@@ -106,6 +107,9 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
   }
 
   if (data?.error) {
+    if (data.fallback || data.skipped) {
+      return data;
+    }
     throw new Error(data.detail || data.error);
   }
 
