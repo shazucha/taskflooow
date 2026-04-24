@@ -778,7 +778,7 @@ function TaskRow({
   const timed = hasTime(task);
   const d = task.due_date ? new Date(task.due_date) : null;
   const accent = project?.color || myColor;
-  const toggleStatus = useToggleTaskStatus();
+  const toggleStatus = useToggleTaskDone();
   const isDone = task.status === "done";
   return (
     <li>
