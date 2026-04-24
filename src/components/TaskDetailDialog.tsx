@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Users } from "lucide-react";
+import { CalendarDays, RefreshCw, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { TaskActivityList } from "./TaskActivityList";
 import { TaskMaterialsList } from "./TaskMaterialsList";
+import { syncTaskToGoogle } from "@/lib/googleCalendar";
 
 interface Props {
   task: Task | null;
@@ -84,6 +85,7 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const [dueDate, setDueDate] = useState(initialStart.date);
   const [dueTime, setDueTime] = useState(initialStart.time);
   const [endTime, setEndTime] = useState(initialEnd.time);
+  const [resyncing, setResyncing] = useState(false);
 
   useEffect(() => {
     setSelected((prev) => (sameIds(prev, initialWatchers) ? prev : initialWatchers));
@@ -193,6 +195,24 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
   const saving = setWatchers.isPending || updateTask.isPending || syncProjectMembers.isPending;
   const disabled = !isCreator;
   const statusDisabled = !canEdit;
+
+  const hasTime = (() => {
+    if (!task.due_date) return false;
+    const d = new Date(task.due_date);
+    return d.getHours() !== 0 || d.getMinutes() !== 0;
+  })();
+
+  const handleResync = async () => {
+    setResyncing(true);
+    try {
+      await syncTaskToGoogle(task.id, "upsert");
+      toast.success("Znovu odoslané do Google kalendára");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Synchronizácia zlyhala");
+    } finally {
+      setResyncing(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -447,6 +467,20 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
         </div>
 
         <DialogFooter>
+          {canEdit && hasTime && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleResync}
+              disabled={resyncing || dirty}
+              title={dirty ? "Najprv ulož zmeny" : "Znovu odoslať do Google kalendára"}
+              className="mr-auto"
+            >
+              <RefreshCw className={cn("h-4 w-4", resyncing && "animate-spin")} />
+              {resyncing ? "Synchronizujem..." : "Znovu synchronizovať"}
+            </Button>
+          )}
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Zavrieť
           </Button>
