@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
     // Determine which user's calendar should hold this event.
     // Prefer existing owner mapping; otherwise the assignee.
-    const targetUserId = task.google_calendar_owner ?? task.assignee_id;
+    let targetUserId = task.google_calendar_owner ?? task.assignee_id;
 
     if (targetUserId) {
       const { data: tokenRow } = await admin
@@ -140,9 +140,10 @@ Deno.serve(async (req) => {
         );
       }
       task.google_event_id = null;
+      targetUserId = task.assignee_id;
     }
 
-    const tok = await getValidAccessToken(admin, task.assignee_id!);
+    const tok = await getValidAccessToken(admin, targetUserId);
     if (!tok) {
       return new Response(JSON.stringify({ ok: true, skipped: "user_not_connected" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -214,7 +215,7 @@ Deno.serve(async (req) => {
           const ev = await retry.json();
           await admin.from("tasks").update({
             google_event_id: ev.id,
-            google_calendar_owner: task.assignee_id,
+            google_calendar_owner: targetUserId,
           }).eq("id", task.id);
           return new Response(JSON.stringify({ ok: true, event_id: ev.id }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -225,13 +226,14 @@ Deno.serve(async (req) => {
       // (focus time, OOO, working location, fromGmail), delete + recreate.
       const isSpecialTypeConflict =
         evRes.status === 400 &&
-        task.google_event_id &&
         /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType/i.test(t);
       if (isSpecialTypeConflict) {
-        await fetch(`${base}/${task.google_event_id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${tok.token}` },
-        });
+        if (task.google_event_id) {
+          await fetch(`${base}/${task.google_event_id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${tok.token}` },
+          });
+        }
         const retry = await fetch(base, {
           method: "POST",
           headers: { Authorization: `Bearer ${tok.token}`, "Content-Type": "application/json" },
@@ -241,12 +243,22 @@ Deno.serve(async (req) => {
           const ev = await retry.json();
           await admin.from("tasks").update({
             google_event_id: ev.id,
-            google_calendar_owner: task.assignee_id,
+            google_calendar_owner: targetUserId,
           }).eq("id", task.id);
           return new Response(JSON.stringify({ ok: true, event_id: ev.id, recreated: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+
+        const retryText = await retry.text();
+        console.error("Calendar special-type recreate failed", retry.status, retryText);
+        await admin
+          .from("tasks")
+          .update({ google_event_id: null, google_calendar_owner: null })
+          .eq("id", task.id);
+        return new Response(JSON.stringify({ ok: true, skipped: "special_event_conflict", detail: retryText || t }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       return new Response(JSON.stringify({ error: "calendar_api_failed", detail: t }), {
         status: 500,
@@ -257,7 +269,7 @@ Deno.serve(async (req) => {
     const ev = await evRes.json();
     await admin.from("tasks").update({
       google_event_id: ev.id,
-      google_calendar_owner: task.assignee_id,
+      google_calendar_owner: targetUserId,
     }).eq("id", task.id);
 
     return new Response(JSON.stringify({ ok: true, event_id: ev.id }), {
