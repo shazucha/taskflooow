@@ -132,6 +132,10 @@ Deno.serve(async (req) => {
       targetUserId = task.assignee_id;
     }
 
+    if (!targetUserId) {
+      return jsonResponse({ ok: true, skipped: "no_assignee" });
+    }
+
     const tok = await getValidAccessToken(admin, targetUserId);
     if (!tok) {
       return jsonResponse({ ok: true, skipped: "user_not_connected" });
