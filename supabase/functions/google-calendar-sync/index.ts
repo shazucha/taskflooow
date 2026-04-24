@@ -21,6 +21,17 @@ interface TaskRow {
   google_calendar_owner: string | null;
 }
 
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function isSpecialTypeConflict(detail: string) {
+  return /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType/i.test(detail);
+}
+
 function hasTime(iso: string) {
   const d = new Date(iso);
   return d.getHours() !== 0 || d.getMinutes() !== 0;
@@ -31,20 +42,10 @@ Deno.serve(async (req) => {
 
   try {
     const user = await getUserFromAuthHeader(req);
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
 
     const { action, task_id } = await req.json();
-    if (!task_id || !["upsert", "delete"].includes(action)) {
-      return new Response(JSON.stringify({ error: "invalid_payload" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!task_id || !["upsert", "delete"].includes(action)) return jsonResponse({ error: "invalid_payload" }, 400);
 
     const admin = adminClient();
     const { data: taskData, error: taskErr } = await admin
@@ -52,12 +53,7 @@ Deno.serve(async (req) => {
       .select("id, title, description, due_date, due_end, assignee_id, google_event_id, google_calendar_owner")
       .eq("id", task_id)
       .maybeSingle();
-    if (taskErr || !taskData) {
-      return new Response(JSON.stringify({ error: "task_not_found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (taskErr || !taskData) return jsonResponse({ error: "task_not_found" }, 404);
     const task = taskData as TaskRow;
 
     // Determine which user's calendar should hold this event.
@@ -71,20 +67,15 @@ Deno.serve(async (req) => {
         .eq("user_id", targetUserId)
         .maybeSingle();
 
-      if (tokenRow && !hasRequiredGoogleCalendarScope(tokenRow.scope)) {
-        return new Response(JSON.stringify({ error: "reauth_required", detail: "missing_calendar_scope" }), {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+        if (tokenRow && !hasRequiredGoogleCalendarScope(tokenRow.scope)) {
+          return jsonResponse({ error: "reauth_required", detail: "missing_calendar_scope" }, 409);
+        }
     }
 
     // ---- DELETE
     if (action === "delete") {
       if (!task.google_event_id || !targetUserId) {
-        return new Response(JSON.stringify({ ok: true, skipped: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResponse({ ok: true, skipped: true });
       }
       const tok = await getValidAccessToken(admin, targetUserId);
       if (tok) {
@@ -97,9 +88,7 @@ Deno.serve(async (req) => {
         .from("tasks")
         .update({ google_event_id: null, google_calendar_owner: null })
         .eq("id", task.id);
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: true });
     }
 
     // ---- UPSERT
@@ -119,15 +108,11 @@ Deno.serve(async (req) => {
           .update({ google_event_id: null, google_calendar_owner: null })
           .eq("id", task.id);
       }
-      return new Response(JSON.stringify({ ok: true, skipped: "no_time" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: true, skipped: "no_time" });
     }
 
     if (!targetUserId) {
-      return new Response(JSON.stringify({ ok: true, skipped: "no_assignee" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: true, skipped: "no_assignee" });
     }
 
     // If the assignee changed, delete event from previous owner first
@@ -145,9 +130,7 @@ Deno.serve(async (req) => {
 
     const tok = await getValidAccessToken(admin, targetUserId);
     if (!tok) {
-      return new Response(JSON.stringify({ ok: true, skipped: "user_not_connected" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ok: true, skipped: "user_not_connected" });
     }
 
     const start = new Date(task.due_date);
@@ -217,17 +200,12 @@ Deno.serve(async (req) => {
             google_event_id: ev.id,
             google_calendar_owner: targetUserId,
           }).eq("id", task.id);
-          return new Response(JSON.stringify({ ok: true, event_id: ev.id }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return jsonResponse({ ok: true, event_id: ev.id });
         }
       }
       // If PATCH failed because the existing event is a special type
       // (focus time, OOO, working location, fromGmail), delete + recreate.
-      const isSpecialTypeConflict =
-        evRes.status === 400 &&
-        /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType/i.test(t);
-      if (isSpecialTypeConflict) {
+      if (evRes.status === 400 && isSpecialTypeConflict(t)) {
         if (task.google_event_id) {
           await fetch(`${base}/${task.google_event_id}`, {
             method: "DELETE",
@@ -245,9 +223,7 @@ Deno.serve(async (req) => {
             google_event_id: ev.id,
             google_calendar_owner: targetUserId,
           }).eq("id", task.id);
-          return new Response(JSON.stringify({ ok: true, event_id: ev.id, recreated: true }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return jsonResponse({ ok: true, event_id: ev.id, recreated: true });
         }
 
         const retryText = await retry.text();
@@ -256,14 +232,24 @@ Deno.serve(async (req) => {
           .from("tasks")
           .update({ google_event_id: null, google_calendar_owner: null })
           .eq("id", task.id);
-        return new Response(JSON.stringify({ ok: true, skipped: "special_event_conflict", detail: retryText || t }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResponse({ ok: true, skipped: "special_event_conflict", detail: retryText || t });
       }
-      return new Response(JSON.stringify({ error: "calendar_api_failed", detail: t }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+      try {
+        const parsed = JSON.parse(t);
+        const reasons = parsed?.error?.errors?.map((item: { reason?: string }) => item.reason).filter(Boolean) ?? [];
+        if (reasons.some((reason: string) => isSpecialTypeConflict(reason))) {
+          await admin
+            .from("tasks")
+            .update({ google_event_id: null, google_calendar_owner: null })
+            .eq("id", task.id);
+          return jsonResponse({ ok: true, skipped: "special_event_conflict", detail: t });
+        }
+      } catch {
+        // Ignore JSON parse issues and fall back to generic error response.
+      }
+
+      return jsonResponse({ error: "calendar_api_failed", detail: t }, 500);
     }
 
     const ev = await evRes.json();
@@ -272,14 +258,9 @@ Deno.serve(async (req) => {
       google_calendar_owner: targetUserId,
     }).eq("id", task.id);
 
-    return new Response(JSON.stringify({ ok: true, event_id: ev.id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ ok: true, event_id: ev.id });
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: e instanceof Error ? e.message : "error" }, 500);
   }
 });

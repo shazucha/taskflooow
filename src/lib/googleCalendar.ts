@@ -70,6 +70,15 @@ export interface PullResult {
   not_connected?: boolean;
 }
 
+export interface GoogleSyncResult {
+  ok?: boolean;
+  error?: string;
+  detail?: string;
+  skipped?: boolean | string;
+  recreated?: boolean;
+  event_id?: string;
+}
+
 /** Pull events FROM Google INTO TaskFlow tasks. Returns counts of changes. */
 export async function pullGoogleEvents(): Promise<PullResult | null> {
   const { data, error } = await supabase.functions.invoke<PullResult>("google-calendar-pull", { body: {} });
@@ -83,13 +92,24 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
   return data ?? null;
 }
 
-export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delete" = "upsert"): Promise<void> {
-  // Fire and forget — never block UI on Google.
-  try {
-    await supabase.functions.invoke("google-calendar-sync", { body: { action, task_id: taskId } });
-  } catch (e) {
-    console.warn("Google sync failed (non-fatal)", e);
+export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delete" = "upsert"): Promise<GoogleSyncResult> {
+  const { data, error } = await supabase.functions.invoke<GoogleSyncResult>("google-calendar-sync", {
+    body: { action, task_id: taskId },
+  });
+
+  if (error) {
+    const message = error.message || "";
+    if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
+      throw new GoogleReconnectRequiredError();
+    }
+    throw error;
   }
+
+  if (data?.error) {
+    throw new Error(data.detail || data.error);
+  }
+
+  return data ?? { ok: true };
 }
 
 export async function isGoogleConnected(): Promise<{ connected: boolean; email: string | null }> {
