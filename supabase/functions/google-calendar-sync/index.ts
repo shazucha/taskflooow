@@ -160,8 +160,39 @@ Deno.serve(async (req) => {
     };
 
     const base = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(tok.calendarId)}/events`;
-    const url = task.google_event_id ? `${base}/${task.google_event_id}` : base;
-    const method = task.google_event_id ? "PATCH" : "POST";
+    let url = task.google_event_id ? `${base}/${task.google_event_id}` : base;
+    let method: "PATCH" | "POST" = task.google_event_id ? "PATCH" : "POST";
+
+    // If we have an existing event, check its eventType. Special types
+    // (focusTime, outOfOffice, workingLocation, fromGmail) cannot be PATCH-ed
+    // as a normal event — delete it and create a fresh default event instead.
+    if (task.google_event_id) {
+      try {
+        const getRes = await fetch(`${base}/${task.google_event_id}`, {
+          headers: { Authorization: `Bearer ${tok.token}` },
+        });
+        if (getRes.ok) {
+          const existing = await getRes.json();
+          if (existing?.eventType && existing.eventType !== "default") {
+            await fetch(`${base}/${task.google_event_id}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${tok.token}` },
+            });
+            task.google_event_id = null;
+            url = base;
+            method = "POST";
+          }
+        } else if (getRes.status === 404) {
+          task.google_event_id = null;
+          url = base;
+          method = "POST";
+        } else {
+          await getRes.text();
+        }
+      } catch (e) {
+        console.warn("eventType pre-check failed", e);
+      }
+    }
 
     const evRes = await fetch(url, {
       method,
