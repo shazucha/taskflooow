@@ -524,7 +524,7 @@ function DayView({
   onCreateSlot: (slotIdx: number) => void;
   onCreateRange: (startSlot: number, endSlot: number) => void;
 }) {
-  const toggleStatus = useToggleTaskStatus();
+  const toggleStatus = useToggleTaskDone();
   const allDay = tasks.filter((t) => !hasTime(t));
   const timed = tasks
     .filter((t) => hasTime(t))
