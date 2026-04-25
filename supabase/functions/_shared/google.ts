@@ -1,7 +1,7 @@
 // Shared helpers for Google OAuth + Calendar API.
 // Used by all google-* edge functions.
 
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 export const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") ?? "";
 export const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") ?? "";
@@ -35,22 +35,46 @@ export async function getUserFromAuthHeader(req: Request) {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  // Prefer getClaims() — works with the new Supabase signing-keys system
-  // where getUser() may not have a session context inside edge functions.
+  // 1) Prefer getClaims() — works with the new Supabase signing-keys system
+  //    where getUser() can fail in edge functions.
   try {
-    // @ts-ignore — getClaims exists in @supabase/supabase-js >= 2.45
-    const { data: claimsRes, error: claimsErr } = await client.auth.getClaims(token);
-    if (!claimsErr && claimsRes?.claims?.sub) {
-      const sub = claimsRes.claims.sub as string;
-      const email = (claimsRes.claims.email as string | undefined) ?? null;
-      return { id: sub, email } as { id: string; email: string | null };
+    // @ts-ignore — getClaims exists in @supabase/supabase-js >= 2.49
+    const maybeGetClaims = (client.auth as any).getClaims;
+    if (typeof maybeGetClaims === "function") {
+      const { data: claimsRes, error: claimsErr } = await maybeGetClaims.call(client.auth, token);
+      if (!claimsErr && claimsRes?.claims?.sub) {
+        return {
+          id: claimsRes.claims.sub as string,
+          email: (claimsRes.claims.email as string | undefined) ?? null,
+        };
+      }
     }
-  } catch (_) {
-    // fall through to getUser()
+  } catch (_) { /* fall through */ }
+
+  // 2) Try getUser(token) — explicit token form
+  try {
+    const { data, error } = await client.auth.getUser(token);
+    if (!error && data?.user) return data.user;
+  } catch (_) { /* fall through */ }
+
+  // 3) Last resort: GoTrue REST endpoint
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+    });
+    if (res.ok) {
+      const u = await res.json();
+      if (u?.id) return { id: u.id as string, email: (u.email as string | null) ?? null };
+    } else {
+      console.warn("auth/v1/user failed", res.status);
+    }
+  } catch (e) {
+    console.warn("auth/v1/user threw", e);
   }
-  const { data, error } = await client.auth.getUser();
-  if (error || !data.user) return null;
-  return data.user;
+  return null;
 }
 
 export interface GoogleTokenRow {
