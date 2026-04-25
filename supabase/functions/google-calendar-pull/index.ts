@@ -190,6 +190,9 @@ Deno.serve(async (req) => {
     const byEventId = new Map<string, ExistingTaskRow>();
     for (const t of existing ?? []) byEventId.set(t.google_event_id, t);
 
+    const { data: projects } = await admin.from("projects").select("id, name");
+    const { data: recurringWorks } = await admin.from("project_recurring_works").select("project_id, title");
+
     for (const ev of events) {
       // Cancelled/deleted in Google
       if (ev.status === "cancelled") {
@@ -219,6 +222,7 @@ Deno.serve(async (req) => {
 
       const title = ev.summary?.trim() || "(bez názvu)";
       const description = ev.description ?? null;
+      const inferredProjectId = inferProjectId(title, description, projects ?? [], recurringWorks ?? []);
 
       const existingTask = byEventId.get(ev.id);
       if (existingTask) {
@@ -242,6 +246,7 @@ Deno.serve(async (req) => {
           description,
           priority: "low",
           status: "todo",
+          project_id: inferredProjectId,
           assignee_id: user.id,
           created_by: user.id,
           due_date: start,
