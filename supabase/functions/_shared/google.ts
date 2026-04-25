@@ -35,6 +35,19 @@ export async function getUserFromAuthHeader(req: Request) {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  // Prefer getClaims() — works with the new Supabase signing-keys system
+  // where getUser() may not have a session context inside edge functions.
+  try {
+    // @ts-ignore — getClaims exists in @supabase/supabase-js >= 2.45
+    const { data: claimsRes, error: claimsErr } = await client.auth.getClaims(token);
+    if (!claimsErr && claimsRes?.claims?.sub) {
+      const sub = claimsRes.claims.sub as string;
+      const email = (claimsRes.claims.email as string | undefined) ?? null;
+      return { id: sub, email } as { id: string; email: string | null };
+    }
+  } catch (_) {
+    // fall through to getUser()
+  }
   const { data, error } = await client.auth.getUser();
   if (error || !data.user) return null;
   return data.user;
