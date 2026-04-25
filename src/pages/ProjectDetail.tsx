@@ -7,6 +7,7 @@ import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
 import { MonthlyDeliverablesCard } from "@/components/MonthlyDeliverablesCard";
+import { MonthlyBonusesCard } from "@/components/MonthlyBonusesCard";
 import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import { ProjectAccessCard } from "@/components/ProjectAccessCard";
 import { EditableProjectHeader } from "@/components/EditableProjectHeader";
@@ -75,6 +76,7 @@ export default function ProjectDetail() {
       <div className="mt-4 md:grid md:grid-cols-3 md:gap-6">
         <div className="space-y-4 md:col-span-2">
           <MonthlyDeliverablesCard projectId={project.id} />
+          <MonthlyBonusesCard projectId={project.id} />
 
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Úlohy</h2>
