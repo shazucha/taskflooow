@@ -19,6 +19,7 @@ import {
   fetchProfiles,
   fetchProjectMembers,
   fetchProjectMonthlyBonuses,
+  fetchProjectTasks,
   fetchProjectRecurringWorks,
   fetchProjects,
   fetchProjectWorks,
@@ -126,6 +127,28 @@ export function useTasks() {
   }, [qc, isReady, user]);
 
   return useQuery({ queryKey: ["tasks", user?.id ?? null], queryFn: fetchTasks, enabled: isReady && !!user });
+}
+
+export function useProjectTasks(projectId: string | undefined) {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+  useEffect(() => {
+    if (!isReady || !user || !projectId) return;
+    const channel = supabase
+      .channel(`project-tasks-${projectId}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `project_id=eq.${projectId}` },
+        () => qc.invalidateQueries({ queryKey: ["project_tasks", projectId] })
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc, isReady, user, projectId]);
+  return useQuery({
+    queryKey: ["project_tasks", projectId, user?.id ?? null],
+    queryFn: () => fetchProjectTasks(projectId!),
+    enabled: !!projectId && isReady && !!user,
+  });
 }
 
 export function useCreateProject() {
@@ -309,6 +332,7 @@ export function useCreateTask() {
     }) => createTask(task, watcherIds),
     onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["project_tasks"] });
       qc.invalidateQueries({ queryKey: ["task_watchers"] });
       if (created?.id) fireAndForgetTaskSync(created.id, "upsert");
     },
@@ -377,6 +401,7 @@ export function useUpdateTask() {
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["project_tasks"] });
       qc.invalidateQueries({ queryKey: ["task_activity", vars.id] });
       fireAndForgetTaskSync(vars.id, "upsert");
     },
@@ -391,7 +416,10 @@ export function useDeleteTask() {
       await syncTaskToGoogle(id, "delete");
       return deleteTask(id);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["project_tasks"] });
+    },
   });
 }
 
@@ -402,7 +430,10 @@ export function useDeleteTasks() {
       await Promise.all(ids.map((id) => syncTaskToGoogle(id, "delete")));
       return deleteTasks(ids);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["project_tasks"] });
+    },
   });
 }
 

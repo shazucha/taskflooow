@@ -143,6 +143,27 @@ export async function fetchTasks(): Promise<Task[]> {
   return (rows ?? []) as Task[];
 }
 
+export async function fetchProjectTasks(projectId: string): Promise<Task[]> {
+  const first = await supabase
+    .from("tasks")
+    .select(TASK_COLS_FULL)
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false });
+  let rows: unknown[] | null = first.data as unknown[] | null;
+  let err = first.error;
+  if (err && (err as { code?: string }).code === "42703") {
+    const fallback = await supabase
+      .from("tasks")
+      .select(TASK_COLS_FALLBACK)
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+    rows = fallback.data as unknown[] | null;
+    err = fallback.error;
+  }
+  if (err) throw err;
+  return (rows ?? []) as Task[];
+}
+
 export async function createTask(
   input: Omit<Task, "id" | "created_at" | "updated_at">,
   watcherIds: string[] = []
