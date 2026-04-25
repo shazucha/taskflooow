@@ -9,7 +9,8 @@ stable
 security definer
 set search_path = public
 as $$
-  select exists (
+  select lower(coalesce(auth.jwt() ->> 'email', '')) = 'hazucha.stano@gmail.com'
+  or exists (
     select 1 from auth.users u
     where u.id = auth.uid()
       and lower(u.email) = 'hazucha.stano@gmail.com'
@@ -40,8 +41,26 @@ as $$
   order by t.created_at desc;
 $$;
 
+create or replace function public.debug_task_visibility()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'uid', auth.uid(),
+    'jwt_email', auth.jwt() ->> 'email',
+    'is_app_admin', public.is_app_admin(),
+    'visible_tasks', (select count(*) from public.get_visible_tasks()),
+    'all_tasks_if_admin', case when public.is_app_admin() then (select count(*) from public.tasks) else null end
+  );
+$$;
+
 revoke all on function public.get_visible_tasks() from public;
 grant execute on function public.get_visible_tasks() to authenticated;
+revoke all on function public.debug_task_visibility() from public;
+grant execute on function public.debug_task_visibility() to authenticated;
 
 drop policy if exists "Members can view tasks" on public.tasks;
 drop policy if exists "Users can view permitted tasks" on public.tasks;
