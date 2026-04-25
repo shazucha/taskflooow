@@ -4,11 +4,13 @@ import { supabase } from "./supabase";
 import {
   addProjectMember,
   createProject,
+  createProjectMonthlyBonus,
   createProjectRecurringWork,
   createProjectWork,
   createTask,
   createTaskMaterial,
   deleteProject,
+  deleteProjectMonthlyBonus,
   deleteProjectRecurringWork,
   deleteProjectWork,
   deleteTask,
@@ -16,6 +18,7 @@ import {
   deleteTasks,
   fetchProfiles,
   fetchProjectMembers,
+  fetchProjectMonthlyBonuses,
   fetchProjectRecurringWorks,
   fetchProjects,
   fetchProjectWorks,
@@ -31,6 +34,7 @@ import {
   unmarkRecurringWorkDone,
   updateProfile,
   updateProject,
+  updateProjectMonthlyBonus,
   updateTask,
 } from "./api";
 import type { Profile, Project, Task, TaskStatus } from "./types";
@@ -242,6 +246,54 @@ export function useToggleRecurringWorkDone(projectId: string) {
       await unmarkRecurringWorkDone(vars.work_id, vars.month_key);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["recurring_work_completions", projectId] }),
+  });
+}
+
+// ---- Monthly bonuses (per mesiac, nezdedia sa do iných mesiacov)
+export function useProjectMonthlyBonuses(projectId: string | undefined, monthKey: string) {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+  useEffect(() => {
+    if (!isReady || !user || !projectId) return;
+    const channel = supabase
+      .channel(`monthly-bonuses-${projectId}-${monthKey}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_monthly_bonuses", filter: `project_id=eq.${projectId}` },
+        () => qc.invalidateQueries({ queryKey: ["project_monthly_bonuses", projectId] })
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc, isReady, user, projectId, monthKey]);
+  return useQuery({
+    queryKey: ["project_monthly_bonuses", projectId, monthKey],
+    queryFn: () => fetchProjectMonthlyBonuses(projectId!, monthKey),
+    enabled: !!projectId && isReady && !!user,
+  });
+}
+
+export function useCreateMonthlyBonus(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createProjectMonthlyBonus,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_monthly_bonuses", projectId] }),
+  });
+}
+
+export function useUpdateMonthlyBonus(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateProjectMonthlyBonus>[1] }) =>
+      updateProjectMonthlyBonus(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_monthly_bonuses", projectId] }),
+  });
+}
+
+export function useDeleteMonthlyBonus(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteProjectMonthlyBonus(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_monthly_bonuses", projectId] }),
   });
 }
 

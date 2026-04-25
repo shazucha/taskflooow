@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import type {
   Profile,
   Project,
+  ProjectMonthlyBonus,
   ProjectRecurringWork,
   ProjectRecurringWorkCompletion,
   ProjectWork,
@@ -394,5 +395,67 @@ export async function createTaskMaterial(input: {
 
 export async function deleteTaskMaterial(id: string): Promise<void> {
   const { error } = await supabase.from("task_materials").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---- Monthly bonuses (per project + konkrétny mesiac, bez šablóny)
+const BONUS_COLS =
+  "id, project_id, month_key, title, note, position, done, done_by, done_at, created_by, created_at";
+
+export async function fetchProjectMonthlyBonuses(
+  projectId: string,
+  monthKey: string
+): Promise<ProjectMonthlyBonus[]> {
+  const { data, error } = await supabase
+    .from("project_monthly_bonuses")
+    .select(BONUS_COLS)
+    .eq("project_id", projectId)
+    .eq("month_key", monthKey)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ProjectMonthlyBonus[];
+}
+
+export async function createProjectMonthlyBonus(input: {
+  project_id: string;
+  month_key: string;
+  title: string;
+  note: string | null;
+  position?: number;
+  created_by: string;
+}): Promise<ProjectMonthlyBonus> {
+  const { data, error } = await supabase
+    .from("project_monthly_bonuses")
+    .insert({
+      project_id: input.project_id,
+      month_key: input.month_key,
+      title: input.title,
+      note: input.note,
+      position: input.position ?? 0,
+      created_by: input.created_by,
+    })
+    .select(BONUS_COLS)
+    .single();
+  if (error) throw error;
+  return data as ProjectMonthlyBonus;
+}
+
+export async function updateProjectMonthlyBonus(
+  id: string,
+  patch: Partial<Pick<ProjectMonthlyBonus, "title" | "note" | "done" | "done_by" | "done_at" | "position">>
+): Promise<ProjectMonthlyBonus> {
+  const { data, error } = await supabase
+    .from("project_monthly_bonuses")
+    .update(patch)
+    .eq("id", id)
+    .select(BONUS_COLS)
+    .single();
+  if (error) throw error;
+  return data as ProjectMonthlyBonus;
+}
+
+export async function deleteProjectMonthlyBonus(id: string): Promise<void> {
+  const { error } = await supabase.from("project_monthly_bonuses").delete().eq("id", id);
   if (error) throw error;
 }
