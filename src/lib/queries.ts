@@ -132,6 +132,11 @@ export function useTasks() {
 export function useProjectTasks(projectId: string | undefined) {
   const qc = useQueryClient();
   const { isReady, user } = useAuthReady();
+  const query = useQuery({
+    queryKey: ["project_tasks", projectId, user?.id ?? null],
+    queryFn: () => fetchProjectTasks(projectId!),
+    enabled: !!projectId && isReady && !!user,
+  });
   useEffect(() => {
     if (!isReady || !user || !projectId) return;
     const channel = supabase
@@ -144,11 +149,7 @@ export function useProjectTasks(projectId: string | undefined) {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [qc, isReady, user, projectId]);
-  return useQuery({
-    queryKey: ["project_tasks", projectId, user?.id ?? null],
-    queryFn: () => fetchProjectTasks(projectId!),
-    enabled: !!projectId && isReady && !!user,
-  });
+  return query;
 }
 
 export function useCreateProject() {
