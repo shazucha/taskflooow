@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import type {
   Profile,
   Project,
+  ProjectMonthlyBonus,
   ProjectRecurringWork,
   ProjectRecurringWorkCompletion,
   ProjectWork,

@@ -52,6 +52,20 @@ export interface ProjectRecurringWorkCompletion {
   completed_at: string;
 }
 
+export interface ProjectMonthlyBonus {
+  id: string;
+  project_id: string;
+  month_key: string; // "YYYY-MM"
+  title: string;
+  note: string | null;
+  position: number;
+  done: boolean;
+  done_by: string | null;
+  done_at: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface Task {
   id: string;
   project_id: string | null;
