@@ -12,7 +12,6 @@ import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import { ProjectAccessCard } from "@/components/ProjectAccessCard";
 import { EditableProjectHeader } from "@/components/EditableProjectHeader";
 import { MonthFilter } from "@/components/MonthFilter";
-import { currentMonthKey } from "@/lib/recurring";
 import type { Task } from "@/lib/types";
 import { useCurrentUserId, useIsAppAdmin, useProjects, useTasks } from "@/lib/queries";
 
@@ -26,7 +25,7 @@ export default function ProjectDetail() {
   const isOwner = !!project && project.owner_id === currentUserId;
   const [openTask, setOpenTask] = useState<Task | null>(null);
 
-  const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
+  const [monthKey, setMonthKey] = useState<string | null>(null);
 
   // V detaile projektu zobrazujeme IBA úlohy priradené priamo k tomuto projektu.
   const projectTasks = useMemo<Task[]>(() => {
