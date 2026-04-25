@@ -122,6 +122,9 @@ const TASK_COLS_FALLBACK =
   "id, project_id, title, description, priority, status, assignee_id, created_by, due_date, due_end, created_at, updated_at";
 
 export async function fetchTasks(): Promise<Task[]> {
+  const rpc = await supabase.rpc("get_visible_tasks");
+  if (!rpc.error) return (rpc.data ?? []) as Task[];
+
   const first = await supabase
     .from("tasks")
     .select(TASK_COLS_FULL)
