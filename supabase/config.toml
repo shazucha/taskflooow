@@ -4,19 +4,19 @@
 project_id = "kpypflyulfrduyagbrcv"
 
 [functions.google-oauth-start]
-verify_jwt = true
+verify_jwt = false
 
 [functions.google-oauth-callback]
-verify_jwt = true
+verify_jwt = false
 
 [functions.google-calendar-sync]
-verify_jwt = true
+verify_jwt = false
 
 [functions.google-calendar-fetch]
-verify_jwt = true
+verify_jwt = false
 
 [functions.google-calendar-disconnect]
-verify_jwt = true
+verify_jwt = false
 
 [functions.google-calendar-pull]
-verify_jwt = true
+verify_jwt = false
