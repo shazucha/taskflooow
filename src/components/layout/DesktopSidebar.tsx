@@ -1,9 +1,9 @@
 import { NavLink, Link } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, User, Users2 } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { UserAvatar } from "@/components/UserAvatar";
-import { useCurrentUserId, useIsAppAdmin, useProfiles } from "@/lib/queries";
+import { useCurrentUserId, useProfiles } from "@/lib/queries";
 
 type NavItem = {
   to: string;
@@ -24,15 +24,8 @@ export function DesktopSidebar() {
   const teamUnread = useUnreadTeamChat();
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
-  const isAdmin = useIsAppAdmin();
   const me = profiles.find((p) => p.id === currentUserId);
-  const items: NavItem[] = isAdmin
-    ? [
-        ...baseItems.slice(0, 3),
-        { to: "/admin/team", label: "Prehľad zamestnancov", icon: Users2 },
-        baseItems[3],
-      ]
-    : baseItems;
+  const items: NavItem[] = baseItems;
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border/60 bg-card/60 backdrop-blur-xl md:flex">
