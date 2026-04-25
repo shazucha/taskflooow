@@ -19,6 +19,7 @@ import {
   fetchProfiles,
   fetchProjectMembers,
   fetchProjectMonthlyBonuses,
+  fetchProjectTasks,
   fetchProjectRecurringWorks,
   fetchProjects,
   fetchProjectWorks,
@@ -126,6 +127,15 @@ export function useTasks() {
   }, [qc, isReady, user]);
 
   return useQuery({ queryKey: ["tasks", user?.id ?? null], queryFn: fetchTasks, enabled: isReady && !!user });
+}
+
+export function useProjectTasks(projectId: string | undefined) {
+  const { isReady, user } = useAuthReady();
+  return useQuery({
+    queryKey: ["project_tasks", projectId, user?.id ?? null],
+    queryFn: () => fetchProjectTasks(projectId!),
+    enabled: !!projectId && isReady && !!user,
+  });
 }
 
 export function useCreateProject() {
