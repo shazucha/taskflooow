@@ -13,8 +13,44 @@ import { ProjectAccessCard } from "@/components/ProjectAccessCard";
 import { EditableProjectHeader } from "@/components/EditableProjectHeader";
 import { MonthFilter } from "@/components/MonthFilter";
 import { currentMonthKey } from "@/lib/recurring";
-import type { Task } from "@/lib/types";
+import type { Project, Task } from "@/lib/types";
 import { useCurrentUserId, useIsAppAdmin, useProjectRecurringWorks, useProjects, useTasks } from "@/lib/queries";
+
+const STOP_WORDS = new Set(["a", "alebo", "bez", "do", "fo", "foto", "hod", "klienta", "kratke", "krátke", "mesačne", "na", "sek", "sekund", "sekúnd", "u", "v", "video", "x", "z"]);
+
+function normalizeText(value: string | null | undefined) {
+  return (value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function keywords(value: string) {
+  return normalizeText(value)
+    .split(/\s+/)
+    .filter((word) => word.length >= 3 && !STOP_WORDS.has(word));
+}
+
+function looksRelatedToProject(task: Task, project: Project, recurringTitles: string[]) {
+  const haystack = normalizeText(`${task.title} ${task.description ?? ""}`);
+  const projectName = normalizeText(project.name);
+  const projectBase = normalizeText(project.name.replace(/\.[a-z]{2,}$/i, ""));
+
+  if ((projectName.length >= 3 && haystack.includes(projectName)) || (projectBase.length >= 3 && haystack.includes(projectBase))) {
+    return true;
+  }
+
+  return recurringTitles.some((title) => {
+    const normalizedTitle = normalizeText(title);
+    if (normalizedTitle && (haystack.includes(normalizedTitle) || normalizedTitle.includes(normalizeText(task.title)))) return true;
+    const terms = keywords(title);
+    if (terms.length < 2) return false;
+    const matched = terms.filter((term) => haystack.includes(term)).length;
+    return matched >= Math.min(3, terms.length) && matched / terms.length >= 0.6;
+  });
+}
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -30,13 +66,14 @@ export default function ProjectDetail() {
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
 
   const projectTasks = useMemo(() => {
-    const recurringTitles = new Set(recurringWorks.map((w) => w.title.trim().toLowerCase()));
+    if (!project) return [];
+    const recurringTitles = recurringWorks.map((w) => w.title);
     return tasks.filter((t) => {
       if (t.project_id === id) return true;
-      if (!(isAdmin || isOwner) || t.project_id || recurringTitles.size === 0) return false;
-      return recurringTitles.has(t.title.trim().toLowerCase());
+      if (!(isAdmin || isOwner) || t.project_id) return false;
+      return looksRelatedToProject(t, project, recurringTitles);
     });
-  }, [tasks, id, recurringWorks, isAdmin, isOwner]);
+  }, [tasks, id, project, recurringWorks, isAdmin, isOwner]);
   // V detaile projektu zobrazujeme VŠETKY úlohy (vrátane všetkých výskytov sérií),
   // aby bolo vidno celú históriu prác v rámci projektu.
   const monthFiltered = useMemo(() => {
