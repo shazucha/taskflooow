@@ -14,7 +14,7 @@ import { EditableProjectHeader } from "@/components/EditableProjectHeader";
 import { MonthFilter } from "@/components/MonthFilter";
 import { currentMonthKey } from "@/lib/recurring";
 import type { Project, Task } from "@/lib/types";
-import { useCurrentUserId, useIsAppAdmin, useProjectRecurringWorks, useProjects, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useIsAppAdmin, useProjectMembers, useProjectRecurringWorks, useProjects, useTasks } from "@/lib/queries";
 
 const STOP_WORDS = new Set(["a", "alebo", "bez", "do", "fo", "foto", "hod", "klienta", "kratke", "krátke", "mesačne", "na", "sek", "sekund", "sekúnd", "u", "v", "video", "x", "z"]);
 
@@ -57,6 +57,7 @@ export default function ProjectDetail() {
   const { data: projects = [] } = useProjects();
   const { data: tasks = [] } = useTasks();
   const { data: recurringWorks = [] } = useProjectRecurringWorks(id);
+  const { data: projectMembers = [] } = useProjectMembers(id);
   const currentUserId = useCurrentUserId();
   const project = projects.find((p) => p.id === id);
   const isAdmin = useIsAppAdmin();
@@ -68,12 +69,14 @@ export default function ProjectDetail() {
   const projectTasks = useMemo(() => {
     if (!project) return [];
     const recurringTitles = recurringWorks.map((w) => w.title);
+    const memberIds = new Set(projectMembers.map((m) => m.user_id));
     return tasks.filter((t) => {
       if (t.project_id === id) return true;
       if (!(isAdmin || isOwner) || t.project_id) return false;
+      if ((t.assignee_id && memberIds.has(t.assignee_id)) || memberIds.has(t.created_by)) return true;
       return looksRelatedToProject(t, project, recurringTitles);
     });
-  }, [tasks, id, project, recurringWorks, isAdmin, isOwner]);
+  }, [tasks, id, project, recurringWorks, projectMembers, isAdmin, isOwner]);
   // V detaile projektu zobrazujeme VŠETKY úlohy (vrátane všetkých výskytov sérií),
   // aby bolo vidno celú históriu prác v rámci projektu.
   const monthFiltered = useMemo(() => {
