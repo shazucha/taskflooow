@@ -13,12 +13,12 @@ import { ProjectAccessCard } from "@/components/ProjectAccessCard";
 import { EditableProjectHeader } from "@/components/EditableProjectHeader";
 import { MonthFilter } from "@/components/MonthFilter";
 import type { Task } from "@/lib/types";
-import { useCurrentUserId, useIsAppAdmin, useProjects, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useIsAppAdmin, useProjects, useProjectTasks } from "@/lib/queries";
 
 export default function ProjectDetail() {
   const { id } = useParams();
   const { data: projects = [] } = useProjects();
-  const { data: tasks = [] } = useTasks();
+  const { data: projectTasks = [] } = useProjectTasks(id);
   const currentUserId = useCurrentUserId();
   const project = projects.find((p) => p.id === id);
   const isAdmin = useIsAppAdmin();
@@ -27,11 +27,6 @@ export default function ProjectDetail() {
 
   const [monthKey, setMonthKey] = useState<string | null>(null);
 
-  // V detaile projektu zobrazujeme IBA úlohy priradené priamo k tomuto projektu.
-  const projectTasks = useMemo<Task[]>(() => {
-    if (!project) return [];
-    return tasks.filter((t) => t.project_id === id);
-  }, [tasks, id, project]);
   // V detaile projektu zobrazujeme VŠETKY úlohy (vrátane všetkých výskytov sérií),
   // aby bolo vidno celú históriu prác v rámci projektu.
   const monthFiltered = useMemo(() => {
