@@ -14,12 +14,13 @@ import { EditableProjectHeader } from "@/components/EditableProjectHeader";
 import { MonthFilter } from "@/components/MonthFilter";
 import { currentMonthKey } from "@/lib/recurring";
 import type { Task } from "@/lib/types";
-import { useCurrentUserId, useIsAppAdmin, useProjects, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useIsAppAdmin, useProjectRecurringWorks, useProjects, useTasks } from "@/lib/queries";
 
 export default function ProjectDetail() {
   const { id } = useParams();
   const { data: projects = [] } = useProjects();
   const { data: tasks = [] } = useTasks();
+  const { data: recurringWorks = [] } = useProjectRecurringWorks(id);
   const currentUserId = useCurrentUserId();
   const project = projects.find((p) => p.id === id);
   const isAdmin = useIsAppAdmin();
@@ -28,7 +29,14 @@ export default function ProjectDetail() {
 
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
 
-  const projectTasks = useMemo(() => tasks.filter((t) => t.project_id === id), [tasks, id]);
+  const projectTasks = useMemo(() => {
+    const recurringTitles = new Set(recurringWorks.map((w) => w.title.trim().toLowerCase()));
+    return tasks.filter((t) => {
+      if (t.project_id === id) return true;
+      if (!(isAdmin || isOwner) || t.project_id || recurringTitles.size === 0) return false;
+      return recurringTitles.has(t.title.trim().toLowerCase());
+    });
+  }, [tasks, id, recurringWorks, isAdmin, isOwner]);
   // V detaile projektu zobrazujeme VŠETKY úlohy (vrátane všetkých výskytov sérií),
   // aby bolo vidno celú históriu prác v rámci projektu.
   const monthFiltered = useMemo(() => {
