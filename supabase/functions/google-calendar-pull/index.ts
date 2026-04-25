@@ -31,6 +31,42 @@ function pickEnd(e: GoogleEvent): string | null {
   return e.end?.dateTime ?? (e.end?.date ? `${e.end.date}T00:00:00` : null);
 }
 
+function normalizeText(value: string | null | undefined) {
+  return (value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function projectBaseName(name: string) {
+  return normalizeText(name.replace(/\.[a-z]{2,}$/i, ""));
+}
+
+function inferProjectId(
+  title: string,
+  description: string | null,
+  projects: Array<{ id: string; name: string }>,
+  recurringWorks: Array<{ project_id: string; title: string }>
+) {
+  const haystack = normalizeText(`${title} ${description ?? ""}`);
+  const byProjectName = projects.filter((p) => {
+    const full = normalizeText(p.name);
+    const base = projectBaseName(p.name);
+    return (full.length >= 3 && haystack.includes(full)) || (base.length >= 3 && haystack.includes(base));
+  });
+  if (byProjectName.length === 1) return byProjectName[0].id;
+
+  const taskTitle = normalizeText(title);
+  const byRecurringTitle = recurringWorks.filter((w) => {
+    const workTitle = normalizeText(w.title);
+    return workTitle.length >= 6 && (taskTitle === workTitle || taskTitle.includes(workTitle) || workTitle.includes(taskTitle));
+  });
+  const projectIds = [...new Set(byRecurringTitle.map((w) => w.project_id))];
+  return projectIds.length === 1 ? projectIds[0] : null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -154,6 +190,9 @@ Deno.serve(async (req) => {
     const byEventId = new Map<string, ExistingTaskRow>();
     for (const t of existing ?? []) byEventId.set(t.google_event_id, t);
 
+    const { data: projects } = await admin.from("projects").select("id, name");
+    const { data: recurringWorks } = await admin.from("project_recurring_works").select("project_id, title");
+
     for (const ev of events) {
       // Cancelled/deleted in Google
       if (ev.status === "cancelled") {
@@ -183,6 +222,7 @@ Deno.serve(async (req) => {
 
       const title = ev.summary?.trim() || "(bez názvu)";
       const description = ev.description ?? null;
+      const inferredProjectId = inferProjectId(title, description, projects ?? [], recurringWorks ?? []);
 
       const existingTask = byEventId.get(ev.id);
       if (existingTask) {
@@ -206,6 +246,7 @@ Deno.serve(async (req) => {
           description,
           priority: "low",
           status: "todo",
+          project_id: inferredProjectId,
           assignee_id: user.id,
           created_by: user.id,
           due_date: start,
