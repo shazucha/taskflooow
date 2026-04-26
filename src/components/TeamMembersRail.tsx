@@ -7,12 +7,19 @@ import { useTeamPresence } from "@/lib/useTeamPresence";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 /**
  * Always-visible thin rail on the right side (desktop only) showing all team members
  * with online status and unread DM badges. Clicking a member opens a sliding chat panel.
  */
 export function TeamMembersRail() {
+  const isMobile = useIsMobile();
+  if (isMobile) return null;
+  return <TeamMembersRailDesktop />;
+}
+
+function TeamMembersRailDesktop() {
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
   const onlineIds = useTeamPresence();

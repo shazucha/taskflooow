@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 import { useCurrentUserId } from "./queries";
 
@@ -11,10 +11,12 @@ const TEAM_PRESENCE_CHANNEL = "presence-team-global";
 export function useTeamPresence(): Set<string> {
   const userId = useCurrentUserId();
   const [online, setOnline] = useState<Set<string>>(new Set());
+  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
 
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase.channel(TEAM_PRESENCE_CHANNEL, {
+    // Unique channel per hook instance; shared channel names cannot register callbacks after subscribe.
+    const channel = supabase.channel(`${TEAM_PRESENCE_CHANNEL}-${instanceId.current}`, {
       config: { presence: { key: userId } },
     });
     channel
