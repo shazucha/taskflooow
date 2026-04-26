@@ -1,7 +1,8 @@
 import { NavLink, Link } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, User } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
+import { useUnreadDirect } from "@/lib/useUnreadDirect";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useCurrentUserId, useProfiles } from "@/lib/queries";
 
@@ -10,18 +11,20 @@ type NavItem = {
   label: string;
   icon: typeof LayoutDashboard;
   end?: boolean;
-  badgeKey?: "team";
+  badgeKey?: "team" | "dm";
 };
 
 const baseItems: NavItem[] = [
   { to: "/", label: "Prehľad", icon: LayoutDashboard, end: true, badgeKey: "team" },
   { to: "/projects", label: "Projekty", icon: FolderKanban },
   { to: "/tasks", label: "Úlohy", icon: ListChecks },
+  { to: "/chat", label: "Chat", icon: MessageCircle, badgeKey: "dm" },
   { to: "/me", label: "Profil", icon: User },
 ];
 
 export function DesktopSidebar() {
   const teamUnread = useUnreadTeamChat();
+  const { total: dmUnread } = useUnreadDirect();
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
   const me = profiles.find((p) => p.id === currentUserId);
@@ -39,7 +42,8 @@ export function DesktopSidebar() {
       <nav className="flex-1 overflow-y-auto px-3 pb-2">
         <ul className="space-y-1">
           {items.map(({ to, label, icon: Icon, end, badgeKey }) => {
-            const badge = badgeKey === "team" ? teamUnread : 0;
+            const badge =
+              badgeKey === "team" ? teamUnread : badgeKey === "dm" ? dmUnread : 0;
             return (
               <li key={to}>
                 <NavLink
