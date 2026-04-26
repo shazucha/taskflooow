@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import type {
   Profile,
   Project,
+  ProjectMaterial,
   ProjectMonthlyBonus,
   ProjectRecurringWork,
   ProjectRecurringWorkCompletion,
@@ -419,6 +420,44 @@ export async function createTaskMaterial(input: {
 
 export async function deleteTaskMaterial(id: string): Promise<void> {
   const { error } = await supabase.from("task_materials").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---- Project materials
+const PROJECT_MATERIAL_COLS = "id, project_id, url, label, created_by, created_at";
+
+export async function fetchProjectMaterials(projectId: string): Promise<ProjectMaterial[]> {
+  const { data, error } = await supabase
+    .from("project_materials")
+    .select(PROJECT_MATERIAL_COLS)
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ProjectMaterial[];
+}
+
+export async function createProjectMaterial(input: {
+  project_id: string;
+  url: string;
+  label: string | null;
+  created_by: string;
+}): Promise<ProjectMaterial> {
+  const { data, error } = await supabase
+    .from("project_materials")
+    .insert({
+      project_id: input.project_id,
+      url: input.url,
+      label: input.label,
+      created_by: input.created_by,
+    })
+    .select(PROJECT_MATERIAL_COLS)
+    .single();
+  if (error) throw error;
+  return data as ProjectMaterial;
+}
+
+export async function deleteProjectMaterial(id: string): Promise<void> {
+  const { error } = await supabase.from("project_materials").delete().eq("id", id);
   if (error) throw error;
 }
 

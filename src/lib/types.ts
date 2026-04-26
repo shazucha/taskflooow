@@ -91,6 +91,15 @@ export interface TaskMaterial {
   created_at: string;
 }
 
+export interface ProjectMaterial {
+  id: string;
+  project_id: string;
+  url: string;
+  label: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export type ChatScope = "team" | "project";
 
 export interface ChatMessage {
