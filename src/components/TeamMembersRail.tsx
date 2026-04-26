@@ -132,7 +132,7 @@ export function TeamMembersRail() {
       {/* Sliding chat panel */}
       {openPeer && (
         <div
-          className="fixed inset-y-0 right-16 z-40 hidden w-[360px] animate-in slide-in-from-right-4 border-l border-border/60 bg-card shadow-[-12px_0_32px_-12px_rgba(0,0,0,0.18)] md:flex"
+          className="fixed inset-y-0 right-16 z-40 hidden w-[360px] flex-col animate-in slide-in-from-right-4 border-l border-border/60 bg-card shadow-[-12px_0_32px_-12px_rgba(0,0,0,0.18)] md:flex"
           role="dialog"
           aria-label={`Chat s ${openPeer.full_name ?? openPeer.email ?? "používateľom"}`}
         >
