@@ -124,9 +124,9 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
   };
 
   return (
-    <div className="flex h-full flex-col bg-card">
+    <div className="flex h-full w-full flex-col bg-card">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border/60 px-4 py-3">
+      <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
         <span className="relative">
           <UserAvatar profile={peer} size="md" />
           <span
@@ -146,7 +146,7 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
       </div>
 
       {/* Messages */}
-      <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto p-3">
+      <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
         {isLoading ? (
           <div className="flex justify-center py-6">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
