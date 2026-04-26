@@ -9,6 +9,7 @@ import { Chat } from "@/components/Chat";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
 import { MonthlyDeliverablesCard } from "@/components/MonthlyDeliverablesCard";
 import { MonthlyBonusesCard } from "@/components/MonthlyBonusesCard";
+import { ProjectMaterialsCard } from "@/components/ProjectMaterialsCard";
 import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import { ProjectAccessCard } from "@/components/ProjectAccessCard";
 import { EditableProjectHeader } from "@/components/EditableProjectHeader";
@@ -120,6 +121,7 @@ export default function ProjectDetail() {
 
         <aside className="mt-4 space-y-4 md:mt-0">
           <ProjectMetaCard project={project} />
+          <ProjectMaterialsCard projectId={project.id} />
           {isAdmin && <ProjectAccessCard project={project} />}
         </aside>
       </div>
