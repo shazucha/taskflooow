@@ -95,22 +95,17 @@ export function TeamMembersRail() {
 
       {/* Sliding chat panel */}
       {openPeer && (
-        <>
-          {/* Backdrop */}
-          <button
-            type="button"
-            aria-label="Zavrieť chat"
-            onClick={() => setOpenPeer(null)}
-            className="fixed inset-0 z-40 hidden bg-black/20 backdrop-blur-sm md:block"
+        <div
+          className="fixed inset-y-0 right-16 z-40 hidden w-[360px] animate-in slide-in-from-right-4 border-l border-border/60 bg-card shadow-[-12px_0_32px_-12px_rgba(0,0,0,0.18)] md:flex"
+          role="dialog"
+          aria-label={`Chat s ${openPeer.full_name ?? openPeer.email ?? "používateľom"}`}
+        >
+          <DirectChatPanel
+            peer={openPeer}
+            isOnline={onlineIds.has(openPeer.id)}
+            onClose={() => setOpenPeer(null)}
           />
-          <div className="fixed inset-y-0 right-16 z-50 hidden w-[360px] animate-in slide-in-from-right border-l border-border/60 shadow-2xl md:flex">
-            <DirectChatPanel
-              peer={openPeer}
-              isOnline={onlineIds.has(openPeer.id)}
-              onClose={() => setOpenPeer(null)}
-            />
-          </div>
-        </>
+        </div>
       )}
     </>
   );
