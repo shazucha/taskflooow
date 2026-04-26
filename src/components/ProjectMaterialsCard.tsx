@@ -12,6 +12,7 @@ import {
   Plus,
   Trash2,
   Youtube,
+  FolderOpen,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -129,8 +130,11 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
   return (
     <div className="card-elevated p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="inline-flex items-center gap-1.5 text-sm font-semibold">
-          <LinkIcon className="h-4 w-4" /> Materiály
+        <h3 className="inline-flex items-center gap-2 text-sm font-semibold">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <FolderOpen className="h-4 w-4" />
+          </span>
+          Materiály
         </h3>
         {!adding && (
           <button
