@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "./supabase";
 import { useCurrentUserId } from "./queries";
 import { fetchUnreadByPeer } from "./dmApi";
@@ -10,6 +10,7 @@ import { fetchUnreadByPeer } from "./dmApi";
 export function useUnreadDirect(): { counts: Record<string, number>; total: number; refresh: () => void } {
   const userId = useCurrentUserId();
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const refreshRef = useRef<() => void>(() => {});
 
   const refresh = useCallback(async () => {
     if (!userId) return;
@@ -20,37 +21,39 @@ export function useUnreadDirect(): { counts: Record<string, number>; total: numb
       /* ignore */
     }
   }, [userId]);
+  refreshRef.current = refresh;
 
   useEffect(() => {
     if (!userId) return;
-    refresh();
-    const channel = supabase
-      .channel(`unread-direct-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "direct_messages",
-          filter: `recipient_id=eq.${userId}`,
-        },
-        () => refresh()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "direct_message_reads",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => refresh()
-      )
-      .subscribe();
+    refreshRef.current();
+    // Unique channel name per hook instance — multiple components may use this hook simultaneously.
+    const channelName = `unread-direct-${userId}-${Math.random().toString(36).slice(2, 8)}`;
+    const channel = supabase.channel(channelName);
+    channel.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "direct_messages",
+        filter: `recipient_id=eq.${userId}`,
+      },
+      () => refreshRef.current()
+    );
+    channel.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "direct_message_reads",
+        filter: `user_id=eq.${userId}`,
+      },
+      () => refreshRef.current()
+    );
+    channel.subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, refresh]);
+  }, [userId]);
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   return { counts, total, refresh };
