@@ -162,7 +162,7 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
             return (
               <div key={m.id} className={cn("flex gap-2", mine && "flex-row-reverse")}>
                 <UserAvatar profile={author} size="sm" />
-                <div className={cn("group max-w-[85%] space-y-1", mine && "items-end")}>
+                <div className={cn("group max-w-[78%] space-y-1", mine && "items-end")}>
                   <div
                     className={cn(
                       "flex items-center gap-2 text-[10px] text-muted-foreground",
@@ -214,7 +214,7 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
             }
           }}
           rows={1}
-          placeholder={`Napíš ${peer.full_name?.split(" ")[0] ?? "používateľovi"}…  (Shift+Enter = nový riadok)`}
+          placeholder={`Napíš ${peer.full_name?.split(" ")[0] ?? "používateľovi"}…`}
           className="flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
           style={{ minHeight: 40, maxHeight: 200 }}
         />
