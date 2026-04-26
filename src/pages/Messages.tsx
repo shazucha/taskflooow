@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, Loader2, MessageCircle } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { DirectChatPanel } from "@/components/DirectChatPanel";
+import { Chat } from "@/components/Chat";
 import { useCurrentUserId, useProfiles } from "@/lib/queries";
 import { useSession } from "@/lib/useSession";
 import { useTeamPresence } from "@/lib/useTeamPresence";
@@ -40,7 +41,7 @@ export default function Messages() {
   // Mobile: full-screen conversation when a peer is selected
   if (openPeer) {
     return (
-      <div className="fixed inset-0 z-40 flex flex-col bg-card md:static md:inset-auto md:z-auto">
+      <div className="fixed inset-0 z-50 flex flex-col bg-card md:static md:inset-auto md:z-auto">
         <button
           type="button"
           onClick={() => setOpenPeer(null)}
@@ -63,11 +64,15 @@ export default function Messages() {
     <div className="page-container pb-6">
       <header className="mb-4 flex items-center gap-2">
         <MessageCircle className="h-5 w-5 text-primary" />
-        <h1 className="text-xl font-bold">Členovia tímu</h1>
+        <h1 className="text-xl font-bold">Chat</h1>
       </header>
-      <p className="mb-4 text-xs text-muted-foreground">
-        Kliknutím na člena otvoríš súkromný chat. Zelená bodka = práve online.
-      </p>
+
+      <section className="mb-6">
+        <Chat scope="team" />
+      </section>
+
+      <h2 className="mb-3 text-base font-semibold">Súkromné správy</h2>
+      <p className="mb-4 text-xs text-muted-foreground">Kliknutím na člena otvoríš súkromný chat.</p>
 
       <ul className="space-y-2">
         {others.map((p) => {
