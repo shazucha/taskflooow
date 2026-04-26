@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, MessagesSquare } from "lucide-react";
+import { ArrowLeft, ChevronDown, MessagesSquare } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
@@ -85,15 +86,21 @@ export default function ProjectDetail() {
             const list = grouped[s];
             if (list.length === 0) return null;
             const labels = { in_progress: "Prebieha", todo: "Nezačaté", done: "Hotové" };
+            const defaultOpen = s === "todo";
             return (
-              <section key={s}>
-                <h2 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  {labels[s]} · {list.length}
-                </h2>
-                <div className="space-y-2.5 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
-                  {list.map((t) => <TaskCard key={t.id} task={t} onOpen={setOpenTask} />)}
-                </div>
-              </section>
+              <Collapsible key={s} defaultOpen={defaultOpen} className="rounded-2xl bg-surface-muted/40">
+                <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-2xl px-3 py-2.5 hover:bg-surface-muted">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    {labels[s]} · {list.length}
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                  <div className="space-y-2.5 px-1 pb-2 pt-1 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
+                    {list.map((t) => <TaskCard key={t.id} task={t} onOpen={setOpenTask} />)}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             );
           })}
 
