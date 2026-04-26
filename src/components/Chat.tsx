@@ -21,11 +21,14 @@ interface Props {
   projectId?: string | null;
   title?: string;
   className?: string;
+  /** "chat" (default) shows time only; "notes" shows full date + time and uses note-style copy. */
+  variant?: "chat" | "notes";
 }
 
 const MAX_IMG_MB = 5;
 
-export function Chat({ scope, projectId = null, title, className }: Props) {
+export function Chat({ scope, projectId = null, title, className, variant = "chat" }: Props) {
+  const isNotes = variant === "notes";
   const qc = useQueryClient();
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
