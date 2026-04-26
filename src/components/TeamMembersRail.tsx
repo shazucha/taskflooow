@@ -15,13 +15,17 @@ import { useIsMobile } from "@/hooks/use-mobile";
  */
 export function TeamMembersRail() {
   const isMobile = useIsMobile();
+  if (isMobile) return null;
+  return <TeamMembersRailDesktop />;
+}
+
+function TeamMembersRailDesktop() {
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
   const onlineIds = useTeamPresence();
   const { counts, total } = useUnreadDirect();
   const [openPeer, setOpenPeer] = useState<Profile | null>(null);
 
-  if (isMobile) return null;
   if (!currentUserId) return null;
 
   // Sort: unread first, then online, then alphabetic
