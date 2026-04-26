@@ -112,6 +112,21 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export interface DirectMessage {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  body: string | null;
+  image_url: string | null;
+  created_at: string;
+}
+
+export interface DirectMessageRead {
+  user_id: string;
+  peer_id: string;
+  last_read_at: string;
+}
+
 export type TaskActivityAction = "created" | "field_changed" | "watcher_added" | "watcher_removed";
 
 export interface TaskActivity {
