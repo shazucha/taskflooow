@@ -40,7 +40,15 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea so the user vidí celý napísaný text
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [text]);
 
   // Realtime subscription scoped to this conversation key.
   useEffect(() => {
@@ -194,14 +202,21 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
       </div>
 
       {/* Composer */}
-      <form onSubmit={send} className="flex items-center gap-2 border-t border-border/60 bg-card p-2.5">
-        <input
+      <form onSubmit={send} className="flex items-end gap-2 border-t border-border/60 bg-card p-2.5">
+        <textarea
           ref={inputRef}
-          type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={`Napíš ${peer.full_name?.split(" ")[0] ?? "používateľovi"}…`}
-          className="flex-1 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (text.trim() && !sending) send(e as unknown as React.FormEvent);
+            }
+          }}
+          rows={1}
+          placeholder={`Napíš ${peer.full_name?.split(" ")[0] ?? "používateľovi"}…  (Shift+Enter = nový riadok)`}
+          className="flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
+          style={{ minHeight: 40, maxHeight: 200 }}
         />
         <Button type="submit" size="icon" disabled={sending || !text.trim()} className="h-9 w-9 shrink-0">
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
