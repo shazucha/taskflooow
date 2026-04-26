@@ -21,11 +21,14 @@ interface Props {
   projectId?: string | null;
   title?: string;
   className?: string;
+  /** "chat" (default) shows time only; "notes" shows full date + time and uses note-style copy. */
+  variant?: "chat" | "notes";
 }
 
 const MAX_IMG_MB = 5;
 
-export function Chat({ scope, projectId = null, title, className }: Props) {
+export function Chat({ scope, projectId = null, title, className, variant = "chat" }: Props) {
+  const isNotes = variant === "notes";
   const qc = useQueryClient();
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
@@ -280,7 +283,7 @@ export function Chat({ scope, projectId = null, title, className }: Props) {
           </div>
         ) : messages.length === 0 ? (
           <p className="py-8 text-center text-xs text-muted-foreground">
-            Zatiaľ žiadne správy. Napíš prvú 👋
+            {isNotes ? "Zatiaľ žiadne poznámky. Pridaj prvú ✍️" : "Zatiaľ žiadne správy. Napíš prvú 👋"}
           </p>
         ) : (
           messages.map((m) => {
@@ -291,9 +294,19 @@ export function Chat({ scope, projectId = null, title, className }: Props) {
               <div key={m.id} className={cn("flex gap-2", mine && "flex-row-reverse")}>
                 <UserAvatar profile={author} size="sm" />
                 <div className={cn("group max-w-[78%] space-y-1", mine && "items-end")}>
-                  <div className={cn("flex items-center gap-2 text-[10px] text-muted-foreground", mine && "justify-end")}>
-                    <span className="font-semibold">{author?.full_name ?? author?.email ?? "?"}</span>
-                    <span>{new Date(m.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</span>
+                  <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground", mine && "justify-end")}>
+                    <span className="font-semibold text-foreground">{author?.full_name ?? author?.email ?? "?"}</span>
+                    <span>
+                      {isNotes
+                        ? new Date(m.created_at).toLocaleString("sk-SK", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : new Date(m.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
                     {mentionsMe && (
                       <span className="rounded bg-primary/15 px-1 font-semibold text-primary">
                         spomenul ťa
@@ -424,7 +437,7 @@ export function Chat({ scope, projectId = null, title, className }: Props) {
               setMentionQuery(null);
             }
           }}
-          placeholder="Napíš správu…"
+          placeholder={isNotes ? "Pridaj poznámku…" : "Napíš správu…"}
           className="flex-1 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
         <Button type="submit" size="icon" disabled={sending || (!text.trim() && !pendingFile)} className="h-9 w-9 shrink-0">
