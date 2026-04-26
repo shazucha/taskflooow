@@ -215,8 +215,8 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
           }}
           rows={1}
           placeholder={`Napíš ${peer.full_name?.split(" ")[0] ?? "používateľovi"}…`}
-          className="flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
-          style={{ minHeight: 40, maxHeight: 200 }}
+          className="block w-full min-w-0 flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-ring"
+          style={{ minHeight: 40, maxHeight: 200, boxSizing: "border-box" }}
         />
         <Button type="submit" size="icon" disabled={sending || !text.trim()} className="h-9 w-9 shrink-0">
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
