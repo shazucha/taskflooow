@@ -1,21 +1,29 @@
 import { useState } from "react";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, Loader2, MessageCircle } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { DirectChatPanel } from "@/components/DirectChatPanel";
 import { useCurrentUserId, useProfiles } from "@/lib/queries";
+import { useSession } from "@/lib/useSession";
 import { useTeamPresence } from "@/lib/useTeamPresence";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export default function Messages() {
+  const { loading } = useSession();
   const currentUserId = useCurrentUserId();
-  const { data: profiles = [] } = useProfiles();
+  const { data: profiles = [], isLoading: profilesLoading } = useProfiles();
   const onlineIds = useTeamPresence();
   const { counts } = useUnreadDirect();
   const [openPeer, setOpenPeer] = useState<Profile | null>(null);
 
-  if (!currentUserId) return null;
+  if (loading || profilesLoading || !currentUserId) {
+    return (
+      <div className="page-container flex min-h-[55vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const others = profiles
     .filter((p) => p.id !== currentUserId)
