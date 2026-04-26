@@ -437,7 +437,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
               setMentionQuery(null);
             }
           }}
-          placeholder="Napíš správu…"
+          placeholder={isNotes ? "Pridaj poznámku…" : "Napíš správu…"}
           className="flex-1 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
         <Button type="submit" size="icon" disabled={sending || (!text.trim() && !pendingFile)} className="h-9 w-9 shrink-0">
