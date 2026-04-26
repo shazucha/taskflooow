@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Send, Trash2, X } from "lucide-react";
+import { ImagePlus, Loader2, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
 import { supabase } from "@/lib/supabase";
@@ -9,6 +9,7 @@ import {
   fetchDirectMessages,
   markDirectRead,
   sendDirectMessage,
+  uploadDirectImage,
 } from "@/lib/dmApi";
 import { useCurrentUserId, useProfiles } from "@/lib/queries";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +40,8 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -96,16 +99,27 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
     e.preventDefault();
     if (!currentUserId) return;
     const body = text.trim();
-    if (!body) return;
+    if (!body && !pendingFile) return;
     setSending(true);
     try {
+      let imageUrl: string | null = null;
+      if (pendingFile) {
+        if (pendingFile.size > 5 * 1024 * 1024) {
+          toast.error("Obrázok je väčší ako 5 MB");
+          setSending(false);
+          return;
+        }
+        imageUrl = await uploadDirectImage(currentUserId, pendingFile);
+      }
       await sendDirectMessage({
         sender_id: currentUserId,
         recipient_id: peer.id,
-        body,
-        image_url: null,
+        body: body || null,
+        image_url: imageUrl,
       });
       setText("");
+      setPendingFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       qc.invalidateQueries({ queryKey });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Nepodarilo sa odoslať");
@@ -184,6 +198,16 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
                       mine ? "bg-primary text-primary-foreground" : "bg-surface-muted text-foreground"
                     )}
                   >
+                    {m.image_url && (
+                      <a href={m.image_url} target="_blank" rel="noreferrer" className="block">
+                        <img
+                          src={m.image_url}
+                          alt="Príloha"
+                          className="mb-1.5 max-h-56 rounded-lg object-cover"
+                          loading="lazy"
+                        />
+                      </a>
+                    )}
                     {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                   </div>
                   {mine && (
@@ -202,7 +226,41 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
       </div>
 
       {/* Composer */}
+      {pendingFile && (
+        <div className="flex items-center gap-2 border-t border-border/60 px-3 py-2 text-xs">
+          <ImagePlus className="h-3.5 w-3.5 text-primary" />
+          <span className="flex-1 truncate">{pendingFile.name}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setPendingFile(null);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={send} className="flex items-end gap-2 border-t border-border/60 bg-card p-2.5">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => fileInputRef.current?.click()}
+          className="h-9 w-9 shrink-0"
+          title="Pripojiť obrázok"
+        >
+          <ImagePlus className="h-4 w-4" />
+        </Button>
         <textarea
           ref={inputRef}
           value={text}
@@ -210,7 +268,7 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              if (text.trim() && !sending) send(e as unknown as React.FormEvent);
+              if ((text.trim() || pendingFile) && !sending) send(e as unknown as React.FormEvent);
             }
           }}
           rows={1}
@@ -218,7 +276,7 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
           className="block w-full min-w-0 flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-ring"
           style={{ minHeight: 40, maxHeight: 200, boxSizing: "border-box" }}
         />
-        <Button type="submit" size="icon" disabled={sending || !text.trim()} className="h-9 w-9 shrink-0">
+        <Button type="submit" size="icon" disabled={sending || (!text.trim() && !pendingFile)} className="h-9 w-9 shrink-0">
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </form>
