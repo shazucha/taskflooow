@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronDown, MessagesSquare } from "lucide-react";
+import { ArrowLeft, ChevronDown, NotebookPen } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
@@ -114,9 +114,9 @@ export default function ProjectDetail() {
 
           <section className="pt-4">
             <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
-              <MessagesSquare className="h-4 w-4" /> Chat projektu
+              <NotebookPen className="h-4 w-4" /> Poznámky k projektu
             </h2>
-            <Chat scope="project" projectId={project.id} />
+            <Chat scope="project" projectId={project.id} variant="notes" />
           </section>
         </div>
 
