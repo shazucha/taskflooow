@@ -10,6 +10,7 @@ import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import Tasks from "./pages/Tasks";
 import Profile from "./pages/Profile";
+import Messages from "./pages/Messages";
 import Auth from "./pages/Auth";
 import GoogleOAuthCallback from "./pages/GoogleOAuthCallback";
 import NotFound from "./pages/NotFound.tsx";
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/tasks" element={<Tasks />} />
+            <Route path="/chat" element={<Messages />} />
             <Route path="/me" element={<Profile />} />
           </Route>
           <Route path="*" element={<NotFound />} />
