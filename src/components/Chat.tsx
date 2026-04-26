@@ -283,7 +283,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
           </div>
         ) : messages.length === 0 ? (
           <p className="py-8 text-center text-xs text-muted-foreground">
-            Zatiaľ žiadne správy. Napíš prvú 👋
+            {isNotes ? "Zatiaľ žiadne poznámky. Pridaj prvú ✍️" : "Zatiaľ žiadne správy. Napíš prvú 👋"}
           </p>
         ) : (
           messages.map((m) => {
