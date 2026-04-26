@@ -162,7 +162,7 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
             return (
               <div key={m.id} className={cn("flex gap-2", mine && "flex-row-reverse")}>
                 <UserAvatar profile={author} size="sm" />
-                <div className={cn("group max-w-[78%] space-y-1", mine && "items-end")}>
+                <div className={cn("group max-w-[85%] space-y-1", mine && "items-end")}>
                   <div
                     className={cn(
                       "flex items-center gap-2 text-[10px] text-muted-foreground",
@@ -180,7 +180,7 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
                   </div>
                   <div
                     className={cn(
-                      "rounded-2xl px-3 py-2 text-sm",
+                      "rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
                       mine ? "bg-primary text-primary-foreground" : "bg-surface-muted text-foreground"
                     )}
                   >
