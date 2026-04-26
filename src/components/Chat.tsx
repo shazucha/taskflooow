@@ -294,9 +294,19 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
               <div key={m.id} className={cn("flex gap-2", mine && "flex-row-reverse")}>
                 <UserAvatar profile={author} size="sm" />
                 <div className={cn("group max-w-[78%] space-y-1", mine && "items-end")}>
-                  <div className={cn("flex items-center gap-2 text-[10px] text-muted-foreground", mine && "justify-end")}>
-                    <span className="font-semibold">{author?.full_name ?? author?.email ?? "?"}</span>
-                    <span>{new Date(m.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}</span>
+                  <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground", mine && "justify-end")}>
+                    <span className="font-semibold text-foreground">{author?.full_name ?? author?.email ?? "?"}</span>
+                    <span>
+                      {isNotes
+                        ? new Date(m.created_at).toLocaleString("sk-SK", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : new Date(m.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
                     {mentionsMe && (
                       <span className="rounded bg-primary/15 px-1 font-semibold text-primary">
                         spomenul ťa
