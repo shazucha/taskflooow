@@ -9,12 +9,14 @@ import {
   createProjectWork,
   createTask,
   createTaskMaterial,
+  createProjectMaterial,
   deleteProject,
   deleteProjectMonthlyBonus,
   deleteProjectRecurringWork,
   deleteProjectWork,
   deleteTask,
   deleteTaskMaterial,
+  deleteProjectMaterial,
   deleteTasks,
   fetchProfiles,
   fetchProjectMembers,
@@ -23,6 +25,7 @@ import {
   fetchProjectRecurringWorks,
   fetchProjects,
   fetchProjectWorks,
+  fetchProjectMaterials,
   fetchRecurringWorkCompletions,
   fetchTaskActivity,
   fetchTaskMaterials,
@@ -536,5 +539,48 @@ export function useDeleteTaskMaterial(taskId: string) {
   return useMutation({
     mutationFn: (id: string) => deleteTaskMaterial(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["task_materials", taskId] }),
+  });
+}
+
+export function useProjectMaterials(projectId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+
+  useEffect(() => {
+    if (!isReady || !user || !projectId) return;
+    const channel = supabase
+      .channel(`project-materials-${projectId}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_materials", filter: `project_id=eq.${projectId}` },
+        () => qc.invalidateQueries({ queryKey: ["project_materials", projectId] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isReady, user, projectId, qc]);
+
+  return useQuery({
+    queryKey: ["project_materials", projectId],
+    queryFn: () => fetchProjectMaterials(projectId as string),
+    enabled: isReady && !!user && !!projectId,
+  });
+}
+
+export function useCreateProjectMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createProjectMaterial,
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ["project_materials", vars.project_id] }),
+  });
+}
+
+export function useDeleteProjectMaterial(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteProjectMaterial(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_materials", projectId] }),
   });
 }
