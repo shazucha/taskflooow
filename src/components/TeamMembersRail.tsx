@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Users2, X } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { DirectChatPanel } from "@/components/DirectChatPanel";
+import { Chat } from "@/components/Chat";
+import { Button } from "@/components/ui/button";
 import { useCurrentUserId, useProfiles } from "@/lib/queries";
 import { useTeamPresence } from "@/lib/useTeamPresence";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
+import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -22,7 +25,9 @@ export function TeamMembersRail() {
   const { data: profiles = [] } = useProfiles();
   const onlineIds = useTeamPresence();
   const { counts, total } = useUnreadDirect();
+  const teamUnread = useUnreadTeamChat();
   const [openPeer, setOpenPeer] = useState<Profile | null>(null);
+  const [teamOpen, setTeamOpen] = useState(false);
 
   if (isMobile || !currentUserId) return null;
 
@@ -53,6 +58,34 @@ export function TeamMembersRail() {
         </div>
         <div className="flex-1 overflow-y-auto px-2 py-3">
           <ul className="space-y-2">
+            {/* Team chat pseudo-member */}
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenPeer(null);
+                  setTeamOpen(true);
+                }}
+                className={cn(
+                  "group relative flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition",
+                  teamOpen ? "bg-primary-soft" : "hover:bg-surface-muted"
+                )}
+                title="Tímový chat"
+              >
+                <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Users2 className="h-5 w-5" strokeWidth={2.2} />
+                  {teamUnread > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                      {teamUnread > 9 ? "9+" : teamUnread}
+                    </span>
+                  )}
+                </span>
+                <span className="line-clamp-1 max-w-[3.5rem] text-[9px] font-medium leading-tight text-muted-foreground group-hover:text-foreground">
+                  Tím
+                </span>
+              </button>
+            </li>
+            <li className="mx-2 my-1 border-t border-border/60" aria-hidden />
             {others.map((p) => {
               const online = onlineIds.has(p.id);
               const unread = counts[p.id] ?? 0;
@@ -61,7 +94,10 @@ export function TeamMembersRail() {
                 <li key={p.id}>
                   <button
                     type="button"
-                    onClick={() => setOpenPeer(p)}
+                    onClick={() => {
+                      setTeamOpen(false);
+                      setOpenPeer(p);
+                    }}
                     className={cn(
                       "group relative flex w-full flex-col items-center gap-1 rounded-xl p-1.5 transition",
                       active ? "bg-primary-soft" : "hover:bg-surface-muted"
@@ -105,6 +141,37 @@ export function TeamMembersRail() {
             isOnline={onlineIds.has(openPeer.id)}
             onClose={() => setOpenPeer(null)}
           />
+        </div>
+      )}
+
+      {/* Sliding TEAM chat panel */}
+      {teamOpen && (
+        <div
+          className="fixed inset-y-0 right-16 z-40 hidden w-[360px] flex-col animate-in slide-in-from-right-4 border-l border-border/60 bg-card shadow-[-12px_0_32px_-12px_rgba(0,0,0,0.18)] md:flex"
+          role="dialog"
+          aria-label="Tímový chat"
+        >
+          <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <Users2 className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">Tímový chat</p>
+              <p className="text-[11px] text-muted-foreground">Všetci členovia tímu</p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setTeamOpen(false)}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-hidden p-2">
+            <Chat scope="team" className="h-full" />
+          </div>
         </div>
       )}
     </>
