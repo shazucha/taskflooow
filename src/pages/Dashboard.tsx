@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, MessagesSquare, CalendarDays, ShieldCheck, Users2 } from "lucide-react";
+import { ChevronRight, CalendarDays, ShieldCheck, Users2 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { Chat } from "@/components/Chat";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { MonthFilter } from "@/components/MonthFilter";
 import { AdminCollaboratorsOverview } from "@/components/AdminCollaboratorsOverview";
