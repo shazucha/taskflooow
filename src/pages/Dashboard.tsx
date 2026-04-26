@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, MessagesSquare, CalendarDays, ShieldCheck, Users2 } from "lucide-react";
+import { ChevronRight, CalendarDays, ShieldCheck, Users2 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { Chat } from "@/components/Chat";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { MonthFilter } from "@/components/MonthFilter";
 import { AdminCollaboratorsOverview } from "@/components/AdminCollaboratorsOverview";
@@ -137,13 +136,6 @@ export default function Dashboard() {
             })}
           </div>
         )}
-      </section>
-
-      <section className="mt-6 md:mt-8">
-        <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
-          <MessagesSquare className="h-4 w-4" /> Tímový chat
-        </h2>
-        <Chat scope="team" />
       </section>
 
       {isAdmin && (
