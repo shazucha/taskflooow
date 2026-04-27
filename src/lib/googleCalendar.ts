@@ -124,9 +124,9 @@ export interface GoogleSyncResult {
 /** Pull events FROM Google INTO TaskFlow tasks. Returns counts of changes. */
 export async function pullGoogleEvents(): Promise<PullResult | null> {
   // Edge runtime občas vráti 503 (studený štart / dočasná nedostupnosť).
-  // Skúsime až 3x s krátkym backoffom — ostatné chyby propagujeme hneď.
+  // Skúsime až 5x s narastajúcim backoffom — ostatné chyby propagujeme hneď.
   let lastErr: unknown = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 5; attempt++) {
     const { data, error } = await supabase.functions.invoke<PullResult>("google-calendar-pull", { body: {} });
     if (!error) return data ?? null;
     if (isReconnectRequired(error)) {
@@ -134,7 +134,7 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
     }
     lastErr = error;
     if (!isTransientFunctionError(error)) return null;
-    await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
+    await new Promise((r) => setTimeout(r, 800 * (attempt + 1) + Math.random() * 400));
   }
   console.warn("pullGoogleEvents failed after retries", lastErr);
   return null;
