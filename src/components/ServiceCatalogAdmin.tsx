@@ -42,12 +42,18 @@ export function ServiceCatalogAdmin() {
       toast.error("Pri hodinovej položke vyplň hodiny");
       return;
     }
+    if (unitType === "piece" && !price) {
+      toast.error("Pri fixnej položke vyplň cenu / ks");
+      return;
+    }
     try {
       await create.mutateAsync({
         title: t,
         description: description.trim() || null,
-        unit_price: price ? Number(price) : 0,
-        default_hours: hours ? Number(hours) : null,
+        // Pri hodinovej položke neukladáme fixnú cenu — počíta sa dynamicky
+        // ako hodiny × hodinovka projektu (pri použití v bonusoch).
+        unit_price: unitType === "hourly" ? null : (price ? Number(price) : 0),
+        default_hours: unitType === "hourly" ? (hours ? Number(hours) : null) : null,
         unit_type: unitType,
         note: null,
         position: items.length,
@@ -67,7 +73,7 @@ export function ServiceCatalogAdmin() {
         Globálny cenník — predpripravené položky pre bonusy v projektoch.
         <br />
         <strong>Per ks</strong> = fixná cena (napr. „1× video = 180 €"),
-        <strong> Hodinová</strong> = cena = hodiny × hodinovka projektu.
+        <strong> Hodinová</strong> = počet hodín × hodinovka projektu (cena sa počíta automaticky podľa projektu).
       </p>
 
       <div className="mt-3 space-y-2">
@@ -104,7 +110,17 @@ export function ServiceCatalogAdmin() {
                       )}
                     </p>
                     <span className="whitespace-nowrap text-sm font-bold tabular-nums text-success">
-                      +{fmtEur(it.unit_price)} <span className="font-normal text-muted-foreground">/ {isHourly ? "h-balík" : "ks"}</span>
+                      {isHourly ? (
+                        <>
+                          {it.default_hours ?? "?"}h
+                          <span className="ml-1 font-normal text-muted-foreground">× hodinovka projektu</span>
+                        </>
+                      ) : (
+                        <>
+                          +{fmtEur(it.unit_price)}
+                          <span className="ml-1 font-normal text-muted-foreground">/ ks</span>
+                        </>
+                      )}
                     </span>
                   </div>
                   {it.description && (
@@ -180,38 +196,38 @@ export function ServiceCatalogAdmin() {
           />
         </div>
 
-        <div className={cn("grid gap-2", unitType === "hourly" ? "grid-cols-2" : "grid-cols-1")}>
+        {unitType === "piece" ? (
           <div className="space-y-1">
-            <Label htmlFor="sc-price" className="text-xs">
-              Cena ({unitType === "hourly" ? "balík €" : "€ / ks"})
-            </Label>
+            <Label htmlFor="sc-price" className="text-xs">Cena / ks (€)</Label>
             <Input
               id="sc-price"
               type="number"
               inputMode="decimal"
               min={0}
               step="0.01"
-              placeholder="€"
+              placeholder="napr. 180"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
             />
           </div>
-          {unitType === "hourly" && (
-            <div className="space-y-1">
-              <Label htmlFor="sc-hours" className="text-xs">Default hodín</Label>
-              <Input
-                id="sc-hours"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.25"
-                placeholder="napr. 2"
-                value={hours}
-                onChange={(e) => setHours(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="space-y-1">
+            <Label htmlFor="sc-hours" className="text-xs">Počet hodín</Label>
+            <Input
+              id="sc-hours"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.25"
+              placeholder="napr. 2"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Cena = tieto hodiny × hodinovka konkrétneho projektu (nastavuje sa v projekte).
+            </p>
+          </div>
+        )}
 
         <div className="flex justify-end gap-1.5 pt-1">
           <Button size="sm" variant="ghost" onClick={reset} disabled={!title && !price && !hours && !description}>
