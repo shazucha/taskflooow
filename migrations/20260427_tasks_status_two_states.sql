@@ -28,3 +28,14 @@ alter table public.tasks
 
 -- Default na "todo" (ak nebol).
 alter table public.tasks alter column status set default 'todo';
+
+-- Označíme všetky úlohy importované z Google Calendar, ktorých koniec
+-- (alebo začiatok ak nemajú koniec) je v minulosti, ako dokončené.
+-- Užívatelia nahlásili stovky "otvorených" úloh, ktoré v skutočnosti
+-- predstavujú dávno uplynulé udalosti v kalendári.
+update public.tasks
+set status = 'done'
+where google_imported = true
+  and status <> 'done'
+  and coalesce(due_end, due_date) is not null
+  and coalesce(due_end, due_date) < now();
