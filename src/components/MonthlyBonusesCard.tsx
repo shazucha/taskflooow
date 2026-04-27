@@ -163,11 +163,11 @@ export function MonthlyBonusesCard({ projectId }: Props) {
       effectiveUnitType = "piece";
     }
 
-    // Vyčistíme polia podľa typu, aby sa nezamiešavali ceny.
+    // Pri hodinovej položke ignorujeme fixnú cenu (počíta sa hodiny × hodinovka).
+    // Pri "piece" položke môžu byť hodiny vyplnené iba orientačne (do súhrnu hodín)
+    // a do ceny sa nepočítajú – preto si ich ponecháme.
     if (effectiveUnitType === "hourly") {
       unitPriceNum = null;
-    } else {
-      hoursNum = null;
     }
     if (effectiveUnitType === "hourly" && (hoursNum == null || projectHourlyRate == null)) {
       toast.error(
