@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.google-calendar-pull]
 verify_jwt = false
+
+[functions.google-calendar-fix-statuses]
+verify_jwt = false
