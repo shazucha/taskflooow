@@ -368,7 +368,8 @@ export function MonthlyBonusesCard({ projectId }: Props) {
                   <option value="">— vyber —</option>
                   {effectiveCatalog.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.title} · {fmtMoney(c.effective_unit_price, currency)}/ks
+                      {c.title} · {fmtMoney(c.effective_unit_price, currency)}
+                      {c.unit_type === "hourly" ? ` / balík (${c.effective_default_hours ?? "?"}h)` : " / ks"}
                     </option>
                   ))}
                 </select>
