@@ -46,9 +46,16 @@ function pickEnd(e: GoogleEvent): string | null {
   return e.end?.dateTime ?? (e.end?.date ? `${e.end.date}T00:00:00` : null);
 }
 
-function getUserFromJwtPayload(req: Request): { id: string; email: string | null } | null {
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace(/^Bearer\s+/i, "");
+async function getUserFromJwtPayload(req: Request): Promise<{ id: string; email: string | null } | null> {
+  let token = "";
+  try {
+    const body = await req.clone().json();
+    token = typeof body?.__user_jwt === "string" ? body.__user_jwt.replace(/^Bearer\s+/i, "") : "";
+  } catch (_) { /* no json body */ }
+  if (!token) {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    token = authHeader.replace(/^Bearer\s+/i, "");
+  }
   const parts = token.split(".");
   if (parts.length !== 3) return null;
 
@@ -106,7 +113,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const user = getUserFromJwtPayload(req) ?? await getUserFromAuthHeader(req);
+    const user = await getUserFromJwtPayload(req) ?? await getUserFromAuthHeader(req);
     if (!user) {
       return new Response(JSON.stringify({ ok: true, not_connected: true, not_authenticated: true, imported: 0, updated: 0, deleted: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
