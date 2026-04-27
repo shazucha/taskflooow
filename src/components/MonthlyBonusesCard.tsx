@@ -549,23 +549,27 @@ export function MonthlyBonusesCard({ projectId }: Props) {
               (mode === "template" && effectiveCatalog.find((c) => c.id === catalogId)?.unit_type === "hourly");
             const qtyN = Number(qty || "1") || 1;
             const upN = !isHourlyForm && unitPrice.trim() ? Number(unitPrice) : null;
-            const hN = isHourlyForm && hours.trim() ? Number(hours) : null;
+            const hN = hours.trim() ? Number(hours) : null;
             const value = bonusValue({
               qty: qtyN,
               unit_price: upN,
-              hours: hN,
+              hours: isHourlyForm ? hN : null,
               hourly_rate: isHourlyForm ? projectHourlyRate : null,
               unit_type: isHourlyForm ? "hourly" : "piece",
             });
-            if (value <= 0) return null;
+            const totalH = hN != null ? hN * qtyN : 0;
+            if (value <= 0 && totalH <= 0) return null;
             return (
               <p className="rounded-md bg-success/10 px-2 py-1.5 text-[11px] text-success">
-                Hodnota: <strong>{fmtMoney(value, currency)}</strong>
+                {value > 0 && <>Hodnota: <strong>{fmtMoney(value, currency)}</strong></>}
                 {isHourlyForm && hN != null && projectHourlyRate != null && (
                   <> · {hN}h × {fmtMoney(projectHourlyRate, currency)}{qtyN > 1 ? ` × ${qtyN}ks` : ""}</>
                 )}
                 {!isHourlyForm && upN != null && qtyN > 1 && (
                   <> · {fmtMoney(upN, currency)} × {qtyN}ks</>
+                )}
+                {!isHourlyForm && totalH > 0 && (
+                  <> · započíta {totalH.toFixed(2)}h do súhrnu</>
                 )}
               </p>
             );
