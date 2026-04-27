@@ -1,6 +1,10 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { applyTheme, getInitialTheme } from "./lib/useTheme";
+
+// Apply persisted theme before React mounts to avoid flash of wrong theme.
+applyTheme(getInitialTheme());
 
 // Capture `beforeinstallprompt` as early as possible (before React mounts),
 // so it is not missed when the browser fires it during initial page load
