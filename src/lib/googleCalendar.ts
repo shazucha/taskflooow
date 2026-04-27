@@ -51,6 +51,12 @@ function isTransientFunctionError(error: unknown): boolean {
   );
 }
 
+function isSpecialCalendarConflict(value: unknown): boolean {
+  return /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType|focus time event|out of office event|working location/i.test(
+    getErrorMessage(value)
+  );
+}
+
 function callbackRedirectUri() {
   return `${window.location.origin}/auth/google/callback`;
 }
@@ -188,10 +194,17 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
 
     if (!error) {
       if (data?.error) {
+        if (isSpecialCalendarConflict(data.detail || data.error)) {
+          return { ok: true, fallback: true, skipped: "special_event_conflict", detail: data.detail };
+        }
         if (data.fallback || data.skipped) return data;
         throw new Error(data.detail || data.error);
       }
       return data ?? { ok: true };
+    }
+
+    if (isSpecialCalendarConflict(error)) {
+      return { ok: true, fallback: true, skipped: "special_event_conflict", detail: getErrorMessage(error) };
     }
 
     if (isReconnectRequired(error)) {
