@@ -70,7 +70,7 @@ export default function Dashboard() {
         <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
           <CalendarDays className="h-4 w-4" /> Kalendár
         </h2>
-        <CalendarWidget />
+        <CalendarWidget mode="personal" />
         </section>
 
         <div className="mt-6 md:mt-0">
