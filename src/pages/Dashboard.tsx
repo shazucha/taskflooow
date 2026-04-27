@@ -109,10 +109,6 @@ export default function Dashboard() {
         ) : (
           <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-5">
             {projects.map((p) => {
-              const projectTasks = tasks.filter((t) => t.project_id === p.id);
-              const open = projectTasks.filter((t) => t.status !== "done").length;
-              const total = projectTasks.length;
-              const progress = total === 0 ? 0 : Math.round(((total - open) / total) * 100);
               return (
                 <Link
                   key={p.id}
@@ -121,16 +117,8 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color ?? "#3b82f6" }} />
-                    <span className="text-xs font-medium text-muted-foreground">{open} otvorených</span>
                   </div>
                   <h3 className="mt-2 text-sm font-semibold leading-snug">{p.name}</h3>
-                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{ width: `${progress}%`, backgroundColor: p.color ?? "hsl(var(--primary))" }}
-                    />
-                  </div>
-                  <p className="mt-1.5 text-[10px] font-medium text-muted-foreground">{progress}% hotovo</p>
                 </Link>
               );
             })}
