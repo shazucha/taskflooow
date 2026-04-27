@@ -4,6 +4,34 @@ const REQUIRED_GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar";
 const REQUIRED_GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks.readonly";
 const FULL_GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks";
 
+/**
+ * Pending retries queued while the user was unauthenticated (401 from edge fn).
+ * Replayed automatically when Supabase emits SIGNED_IN / TOKEN_REFRESHED / INITIAL_SESSION.
+ */
+type PendingRetry = () => void;
+const pendingRetries = new Set<PendingRetry>();
+let authListenerInstalled = false;
+
+function installAuthRetryListener() {
+  if (authListenerInstalled) return;
+  authListenerInstalled = true;
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (!session?.access_token) return;
+    if (event !== "SIGNED_IN" && event !== "TOKEN_REFRESHED" && event !== "INITIAL_SESSION") return;
+    if (pendingRetries.size === 0) return;
+    const queued = Array.from(pendingRetries);
+    pendingRetries.clear();
+    queued.forEach((fn) => {
+      try { fn(); } catch (err) { console.warn("Google retry failed", err); }
+    });
+  });
+}
+
+function queueRetryUntilAuthenticated(retry: PendingRetry) {
+  installAuthRetryListener();
+  pendingRetries.add(retry);
+}
+
 /** Returns true if there is a valid, non-expired Supabase session. */
 async function hasActiveSession(): Promise<boolean> {
   const { data } = await supabase.auth.getSession();
