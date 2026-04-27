@@ -87,6 +87,12 @@ export function CalendarWidget({
   const [prefill, setPrefill] = useState<Prefill>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const currentUserId = useCurrentUserId();
+  // In project mode we render an inline composer instead of opening the dialog.
+  const useInlineComposer = !!projectId;
+  const openCreate = (p: Prefill) => {
+    setPrefill(p);
+    if (!useInlineComposer) setCreateOpen(true);
+  };
   const targetUserId = userId ?? currentUserId;
   const isReadOnly = readOnly || (!!userId && userId !== currentUserId);
   const { data: tasks = [] } = useTasks();
@@ -326,8 +332,7 @@ export function CalendarWidget({
           }}
           onCreateAt={(d) => {
             if (isReadOnly) return;
-            setPrefill({ date: fmtDate(d) });
-            setCreateOpen(true);
+            openCreate({ date: fmtDate(d) });
           }}
         />
       )}
@@ -349,8 +354,7 @@ export function CalendarWidget({
           }}
           onCreateAt={(d) => {
             if (isReadOnly) return;
-            setPrefill({ date: fmtDate(d) });
-            setCreateOpen(true);
+            openCreate({ date: fmtDate(d) });
           }}
         />
       )}
@@ -374,8 +378,7 @@ export function CalendarWidget({
             const endSlot = Math.min(slotIdx + 2, 48);
             const eh = Math.floor(endSlot / 2);
             const em = endSlot % 2 === 0 ? 0 : 30;
-            setPrefill({ date: fmtDate(cursor), time: fmtTime(h, m), end: fmtTime(eh, em) });
-            setCreateOpen(true);
+            openCreate({ date: fmtDate(cursor), time: fmtTime(h, m), end: fmtTime(eh, em) });
           }}
           onCreateRange={(startSlot, endSlot) => {
             if (isReadOnly) return;
@@ -383,12 +386,11 @@ export function CalendarWidget({
             const sm = startSlot % 2 === 0 ? 0 : 30;
             const eh = Math.floor(endSlot / 2);
             const em = endSlot % 2 === 0 ? 0 : 30;
-            setPrefill({
+            openCreate({
               date: fmtDate(cursor),
               time: fmtTime(sh, sm),
               end: fmtTime(eh, em),
             });
-            setCreateOpen(true);
           }}
         />
       )}
