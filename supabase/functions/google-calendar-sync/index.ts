@@ -261,33 +261,16 @@ Deno.serve(async (req) => {
       // If PATCH failed because the existing event is a special type
       // (focus time, OOO, working location, fromGmail), delete + recreate.
       if (isSpecialTypeConflict(t)) {
-        if (task.google_event_id) {
-          const deleteRes = await fetch(`${base}/${task.google_event_id}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${tok.token}` },
-          });
-          if (!deleteRes.ok && deleteRes.status !== 404 && deleteRes.status !== 410) {
-            console.warn("Calendar special-type delete failed", deleteRes.status, await deleteRes.text());
-          }
-        }
-        const retry = await fetch(base, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${tok.token}`, "Content-Type": "application/json" },
-          body: JSON.stringify(eventBody),
-        });
-        if (retry.ok) {
-          const ev = await retry.json();
-          await admin.from("tasks").update({
-            google_event_id: ev.id,
-            google_calendar_owner: targetUserId,
-          }).eq("id", task.id);
-          return jsonResponse({ ok: true, event_id: ev.id, recreated: true });
-        }
-
-        const retryText = await retry.text();
-        console.error("Calendar special-type recreate failed", retry.status, retryText);
+        // Don't try to delete or recreate — focus time / OOO / working location
+        // events are owned by Google and modifying them is not allowed. Just
+        // clear our mapping so we stop trying to PATCH this event again.
         await clearGoogleMapping(admin, task.id);
-        return jsonResponse({ ok: true, skipped: "special_event_conflict", detail: retryText || t });
+        return jsonResponse({
+          ok: true,
+          fallback: true,
+          skipped: "special_event_conflict",
+          detail: t,
+        });
       }
 
       try {
@@ -301,7 +284,17 @@ Deno.serve(async (req) => {
         // Ignore JSON parse issues and fall back to generic error response.
       }
 
-      return fallbackResponse({ error: "calendar_api_failed", detail: t, skipped: "calendar_api_failed" });
+      // Never propagate as a hard error — return 200 with fallback signal so
+      // the client doesn't crash. Also clear stale event mapping for 4xx.
+      if (evRes.status >= 400 && evRes.status < 500 && task.google_event_id) {
+        await clearGoogleMapping(admin, task.id);
+      }
+      return fallbackResponse({
+        error: "calendar_api_failed",
+        detail: t,
+        skipped: "calendar_api_failed",
+        status: evRes.status,
+      });
     }
 
     const ev = await evRes.json();
