@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 type View = "month" | "week" | "day";
+type Mode = "personal" | "team";
 
 const WEEKDAYS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
 const MONTHS = [
@@ -54,9 +55,24 @@ interface CalendarWidgetProps {
   /** If set, calendar shows tasks for this user instead of the current user, in read-only mode. */
   userId?: string;
   readOnly?: boolean;
+  /**
+   * "personal" (default): only tasks where current user is assignee. Single clean list, no Mine/Others split.
+   * "team": shows tasks split into Mine/Others (admin team view).
+   */
+  mode?: Mode;
+  /**
+   * In team mode, restrict displayed tasks to a specific user (assignee or watcher).
+   * `null`/undefined = all team members.
+   */
+  teamFocusUserId?: string | null;
 }
 
-export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps = {}) {
+export function CalendarWidget({
+  userId,
+  readOnly = false,
+  mode = "personal",
+  teamFocusUserId = null,
+}: CalendarWidgetProps = {}) {
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<Date>(new Date());
@@ -85,15 +101,22 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
     return m;
   }, [profiles]);
 
-  const myTasks = useMemo(
-    () =>
-      tasks.filter(
-        (t) =>
-          t.due_date &&
-          (t.assignee_id === targetUserId || watchers.some((w) => w.task_id === t.id && w.user_id === targetUserId))
-      ),
-    [tasks, watchers, targetUserId]
-  );
+  const myTasks = useMemo(() => {
+    if (mode === "team") {
+      // Team mode: show tasks of all members, optionally focused on a single user
+      if (teamFocusUserId) {
+        return tasks.filter(
+          (t) =>
+            t.due_date &&
+            (t.assignee_id === teamFocusUserId ||
+              watchers.some((w) => w.task_id === t.id && w.user_id === teamFocusUserId))
+        );
+      }
+      return tasks.filter((t) => t.due_date && !!t.assignee_id);
+    }
+    // Personal mode: ONLY tasks where I am the assignee (no watcher leak, no others)
+    return tasks.filter((t) => t.due_date && t.assignee_id === targetUserId);
+  }, [tasks, watchers, targetUserId, mode, teamFocusUserId]);
 
   const tasksByDay = useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -331,6 +354,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           profilesById={profilesById}
           currentUserId={targetUserId}
           readOnly={isReadOnly}
+          mode={mode}
           onOpenTask={setOpenTask}
           onCreateSlot={(slotIdx) => {
             if (isReadOnly) return;
@@ -370,6 +394,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           currentUserId={targetUserId}
           onOpenTask={setOpenTask}
           readOnly={isReadOnly}
+          mode={mode}
         />
       )}
 
