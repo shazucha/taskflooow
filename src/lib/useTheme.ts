@@ -6,9 +6,13 @@ const STORAGE_KEY = "taskflow-theme";
 
 export function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "light";
-  const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-  if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
+    if (stored === "light" || stored === "dark") return stored;
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  } catch {
+    return "light";
+  }
 }
 
 export function applyTheme(theme: Theme) {
@@ -23,7 +27,11 @@ export function useTheme() {
 
   useEffect(() => {
     applyTheme(theme);
-    window.localStorage.setItem(STORAGE_KEY, theme);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, theme);
+    } catch {
+      // Storage can be unavailable in embedded/private contexts.
+    }
   }, [theme]);
 
   useEffect(() => {
