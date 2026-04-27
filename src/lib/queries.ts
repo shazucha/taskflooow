@@ -63,6 +63,17 @@ export function useIsAppAdmin() {
   return !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL;
 }
 
+/**
+ * Same as `useIsAppAdmin` but also exposes the auth loading state.
+ * Use in pages that gate access with <Navigate /> so we don't redirect
+ * on the first render (before the session is hydrated).
+ */
+export function useIsAppAdminStatus() {
+  const { user, loading } = useSession();
+  const isAdmin = !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL;
+  return { isAdmin, loading };
+}
+
 export function useProjectMembers(projectId: string | undefined) {
   const { isReady, user } = useAuthReady();
   return useQuery({
