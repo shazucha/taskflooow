@@ -1,10 +1,10 @@
 import { NavLink, Link } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
 import { UserAvatar } from "@/components/UserAvatar";
-import { useCurrentUserId, useProfiles } from "@/lib/queries";
+import { useCurrentUserId, useIsAppAdmin, useProfiles } from "@/lib/queries";
 
 type NavItem = {
   to: string;
@@ -27,8 +27,14 @@ export function DesktopSidebar() {
   const { total: dmUnread } = useUnreadDirect();
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
+  const isAdmin = useIsAppAdmin();
   const me = profiles.find((p) => p.id === currentUserId);
-  const items: NavItem[] = baseItems;
+  const items: NavItem[] = isAdmin
+    ? [
+        ...baseItems,
+        { to: "/team-calendar", label: "Tímový kalendár", icon: CalendarDays },
+      ]
+    : baseItems;
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border/60 bg-card/60 backdrop-blur-xl md:flex">
