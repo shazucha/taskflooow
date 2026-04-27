@@ -19,6 +19,36 @@ export class GoogleReconnectRequiredError extends Error {
   }
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error ?? "");
+}
+
+function getFunctionErrorStatus(error: unknown): number | null {
+  const context = (error as { context?: unknown })?.context;
+  if (context instanceof Response) return context.status;
+  if (context && typeof context === "object" && "status" in context) {
+    const status = (context as { status?: unknown }).status;
+    return typeof status === "number" ? status : null;
+  }
+  return null;
+}
+
+function isReconnectRequired(error: unknown): boolean {
+  const message = getErrorMessage(error);
+  return message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT");
+}
+
+function isTransientFunctionError(error: unknown): boolean {
+  const message = getErrorMessage(error);
+  const status = getFunctionErrorStatus(error);
+  return (
+    status === 503 ||
+    message.includes("503") ||
+    message.includes("temporarily unavailable") ||
+    message.includes("SUPABASE_EDGE_RUNTIME_ERROR")
+  );
+}
+
 function callbackRedirectUri() {
   return `${window.location.origin}/auth/google/callback`;
 }
@@ -97,17 +127,12 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data, error } = await supabase.functions.invoke<PullResult>("google-calendar-pull", { body: {} });
     if (!error) return data ?? null;
-    const message = error.message || "";
-    if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
+    if (isReconnectRequired(error)) {
       throw new GoogleReconnectRequiredError();
     }
-    const isTransient =
-      message.includes("503") ||
-      message.includes("temporarily unavailable") ||
-      message.includes("SUPABASE_EDGE_RUNTIME_ERROR");
     lastErr = error;
-    if (!isTransient) return null;
-    await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+    if (!isTransientFunctionError(error)) return null;
+    await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
   }
   console.warn("pullGoogleEvents failed after retries", lastErr);
   return null;
@@ -167,17 +192,12 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
       return data ?? { ok: true };
     }
 
-    const message = error.message || "";
-    if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
+    if (isReconnectRequired(error)) {
       throw new GoogleReconnectRequiredError();
     }
-    const isTransient =
-      message.includes("503") ||
-      message.includes("temporarily unavailable") ||
-      message.includes("SUPABASE_EDGE_RUNTIME_ERROR");
     lastError = error;
-    if (!isTransient) throw error;
-    await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+    if (!isTransientFunctionError(error)) throw error;
+    await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
   }
   throw lastError instanceof Error ? lastError : new Error("google-calendar-sync unavailable");
 }
