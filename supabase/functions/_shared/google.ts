@@ -37,8 +37,15 @@ export function adminClient(): SupabaseClient {
 }
 
 export async function getUserFromAuthHeader(req: Request) {
-  const authHeader = req.headers.get("x-user-authorization") ?? req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const authHeader = req.headers.get("x-user-authorization") ?? "";
+  let token = authHeader.replace(/^Bearer\s+/i, "");
+  if (!token) {
+    try {
+      const body = await req.clone().json();
+      token = typeof body?.__user_jwt === "string" ? body.__user_jwt.replace(/^Bearer\s+/i, "") : "";
+    } catch (_) { /* no json body */ }
+  }
+  if (!token) token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token) return null;
   if (token === SUPABASE_ANON_KEY || token === SUPABASE_SERVICE_ROLE_KEY) return null;
 

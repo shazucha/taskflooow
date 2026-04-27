@@ -43,18 +43,21 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
   const accessToken = data.session?.access_token;
   if (!accessToken) throw new Error("No active session");
 
+  const bodyPayload = payload && typeof payload === "object"
+    ? { ...(payload as Record<string, unknown>), __user_jwt: accessToken }
+    : { value: payload, __user_jwt: accessToken };
+
   const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       // Use the anon key in Authorization so Supabase's legacy gateway JWT
       // check (if still enabled on a stale deploy) accepts the request. The
-      // real user JWT is sent separately and validated inside the function.
+      // real user JWT is sent in the JSON body and validated inside the function.
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      "x-user-authorization": `Bearer ${accessToken}`,
       apikey: SUPABASE_ANON_KEY,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(bodyPayload),
   });
 
   if (!response.ok) {
