@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { Check, KeyRound, LogOut, Mail, Pencil, Users } from "lucide-react";
+import { Check, KeyRound, LogOut, Mail, Moon, Pencil, Sun, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect";
+import { useTheme } from "@/lib/useTheme";
 
 const COLOR_OPTIONS = [
   "#3b82f6", // blue
@@ -39,6 +41,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const me = profiles.find((p) => p.id === currentUserId);
   const updateProfile = useUpdateProfile();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const [name, setName] = useState("");
   const [savingName, setSavingName] = useState(false);
@@ -196,6 +199,23 @@ export default function Profile() {
       </div>
 
       <GoogleCalendarConnect />
+
+      <section className="card-elevated mt-4 flex items-center gap-3 p-4">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
+          {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">Tmavý režim</p>
+          <p className="text-xs text-muted-foreground">
+            Šetrnejší pre oči pri práci v noci.
+          </p>
+        </div>
+        <Switch
+          checked={theme === "dark"}
+          onCheckedChange={toggleTheme}
+          aria-label="Prepnúť tmavý režim"
+        />
+      </section>
         </div>
         <div>
 
