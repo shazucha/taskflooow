@@ -69,19 +69,6 @@ export default function TeamCalendar() {
       });
   }, [profiles, tasks, currentUserId]);
 
-  // Wait for the session to hydrate before deciding whether to redirect.
-  if (adminLoading) {
-    return (
-      <div className="page-container">
-        <div className="h-32 animate-pulse rounded-2xl bg-surface-muted" />
-      </div>
-    );
-  }
-  if (!isAdmin) return <Navigate to="/" replace />;
-
-  const allActive = focusUserId === null;
-  const showColumns = allActive && layout === "columns";
-
   const profilesById = useMemo(() => {
     const m = new Map<string, typeof profiles[number]>();
     for (const p of profiles) m.set(p.id, p);
@@ -125,6 +112,19 @@ export default function TeamCalendar() {
     }
     return Array.from(groups.values());
   }, [tasks, focusUserId, showDone]);
+
+  // Early returns AFTER all hooks
+  if (adminLoading) {
+    return (
+      <div className="page-container">
+        <div className="h-32 animate-pulse rounded-2xl bg-surface-muted" />
+      </div>
+    );
+  }
+  if (!isAdmin) return <Navigate to="/" replace />;
+
+  const allActive = focusUserId === null;
+  const showColumns = allActive && layout === "columns";
 
   const totalUpcoming = upcomingByDay.reduce((sum, g) => sum + g.tasks.length, 0);
 
