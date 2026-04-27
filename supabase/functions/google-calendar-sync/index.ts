@@ -104,8 +104,14 @@ Deno.serve(async (req) => {
     }
 
     // ---- UPSERT
-    // Skip if no time (we only sync timed tasks)
-    if (!task.due_date || !hasTime(task.due_date)) {
+    // Synchronizujeme iba úlohy, ktoré majú definovaný interval:
+    //   - musia mať due_date (začiatok)
+    //   - a buď due_end (koniec) alebo non-zero čas v due_date.
+    // Toto rovnako funguje na desktope aj mobile (predtým spoliehalo na
+    // lokálny getHours, čo pri rôznych timezone fallback-och viedlo k
+    // preskakovaniu syncu na mobile).
+    const hasInterval = !!task.due_date && (!!task.due_end || hasTime(task.due_date));
+    if (!hasInterval) {
       // If we previously synced and now lost the time, delete the event
       if (task.google_event_id && targetUserId) {
         const tok = await getValidAccessToken(admin, targetUserId);
