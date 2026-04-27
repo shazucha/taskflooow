@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
       }
       // If PATCH failed because the existing event is a special type
       // (focus time, OOO, working location, fromGmail), delete + recreate.
-      if (evRes.status === 400 && isSpecialTypeConflict(t)) {
+      if (isSpecialTypeConflict(t)) {
         if (task.google_event_id) {
           await fetch(`${base}/${task.google_event_id}`, {
             method: "DELETE",
