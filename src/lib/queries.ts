@@ -13,6 +13,7 @@ import {
   deleteProject,
   deleteProjectMonthlyBonus,
   deleteProjectRecurringWork,
+  reorderProjectRecurringWorks,
   deleteProjectWork,
   deleteTask,
   deleteTaskMaterial,
