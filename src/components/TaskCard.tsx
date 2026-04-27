@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, MoreHorizontal, Trash2, Check, Users, Repeat, Layers } from "lucide-react";
+import { CalendarDays, MoreHorizontal, Trash2, Check, Users, Repeat, Layers, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 import { seriesIndex, seriesSize, getSeriesKey } from "@/lib/recurring";
@@ -31,6 +31,7 @@ import {
   useToggleTaskStatus,
   useUpdateTask,
 } from "@/lib/queries";
+import { GoogleReconnectRequiredError, syncTaskToGoogle } from "@/lib/googleCalendar";
 
 interface Props {
   task: Task;
@@ -87,6 +88,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>(initialSelected);
+  const [resyncing, setResyncing] = useState(false);
 
   // Sync keď sa otvorí menu / zmenia sa dáta
   const openChange = (v: boolean) => {
@@ -96,6 +98,36 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
 
   const toggleUser = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const hasTime = (() => {
+    if (!task.due_date) return false;
+    if (task.due_end) return true;
+    const d = new Date(task.due_date);
+    return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
+  })();
+
+  const handleResync = async () => {
+    setResyncing(true);
+    try {
+      const result = await syncTaskToGoogle(task.id, "upsert");
+      if (result.skipped === "special_event_conflict") {
+        toast.message("Stará Google udalosť odpojená, skús ešte raz");
+      } else if (result.skipped) {
+        toast.message(`Preskočené: ${result.skipped}`);
+      } else {
+        toast.success("Znovu odoslané do Google kalendára");
+      }
+    } catch (e) {
+      if (e instanceof GoogleReconnectRequiredError) {
+        toast.error("Google kalendár treba znova pripojiť");
+      } else {
+        toast.error(e instanceof Error ? e.message : "Sync zlyhal");
+      }
+    } finally {
+      setResyncing(false);
+      setMenuOpen(false);
+    }
+  };
 
   const saveAssignment = async () => {
     try {
@@ -260,6 +292,19 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
                 </Button>
               </div>
               <DropdownMenuSeparator />
+              {hasTime && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleResync();
+                  }}
+                  disabled={resyncing}
+                  className="gap-2"
+                >
+                  <RefreshCw className={cn("h-4 w-4", resyncing && "animate-spin")} />
+                  {resyncing ? "Synchronizujem…" : "Resync do Google"}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={async () => {
                   if (!confirm("Naozaj zmazať túto úlohu?")) return;
