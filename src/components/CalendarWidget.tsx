@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUserId, useDeleteTask, useProfiles, useProjects, useTaskWatchers, useTasks, useToggleTaskDone } from "@/lib/queries";
-import type { Project, Task } from "@/lib/types";
+import type { Profile, Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
 import { fetchGoogleEvents, GoogleReconnectRequiredError, pullGoogleEvents, type GoogleEvent } from "@/lib/googleCalendar";
@@ -78,6 +78,12 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
 
   const owner = profiles.find((p) => p.id === targetUserId);
   const myColor = owner?.color || "hsl(var(--primary))";
+
+  const profilesById = useMemo(() => {
+    const m = new Map<string, Profile>();
+    for (const p of profiles) m.set(p.id, p);
+    return m;
+  }, [profiles]);
 
   const myTasks = useMemo(
     () =>
@@ -322,6 +328,8 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           googleEvents={googleByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
           projectsById={projectsById}
+          profilesById={profilesById}
+          currentUserId={targetUserId}
           readOnly={isReadOnly}
           onOpenTask={setOpenTask}
           onCreateSlot={(slotIdx) => {
@@ -358,6 +366,8 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           googleEvents={googleByDay.get(dayKey(selected)) ?? []}
           myColor={myColor}
           projectsById={projectsById}
+          profilesById={profilesById}
+          currentUserId={targetUserId}
           onOpenTask={setOpenTask}
           readOnly={isReadOnly}
         />
@@ -519,10 +529,12 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, googleEvents = [], myColor, projectsById, readOnly, onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, readOnly, onOpenTask, onCreateSlot, onCreateRange,
 }: {
   date: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
+  profilesById: Map<string, Profile>;
+  currentUserId: string | null | undefined;
   readOnly?: boolean;
   onOpenTask: (t: Task) => void;
   onCreateSlot: (slotIdx: number) => void;
@@ -545,6 +557,10 @@ function DayView({
     .filter((t) => hasTime(t))
     .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
 
+  const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
+  const allDayMine = allDay.filter(isMine);
+  const allDayOthers = allDay.filter((t) => !isMine(t));
+
   const googleAllDay = googleEvents.filter((e) => e.all_day);
   const googleTimed = googleEvents.filter((e) => !e.all_day && e.start);
 
@@ -557,7 +573,7 @@ function DayView({
       const endSlot = e.getHours() * 2 + Math.ceil(e.getMinutes() / 30);
       lengthSlots = Math.max(1, endSlot - startSlot);
     }
-    return { task: t, startSlot, lengthSlots };
+    return { task: t, startSlot, lengthSlots, mine: isMine(t) };
   });
 
   const gridRef = useRef<HTMLDivElement>(null);
@@ -575,10 +591,33 @@ function DayView({
       {(allDay.length > 0 || googleAllDay.length > 0) && (
         <div>
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
-          <ul className="space-y-1">
-            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />)}
-            {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
-          </ul>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Moje</p>
+              {allDayMine.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground/70">—</p>
+              ) : (
+                <ul className="space-y-1">
+                  {allDayMine.map((t) => (
+                    <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} owner={null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Ostatní</p>
+              {allDayOthers.length === 0 && googleAllDay.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground/70">—</p>
+              ) : (
+                <ul className="space-y-1">
+                  {allDayOthers.map((t) => (
+                    <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} owner={t.assignee_id ? profilesById.get(t.assignee_id) ?? null : null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />
+                  ))}
+                  {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -644,18 +683,21 @@ function DayView({
             );
           })()}
 
-          {blocks.map(({ task, startSlot, lengthSlots }) => {
+          {blocks.map(({ task, startSlot, lengthSlots, mine }) => {
             const d = new Date(task.due_date!);
             const e = task.due_end ? new Date(task.due_end) : null;
             const proj = task.project_id ? projectsById.get(task.project_id) ?? null : null;
             const accent = proj?.color || myColor;
             const isDone = task.status === "done";
+            const ownerProfile = !mine && task.assignee_id ? profilesById.get(task.assignee_id) ?? null : null;
             return (
               <div
                 key={task.id}
                 data-task-block
-                className="group absolute left-12 right-2 flex gap-1 overflow-hidden rounded-md px-2 py-1 text-left text-[11px]"
+                className="group absolute flex gap-1 overflow-hidden rounded-md px-2 py-1 text-left text-[11px]"
                 style={{
+                  left: mine ? "3rem" : "calc(50% + 2px)",
+                  right: mine ? "calc(50% + 2px)" : "0.5rem",
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
                   backgroundColor: `${accent}22`,
@@ -681,6 +723,15 @@ function DayView({
                   onClick={() => onOpenTask(task)}
                   className="flex-1 overflow-hidden text-left hover:opacity-90"
                 >
+                  {ownerProfile && (
+                    <div className="flex items-center gap-1 truncate text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: ownerProfile.color || "hsl(var(--muted-foreground))" }}
+                      />
+                      <span className="truncate">{ownerProfile.full_name || ownerProfile.email || "—"}</span>
+                    </div>
+                  )}
                   {proj && (
                     <div className="flex items-center gap-1 truncate text-[10px] font-semibold" style={{ color: accent }}>
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
@@ -707,7 +758,7 @@ function DayView({
             );
           })}
 
-          {/* Google Calendar timed events — read-only, on the right half */}
+          {/* Google Calendar timed events — read-only, slim band on far right */}
           {googleTimed.map((ev) => {
             const s = new Date(ev.start!);
             const e = ev.end ? new Date(ev.end) : new Date(s.getTime() + 30 * 60 * 1000);
@@ -721,9 +772,10 @@ function DayView({
                 target="_blank"
                 rel="noreferrer"
                 data-task-block
-                className="absolute right-2 overflow-hidden rounded-md border border-dashed border-border/70 bg-surface-muted/60 px-2 py-1 text-left text-[11px] text-muted-foreground hover:bg-surface-muted"
+                className="absolute overflow-hidden rounded-md border border-dashed border-border/70 bg-surface-muted/60 px-1 py-1 text-left text-[10px] text-muted-foreground hover:bg-surface-muted"
                 style={{
-                  left: "55%",
+                  left: "calc(100% - 70px)",
+                  right: "2px",
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
                 }}
@@ -756,10 +808,12 @@ function DayView({
 
 /* ---------------- Helpers ---------------- */
 function SelectedDayList({
-  selected, tasks, googleEvents = [], myColor, projectsById, onOpenTask, readOnly,
+  selected, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, onOpenTask, readOnly,
 }: {
   selected: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
+  profilesById: Map<string, Profile>;
+  currentUserId: string | null | undefined;
   onOpenTask: (t: Task) => void;
   readOnly?: boolean;
 }) {
@@ -774,6 +828,9 @@ function SelectedDayList({
       toast.error(msg);
     }
   };
+  const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
+  const myTasks = tasks.filter(isMine);
+  const otherTasks = tasks.filter((t) => !isMine(t));
   return (
     <div className="mt-3 border-t border-border/60 pt-3">
       <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -782,36 +839,61 @@ function SelectedDayList({
       {tasks.length === 0 && googleEvents.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">Žiadne úlohy.</p>
       ) : (
-        <>
-          <ul className="mt-2 space-y-1.5">
-            {tasks.map((t) => (
-              <TaskRow
-                key={t.id}
-                task={t}
-                myColor={myColor}
-                project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
-                onOpenTask={onOpenTask}
-                onDelete={readOnly ? undefined : handleDelete}
-              />
-            ))}
-          </ul>
-          {googleEvents.length > 0 && (
-            <ul className="mt-2 space-y-1.5">
-              {googleEvents.map((e) => (
-                <GoogleEventRow key={e.id} event={e} />
-              ))}
-            </ul>
-          )}
-        </>
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Moje</p>
+            {myTasks.length === 0 ? (
+              <p className="text-xs text-muted-foreground/70">Žiadne moje úlohy.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {myTasks.map((t) => (
+                  <TaskRow
+                    key={t.id}
+                    task={t}
+                    myColor={myColor}
+                    project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
+                    owner={null}
+                    onOpenTask={onOpenTask}
+                    onDelete={readOnly ? undefined : handleDelete}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Ostatní</p>
+            {otherTasks.length === 0 && googleEvents.length === 0 ? (
+              <p className="text-xs text-muted-foreground/70">Nič od ostatných.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {otherTasks.map((t) => (
+                  <TaskRow
+                    key={t.id}
+                    task={t}
+                    myColor={myColor}
+                    project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
+                    owner={t.assignee_id ? profilesById.get(t.assignee_id) ?? null : null}
+                    onOpenTask={onOpenTask}
+                    onDelete={readOnly ? undefined : handleDelete}
+                  />
+                ))}
+                {googleEvents.map((e) => (
+                  <GoogleEventRow key={e.id} event={e} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
 function TaskRow({
-  task, myColor, project, onOpenTask, onDelete,
+  task, myColor, project, owner, onOpenTask, onDelete,
 }: {
   task: Task; myColor: string; project: Project | null; onOpenTask: (t: Task) => void;
+  owner?: Profile | null;
   onDelete?: (task: Task) => void | Promise<void>;
 }) {
   const timed = hasTime(task);
@@ -819,6 +901,8 @@ function TaskRow({
   const accent = project?.color || myColor;
   const toggleStatus = useToggleTaskDone();
   const isDone = task.status === "done";
+  const ownerColor = owner?.color || "hsl(var(--muted-foreground))";
+  const ownerName = owner ? owner.full_name || owner.email || "—" : null;
   return (
     <li>
       <div className="group flex items-start gap-1 rounded-lg p-1.5 hover:bg-surface-muted">
@@ -840,6 +924,12 @@ function TaskRow({
           onClick={() => onOpenTask(task)}
           className="flex flex-1 flex-col gap-0.5 text-left text-xs"
         >
+          {ownerName && (
+            <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ownerColor }} />
+              <span className="truncate">{ownerName}</span>
+            </span>
+          )}
           {project && (
             <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: accent }}>
               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
