@@ -104,16 +104,36 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
 
 export interface FixStatusesResult {
   ok: boolean;
+  action?: "fix" | "rollback";
   scanned: number;
   fixed_to_done: number;
   fixed_to_todo: number;
+  snapshot_id?: string | null;
 }
 
 /** Auto-oprava statusov Google-importovaných úloh podľa end-dátumu. */
 export async function fixGoogleTaskStatuses(): Promise<FixStatusesResult | null> {
   const { data, error } = await supabase.functions.invoke<FixStatusesResult>(
     "google-calendar-fix-statuses",
-    { body: {} }
+    { body: { action: "fix" } }
+  );
+  if (error) return null;
+  return data ?? null;
+}
+
+export interface RollbackStatusesResult {
+  ok: boolean;
+  action?: "rollback";
+  restored: number;
+}
+
+/** Vráti statusy späť podľa snapshotu vytvoreného pri poslednom fix-e. */
+export async function rollbackGoogleTaskStatuses(
+  snapshotId: string
+): Promise<RollbackStatusesResult | null> {
+  const { data, error } = await supabase.functions.invoke<RollbackStatusesResult>(
+    "google-calendar-fix-statuses",
+    { body: { action: "rollback", snapshot_id: snapshotId } }
   );
   if (error) return null;
   return data ?? null;
