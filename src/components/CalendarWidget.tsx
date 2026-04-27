@@ -683,18 +683,21 @@ function DayView({
             );
           })()}
 
-          {blocks.map(({ task, startSlot, lengthSlots }) => {
+          {blocks.map(({ task, startSlot, lengthSlots, mine }) => {
             const d = new Date(task.due_date!);
             const e = task.due_end ? new Date(task.due_end) : null;
             const proj = task.project_id ? projectsById.get(task.project_id) ?? null : null;
             const accent = proj?.color || myColor;
             const isDone = task.status === "done";
+            const ownerProfile = !mine && task.assignee_id ? profilesById.get(task.assignee_id) ?? null : null;
             return (
               <div
                 key={task.id}
                 data-task-block
-                className="group absolute left-12 right-2 flex gap-1 overflow-hidden rounded-md px-2 py-1 text-left text-[11px]"
+                className="group absolute flex gap-1 overflow-hidden rounded-md px-2 py-1 text-left text-[11px]"
                 style={{
+                  left: mine ? "3rem" : "calc(50% + 2px)",
+                  right: mine ? "calc(50% + 2px)" : "0.5rem",
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
                   backgroundColor: `${accent}22`,
@@ -720,6 +723,15 @@ function DayView({
                   onClick={() => onOpenTask(task)}
                   className="flex-1 overflow-hidden text-left hover:opacity-90"
                 >
+                  {ownerProfile && (
+                    <div className="flex items-center gap-1 truncate text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: ownerProfile.color || "hsl(var(--muted-foreground))" }}
+                      />
+                      <span className="truncate">{ownerProfile.full_name || ownerProfile.email || "—"}</span>
+                    </div>
+                  )}
                   {proj && (
                     <div className="flex items-center gap-1 truncate text-[10px] font-semibold" style={{ color: accent }}>
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
@@ -746,7 +758,7 @@ function DayView({
             );
           })}
 
-          {/* Google Calendar timed events — read-only, on the right half */}
+          {/* Google Calendar timed events — read-only, slim band on far right */}
           {googleTimed.map((ev) => {
             const s = new Date(ev.start!);
             const e = ev.end ? new Date(ev.end) : new Date(s.getTime() + 30 * 60 * 1000);
@@ -760,9 +772,10 @@ function DayView({
                 target="_blank"
                 rel="noreferrer"
                 data-task-block
-                className="absolute right-2 overflow-hidden rounded-md border border-dashed border-border/70 bg-surface-muted/60 px-2 py-1 text-left text-[11px] text-muted-foreground hover:bg-surface-muted"
+                className="absolute overflow-hidden rounded-md border border-dashed border-border/70 bg-surface-muted/60 px-1 py-1 text-left text-[10px] text-muted-foreground hover:bg-surface-muted"
                 style={{
-                  left: "55%",
+                  left: "calc(100% - 70px)",
+                  right: "2px",
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
                 }}
