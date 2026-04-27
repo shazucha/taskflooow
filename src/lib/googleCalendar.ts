@@ -34,6 +34,16 @@ function getFunctionErrorStatus(error: unknown): number | null {
   return null;
 }
 
+async function getFunctionErrorBody(error: unknown): Promise<string> {
+  const context = (error as { context?: unknown })?.context;
+  if (!(context instanceof Response)) return "";
+  try {
+    return await context.clone().text();
+  } catch {
+    return "";
+  }
+}
+
 function isReconnectRequired(error: unknown): boolean {
   const message = getErrorMessage(error);
   const status = getFunctionErrorStatus(error);
@@ -203,8 +213,9 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
       return data ?? { ok: true };
     }
 
-    if (isSpecialCalendarConflict(error)) {
-      return { ok: true, fallback: true, skipped: "special_event_conflict", detail: getErrorMessage(error) };
+    const errorBody = await getFunctionErrorBody(error);
+    if (isSpecialCalendarConflict(errorBody || error)) {
+      return { ok: true, fallback: true, skipped: "special_event_conflict", detail: errorBody || getErrorMessage(error) };
     }
 
     if (isReconnectRequired(error)) {
