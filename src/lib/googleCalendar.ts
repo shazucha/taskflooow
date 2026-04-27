@@ -68,6 +68,15 @@ export interface PullResult {
   updated: number;
   deleted: number;
   not_connected?: boolean;
+  imported_breakdown?: { todo: number; done: number };
+  sample?: Array<{ title: string; end: string | null; status: "todo" | "done"; reason: string }>;
+  audit?: {
+    total_google_tasks: number;
+    todo_future_ok: number;
+    done_past_ok: number;
+    todo_past_inconsistent: number;
+    done_future_inconsistent: number;
+  };
 }
 
 export interface GoogleSyncResult {

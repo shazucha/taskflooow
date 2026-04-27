@@ -165,6 +165,13 @@ Deno.serve(async (req) => {
 
     // Skip events that came from us (we set source.title = "TaskFlow")
     let imported = 0, updated = 0, deleted = 0;
+    let importedTodo = 0, importedDone = 0;
+    const auditSamples: Array<{
+      title: string;
+      end: string | null;
+      status: "todo" | "done";
+      reason: string;
+    }> = [];
 
     // Pre-fetch user's existing google-linked tasks for this owner so we don't
     // do one query per event.
@@ -244,7 +251,8 @@ Deno.serve(async (req) => {
         // Ak udalosť už skončila, vytvoríme ju rovno ako "done", aby
         // používateľ nemal v zozname stovky historických otvorených úloh.
         const endMs = end ? new Date(end).getTime() : startMs;
-        const initialStatus = endMs < Date.now() ? "done" : "todo";
+        const isPast = endMs < Date.now();
+        const initialStatus: "todo" | "done" = isPast ? "done" : "todo";
         const { error: insertErr } = await admin.from("tasks").insert({
           title,
           description,
@@ -263,6 +271,15 @@ Deno.serve(async (req) => {
           console.error("insert task failed", insertErr);
         } else {
           imported++;
+          if (initialStatus === "done") importedDone++; else importedTodo++;
+          if (auditSamples.length < 10) {
+            auditSamples.push({
+              title,
+              end: end ?? start,
+              status: initialStatus,
+              reason: isPast ? "end < now() → done" : "end >= now() → todo",
+            });
+          }
         }
       }
     }
@@ -274,7 +291,47 @@ Deno.serve(async (req) => {
         .eq("user_id", user.id);
     }
 
-    return new Response(JSON.stringify({ ok: true, imported, updated, deleted }), {
+    // Audit: skontroluj konzistenciu už uložených Google-importovaných úloh
+    // (či status zodpovedá end-dátumu).
+    const { data: allGoogleTasks } = await admin
+      .from("tasks")
+      .select("id, status, due_date, due_end")
+      .eq("google_calendar_owner", user.id)
+      .eq("google_imported", true);
+
+    const now = Date.now();
+    let auditTotal = 0;
+    let auditTodoFuture = 0;
+    let auditTodoPast = 0;   // problém: malo by byť done
+    let auditDonePast = 0;
+    let auditDoneFuture = 0; // problém: označené ako done aj keď ešte len bude
+    for (const t of allGoogleTasks ?? []) {
+      auditTotal++;
+      const endIso = t.due_end ?? t.due_date;
+      if (!endIso) continue;
+      const endMs = new Date(endIso).getTime();
+      const isPast = endMs < now;
+      if (t.status === "done" && isPast) auditDonePast++;
+      else if (t.status === "done" && !isPast) auditDoneFuture++;
+      else if (t.status !== "done" && isPast) auditTodoPast++;
+      else auditTodoFuture++;
+    }
+
+    return new Response(JSON.stringify({
+      ok: true,
+      imported,
+      updated,
+      deleted,
+      imported_breakdown: { todo: importedTodo, done: importedDone },
+      sample: auditSamples,
+      audit: {
+        total_google_tasks: auditTotal,
+        todo_future_ok: auditTodoFuture,
+        done_past_ok: auditDonePast,
+        todo_past_inconsistent: auditTodoPast,
+        done_future_inconsistent: auditDoneFuture,
+      },
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
