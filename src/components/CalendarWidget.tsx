@@ -809,9 +809,10 @@ function SelectedDayList({
 }
 
 function TaskRow({
-  task, myColor, project, onOpenTask,
+  task, myColor, project, onOpenTask, onDelete,
 }: {
   task: Task; myColor: string; project: Project | null; onOpenTask: (t: Task) => void;
+  onDelete?: (task: Task) => void | Promise<void>;
 }) {
   const timed = hasTime(task);
   const d = task.due_date ? new Date(task.due_date) : null;
@@ -855,6 +856,16 @@ function TaskRow({
             <span className={cn("flex-1 truncate", isDone && "line-through text-muted-foreground")}>{task.title}</span>
           </span>
         </button>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); void onDelete(task); }}
+            title="Vymazať úlohu"
+            className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
     </li>
   );
