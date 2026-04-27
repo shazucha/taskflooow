@@ -427,7 +427,47 @@ export function MonthlyBonusesCard({ projectId }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          {/* Prepínač typu účtovania – pri šablóne je odvodený z cenníka, dá sa však zmeniť pre vlastnú položku */}
+          {mode === "custom" && (
+            <div className="space-y-1">
+              <Label className="text-xs">Typ účtovania</Label>
+              <div className="grid grid-cols-2 gap-1 rounded-lg bg-card p-1">
+                <button
+                  type="button"
+                  onClick={() => setUnitType("piece")}
+                  className={cn(
+                    "rounded-md py-1.5 text-xs font-semibold transition",
+                    unitType === "piece"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Fixná cena / ks
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUnitType("hourly")}
+                  className={cn(
+                    "rounded-md py-1.5 text-xs font-semibold transition",
+                    unitType === "hourly"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  disabled={projectHourlyRate == null}
+                  title={projectHourlyRate == null ? "Najprv nastav hodinovku projektu" : undefined}
+                >
+                  Na hodiny
+                </button>
+              </div>
+              {unitType === "hourly" && projectHourlyRate != null && (
+                <p className="text-[10px] text-muted-foreground">
+                  Hodinovka projektu: <strong>{fmtMoney(projectHourlyRate, currency)}/h</strong>
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className={cn("grid gap-2", unitType === "hourly" ? "grid-cols-2" : "grid-cols-[80px_1fr]") }>
             <div className="space-y-1">
               <Label htmlFor="mb-qty" className="text-xs">Ks</Label>
               <Input
@@ -440,51 +480,58 @@ export function MonthlyBonusesCard({ projectId }: Props) {
                 onChange={(e) => setQty(e.target.value)}
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="mb-hours" className="text-xs">Hodiny / ks</Label>
-              <Input
-                id="mb-hours"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.25"
-                placeholder={projectHourlyRate ? `× ${projectHourlyRate}€` : "—"}
-                value={hours}
-                onChange={(e) => setHours(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="mb-price" className="text-xs">Cena / ks</Label>
-              <Input
-                id="mb-price"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                placeholder="€"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-              />
-            </div>
+            {unitType === "hourly" ? (
+              <div className="space-y-1">
+                <Label htmlFor="mb-hours" className="text-xs">Hodiny / ks</Label>
+                <Input
+                  id="mb-hours"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.25"
+                  placeholder={projectHourlyRate ? `× ${projectHourlyRate}€/h` : "nastav hodinovku projektu"}
+                  value={hours}
+                  onChange={(e) => setHours(e.target.value)}
+                />
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label htmlFor="mb-price" className="text-xs">Cena / ks</Label>
+                <Input
+                  id="mb-price"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  placeholder="€"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           {/* Live preview hodnoty */}
           {(() => {
             const qtyN = Number(qty || "1") || 1;
-            const upN = unitPrice.trim() ? Number(unitPrice) : null;
-            const hN = hours.trim() ? Number(hours) : null;
+            const upN = unitType === "piece" && unitPrice.trim() ? Number(unitPrice) : null;
+            const hN = unitType === "hourly" && hours.trim() ? Number(hours) : null;
             const value = bonusValue({
               qty: qtyN,
               unit_price: upN,
               hours: hN,
-              hourly_rate: projectHourlyRate,
+              hourly_rate: unitType === "hourly" ? projectHourlyRate : null,
+              unit_type: unitType,
             });
             if (value <= 0) return null;
             return (
               <p className="rounded-md bg-success/10 px-2 py-1.5 text-[11px] text-success">
                 Hodnota: <strong>{fmtMoney(value, currency)}</strong>
-                {hN != null && upN == null && projectHourlyRate != null && (
-                  <> · {hN}h × {fmtMoney(projectHourlyRate, currency)} × {qtyN}ks</>
+                {unitType === "hourly" && hN != null && projectHourlyRate != null && (
+                  <> · {hN}h × {fmtMoney(projectHourlyRate, currency)}{qtyN > 1 ? ` × ${qtyN}ks` : ""}</>
+                )}
+                {unitType === "piece" && upN != null && qtyN > 1 && (
+                  <> · {fmtMoney(upN, currency)} × {qtyN}ks</>
                 )}
               </p>
             );
