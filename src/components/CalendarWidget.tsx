@@ -808,10 +808,12 @@ function DayView({
 
 /* ---------------- Helpers ---------------- */
 function SelectedDayList({
-  selected, tasks, googleEvents = [], myColor, projectsById, onOpenTask, readOnly,
+  selected, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, onOpenTask, readOnly,
 }: {
   selected: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
+  profilesById: Map<string, Profile>;
+  currentUserId: string | null | undefined;
   onOpenTask: (t: Task) => void;
   readOnly?: boolean;
 }) {
@@ -826,6 +828,9 @@ function SelectedDayList({
       toast.error(msg);
     }
   };
+  const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
+  const myTasks = tasks.filter(isMine);
+  const otherTasks = tasks.filter((t) => !isMine(t));
   return (
     <div className="mt-3 border-t border-border/60 pt-3">
       <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -834,36 +839,61 @@ function SelectedDayList({
       {tasks.length === 0 && googleEvents.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">Žiadne úlohy.</p>
       ) : (
-        <>
-          <ul className="mt-2 space-y-1.5">
-            {tasks.map((t) => (
-              <TaskRow
-                key={t.id}
-                task={t}
-                myColor={myColor}
-                project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
-                onOpenTask={onOpenTask}
-                onDelete={readOnly ? undefined : handleDelete}
-              />
-            ))}
-          </ul>
-          {googleEvents.length > 0 && (
-            <ul className="mt-2 space-y-1.5">
-              {googleEvents.map((e) => (
-                <GoogleEventRow key={e.id} event={e} />
-              ))}
-            </ul>
-          )}
-        </>
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Moje</p>
+            {myTasks.length === 0 ? (
+              <p className="text-xs text-muted-foreground/70">Žiadne moje úlohy.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {myTasks.map((t) => (
+                  <TaskRow
+                    key={t.id}
+                    task={t}
+                    myColor={myColor}
+                    project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
+                    owner={null}
+                    onOpenTask={onOpenTask}
+                    onDelete={readOnly ? undefined : handleDelete}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Ostatní</p>
+            {otherTasks.length === 0 && googleEvents.length === 0 ? (
+              <p className="text-xs text-muted-foreground/70">Nič od ostatných.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {otherTasks.map((t) => (
+                  <TaskRow
+                    key={t.id}
+                    task={t}
+                    myColor={myColor}
+                    project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
+                    owner={t.assignee_id ? profilesById.get(t.assignee_id) ?? null : null}
+                    onOpenTask={onOpenTask}
+                    onDelete={readOnly ? undefined : handleDelete}
+                  />
+                ))}
+                {googleEvents.map((e) => (
+                  <GoogleEventRow key={e.id} event={e} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
 function TaskRow({
-  task, myColor, project, onOpenTask, onDelete,
+  task, myColor, project, owner, onOpenTask, onDelete,
 }: {
   task: Task; myColor: string; project: Project | null; onOpenTask: (t: Task) => void;
+  owner?: Profile | null;
   onDelete?: (task: Task) => void | Promise<void>;
 }) {
   const timed = hasTime(task);
@@ -871,6 +901,8 @@ function TaskRow({
   const accent = project?.color || myColor;
   const toggleStatus = useToggleTaskDone();
   const isDone = task.status === "done";
+  const ownerColor = owner?.color || "hsl(var(--muted-foreground))";
+  const ownerName = owner ? owner.full_name || owner.email || "—" : null;
   return (
     <li>
       <div className="group flex items-start gap-1 rounded-lg p-1.5 hover:bg-surface-muted">
@@ -892,6 +924,12 @@ function TaskRow({
           onClick={() => onOpenTask(task)}
           className="flex flex-1 flex-col gap-0.5 text-left text-xs"
         >
+          {ownerName && (
+            <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ownerColor }} />
+              <span className="truncate">{ownerName}</span>
+            </span>
+          )}
           {project && (
             <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: accent }}>
               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
