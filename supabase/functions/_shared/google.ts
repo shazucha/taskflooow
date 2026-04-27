@@ -9,9 +9,11 @@ export const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 export const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 export const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 export const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
+export const GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks.readonly";
 
 export const GOOGLE_SCOPES = [
   GOOGLE_CALENDAR_SCOPE,
+  GOOGLE_TASKS_SCOPE,
   "https://www.googleapis.com/auth/userinfo.email",
   "openid",
 ].join(" ");
@@ -19,6 +21,11 @@ export const GOOGLE_SCOPES = [
 export function hasRequiredGoogleCalendarScope(scope: string | null | undefined) {
   if (!scope) return false;
   return scope.split(/\s+/).includes(GOOGLE_CALENDAR_SCOPE);
+}
+
+export function hasRequiredGoogleTasksScope(scope: string | null | undefined) {
+  if (!scope) return false;
+  return scope.split(/\s+/).includes(GOOGLE_TASKS_SCOPE);
 }
 
 export function adminClient(): SupabaseClient {

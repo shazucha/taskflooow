@@ -11,6 +11,7 @@ import {
   getUserFromAuthHeader,
   getValidAccessToken,
   hasRequiredGoogleCalendarScope,
+  hasRequiredGoogleTasksScope,
 } from "../_shared/google.ts";
 
 interface GoogleEvent {
@@ -21,6 +22,18 @@ interface GoogleEvent {
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
   source?: { title?: string };
+  updated?: string;
+}
+
+interface GoogleTaskItem {
+  id: string;
+  title?: string;
+  notes?: string;
+  status?: "needsAction" | "completed";
+  due?: string;
+  completed?: string;
+  deleted?: boolean;
+  hidden?: boolean;
   updated?: string;
 }
 
@@ -93,6 +106,13 @@ Deno.serve(async (req) => {
     }
     if (!hasRequiredGoogleCalendarScope(tokenRow.scope)) {
       return new Response(JSON.stringify({ error: "reauth_required", detail: "missing_calendar_scope" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const canReadGoogleTasks = hasRequiredGoogleTasksScope(tokenRow.scope);
+    if (!canReadGoogleTasks) {
+      return new Response(JSON.stringify({ error: "reauth_required", detail: "missing_tasks_scope" }), {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -181,6 +201,7 @@ Deno.serve(async (req) => {
       google_event_id: string;
       title: string;
       description: string | null;
+      status: "todo" | "done";
       due_date: string | null;
       due_end: string | null;
       google_imported: boolean;
@@ -189,7 +210,7 @@ Deno.serve(async (req) => {
     const { data: existing } = eventIds.length
       ? await admin
           .from("tasks")
-          .select("id, google_event_id, title, description, due_date, due_end, google_imported")
+          .select("id, google_event_id, title, description, status, due_date, due_end, google_imported")
           .eq("google_calendar_owner", user.id)
           .in("google_event_id", eventIds)
       : { data: [] as ExistingTaskRow[] };
@@ -289,6 +310,95 @@ Deno.serve(async (req) => {
         .from("google_calendar_tokens")
         .update({ sync_token: nextSyncToken, last_pulled_at: new Date().toISOString() })
         .eq("user_id", user.id);
+    }
+
+    // Google Calendar mobile app can create Google Tasks (not Calendar Events).
+    // Import upcoming tasks from the default Google Tasks list as TaskFlow tasks.
+    if (canReadGoogleTasks) {
+      const listsRes = await fetch("https://tasks.googleapis.com/tasks/v1/users/@me/lists", {
+        headers: { Authorization: `Bearer ${tok.token}` },
+      });
+      if (listsRes.ok) {
+        const listsData = await listsRes.json();
+        const taskLists = (listsData.items ?? []) as Array<{ id: string }>;
+        for (const list of taskLists.slice(0, 5)) {
+          const url = new URL(`https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(list.id)}/tasks`);
+          url.searchParams.set("showCompleted", "true");
+          url.searchParams.set("showDeleted", "true");
+          url.searchParams.set("showHidden", "true");
+          url.searchParams.set("maxResults", "100");
+          const gTasksRes = await fetch(url.toString(), { headers: { Authorization: `Bearer ${tok.token}` } });
+          if (!gTasksRes.ok) continue;
+          const gTasksData = await gTasksRes.json();
+          const gTasks = (gTasksData.items ?? []) as GoogleTaskItem[];
+          const googleTaskIds = gTasks.map((gt) => `gtask:${list.id}:${gt.id}`);
+          const { data: existingGoogleTasks } = googleTaskIds.length
+            ? await admin
+                .from("tasks")
+                .select("id, google_event_id, title, description, status, due_date, due_end, google_imported")
+                .eq("google_calendar_owner", user.id)
+                .in("google_event_id", googleTaskIds)
+            : { data: [] as ExistingTaskRow[] };
+          const byGoogleTaskId = new Map<string, ExistingTaskRow>();
+          for (const t of existingGoogleTasks ?? []) byGoogleTaskId.set(t.google_event_id, t);
+
+          for (const gt of gTasks) {
+            const googleId = `gtask:${list.id}:${gt.id}`;
+            const existingTask = byGoogleTaskId.get(googleId);
+            if (gt.deleted || gt.hidden) {
+              if (existingTask) {
+                await admin.from("tasks").delete().eq("id", existingTask.id);
+                deleted++;
+              }
+              continue;
+            }
+            if (!gt.due) continue;
+            const dueMs = new Date(gt.due).getTime();
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            if (dueMs < todayStart.getTime() && !existingTask) continue;
+            const title = gt.title?.trim() || "(bez názvu)";
+            const description = gt.notes ?? null;
+            const initialStatus: "todo" | "done" = gt.status === "completed" ? "done" : "todo";
+            if (existingTask) {
+              const changed =
+                existingTask.title !== title ||
+                existingTask.description !== description ||
+                existingTask.due_date !== gt.due ||
+                existingTask.status !== initialStatus;
+              if (changed) {
+                await admin
+                  .from("tasks")
+                  .update({ title, description, due_date: gt.due, due_end: null, status: initialStatus })
+                  .eq("id", existingTask.id);
+                updated++;
+              }
+            } else {
+              const { error: insertErr } = await admin.from("tasks").insert({
+                title,
+                description,
+                priority: "low",
+                status: initialStatus,
+                project_id: null,
+                assignee_id: user.id,
+                created_by: user.id,
+                due_date: gt.due,
+                due_end: null,
+                google_event_id: googleId,
+                google_calendar_owner: user.id,
+                google_imported: true,
+              });
+              if (insertErr) console.error("insert google task failed", insertErr);
+              else {
+                imported++;
+                if (initialStatus === "done") importedDone++; else importedTodo++;
+              }
+            }
+          }
+        }
+      } else {
+        console.warn("google tasks list failed", listsRes.status, await listsRes.text());
+      }
     }
 
     // Audit: skontroluj konzistenciu už uložených Google-importovaných úloh
