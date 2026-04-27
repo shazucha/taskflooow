@@ -499,6 +499,11 @@ export async function createProjectMonthlyBonus(input: {
   note: string | null;
   position?: number;
   created_by: string;
+  qty?: number;
+  unit_price?: number | null;
+  hours?: number | null;
+  hourly_rate?: number | null;
+  catalog_id?: string | null;
 }): Promise<ProjectMonthlyBonus> {
   const { data, error } = await supabase
     .from("project_monthly_bonuses")
@@ -509,6 +514,11 @@ export async function createProjectMonthlyBonus(input: {
       note: input.note,
       position: input.position ?? 0,
       created_by: input.created_by,
+      qty: input.qty ?? 1,
+      unit_price: input.unit_price ?? null,
+      hours: input.hours ?? null,
+      hourly_rate: input.hourly_rate ?? null,
+      catalog_id: input.catalog_id ?? null,
     })
     .select(BONUS_COLS)
     .single();
@@ -518,7 +528,22 @@ export async function createProjectMonthlyBonus(input: {
 
 export async function updateProjectMonthlyBonus(
   id: string,
-  patch: Partial<Pick<ProjectMonthlyBonus, "title" | "note" | "done" | "done_by" | "done_at" | "position">>
+  patch: Partial<
+    Pick<
+      ProjectMonthlyBonus,
+      | "title"
+      | "note"
+      | "done"
+      | "done_by"
+      | "done_at"
+      | "position"
+      | "qty"
+      | "unit_price"
+      | "hours"
+      | "hourly_rate"
+      | "catalog_id"
+    >
+  >
 ): Promise<ProjectMonthlyBonus> {
   const { data, error } = await supabase
     .from("project_monthly_bonuses")
