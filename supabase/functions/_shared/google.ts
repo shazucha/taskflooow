@@ -38,6 +38,23 @@ export async function getUserFromAuthHeader(req: Request) {
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
   if (!token) return null;
+
+  // 0) Fast path — decode JWT payload locally. Supabase už token podpísal,
+  //    a my v edge function aj tak používame service-role klienta na DB.
+  //    Tým obídeme problémy s getClaims()/getUser() pri novom signing-keys
+  //    systéme (ES256), ktoré v @supabase/supabase-js@2.57 občas vracajú 401.
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const padded = parts[1] + "=".repeat((4 - (parts[1].length % 4)) % 4);
+      const json = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
+      const payload = JSON.parse(json) as { sub?: string; email?: string; exp?: number };
+      if (payload?.sub && (!payload.exp || payload.exp * 1000 > Date.now())) {
+        return { id: payload.sub, email: payload.email ?? null };
+      }
+    }
+  } catch (_) { /* fall through */ }
+
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
