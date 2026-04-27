@@ -262,10 +262,13 @@ Deno.serve(async (req) => {
       // (focus time, OOO, working location, fromGmail), delete + recreate.
       if (isSpecialTypeConflict(t)) {
         if (task.google_event_id) {
-          await fetch(`${base}/${task.google_event_id}`, {
+          const deleteRes = await fetch(`${base}/${task.google_event_id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${tok.token}` },
           });
+          if (!deleteRes.ok && deleteRes.status !== 404 && deleteRes.status !== 410) {
+            console.warn("Calendar special-type delete failed", deleteRes.status, await deleteRes.text());
+          }
         }
         const retry = await fetch(base, {
           method: "POST",
@@ -283,10 +286,7 @@ Deno.serve(async (req) => {
 
         const retryText = await retry.text();
         console.error("Calendar special-type recreate failed", retry.status, retryText);
-        await admin
-          .from("tasks")
-          .update({ google_event_id: null, google_calendar_owner: null })
-          .eq("id", task.id);
+        await clearGoogleMapping(admin, task.id);
         return jsonResponse({ ok: true, skipped: "special_event_conflict", detail: retryText || t });
       }
 
@@ -294,10 +294,7 @@ Deno.serve(async (req) => {
         const parsed = JSON.parse(t);
         const reasons = parsed?.error?.errors?.map((item: { reason?: string }) => item.reason).filter(Boolean) ?? [];
         if (reasons.some((reason: string) => isSpecialTypeConflict(reason))) {
-          await admin
-            .from("tasks")
-            .update({ google_event_id: null, google_calendar_owner: null })
-            .eq("id", task.id);
+          await clearGoogleMapping(admin, task.id);
           return jsonResponse({ ok: true, skipped: "special_event_conflict", detail: t });
         }
       } catch {
