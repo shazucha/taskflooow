@@ -351,18 +351,27 @@ export function useDeleteMonthlyBonus(projectId: string) {
 export function useCreateTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       task,
       watcherIds = [],
     }: {
       task: Parameters<typeof createTask>[0];
       watcherIds?: string[];
-    }) => createTask(task, watcherIds),
+    }) => {
+      const created = await createTask(task, watcherIds);
+      if (created?.id) {
+        try {
+          await syncTaskToGoogle(created.id, "upsert");
+        } catch (error) {
+          console.error("Google task sync failed after create", { taskId: created.id, error });
+        }
+      }
+      return created;
+    },
     onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
       qc.invalidateQueries({ queryKey: ["project_tasks"] });
       qc.invalidateQueries({ queryKey: ["task_watchers"] });
-      if (created?.id) fireAndForgetTaskSync(created.id, "upsert");
     },
   });
 }
