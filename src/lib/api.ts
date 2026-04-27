@@ -475,7 +475,7 @@ export async function deleteProjectMaterial(id: string): Promise<void> {
 
 // ---- Monthly bonuses (per project + konkrétny mesiac, bez šablóny)
 const BONUS_COLS =
-  "id, project_id, month_key, title, note, position, done, done_by, done_at, created_by, created_at, qty, unit_price, hours, hourly_rate, catalog_id";
+  "id, project_id, month_key, title, note, position, done, done_by, done_at, created_by, created_at, qty, unit_price, hours, hourly_rate, catalog_id, unit_type";
 
 export async function fetchProjectMonthlyBonuses(
   projectId: string,
@@ -504,6 +504,7 @@ export async function createProjectMonthlyBonus(input: {
   hours?: number | null;
   hourly_rate?: number | null;
   catalog_id?: string | null;
+  unit_type?: "piece" | "hourly";
 }): Promise<ProjectMonthlyBonus> {
   const { data, error } = await supabase
     .from("project_monthly_bonuses")
@@ -519,6 +520,7 @@ export async function createProjectMonthlyBonus(input: {
       hours: input.hours ?? null,
       hourly_rate: input.hourly_rate ?? null,
       catalog_id: input.catalog_id ?? null,
+      unit_type: input.unit_type ?? "piece",
     })
     .select(BONUS_COLS)
     .single();
@@ -542,6 +544,7 @@ export async function updateProjectMonthlyBonus(
       | "hours"
       | "hourly_rate"
       | "catalog_id"
+      | "unit_type"
     >
   >
 ): Promise<ProjectMonthlyBonus> {
@@ -561,7 +564,8 @@ export async function deleteProjectMonthlyBonus(id: string): Promise<void> {
 }
 
 // ---- Service catalog (globálny cenník extra služieb)
-const CATALOG_COLS = "id, title, unit_price, default_hours, note, position, active, created_at";
+const CATALOG_COLS =
+  "id, title, unit_price, default_hours, note, position, active, created_at, unit_type, description";
 
 export async function fetchServiceCatalog(includeInactive = false): Promise<ServiceCatalogItem[]> {
   let q = supabase.from("service_catalog").select(CATALOG_COLS);
@@ -577,6 +581,8 @@ export async function createServiceCatalogItem(input: {
   default_hours: number | null;
   note: string | null;
   position?: number;
+  unit_type?: "piece" | "hourly";
+  description?: string | null;
 }): Promise<ServiceCatalogItem> {
   const { data, error } = await supabase
     .from("service_catalog")
@@ -586,6 +592,8 @@ export async function createServiceCatalogItem(input: {
       default_hours: input.default_hours,
       note: input.note,
       position: input.position ?? 0,
+      unit_type: input.unit_type ?? "piece",
+      description: input.description ?? null,
     })
     .select(CATALOG_COLS)
     .single();
@@ -595,7 +603,12 @@ export async function createServiceCatalogItem(input: {
 
 export async function updateServiceCatalogItem(
   id: string,
-  patch: Partial<Pick<ServiceCatalogItem, "title" | "unit_price" | "default_hours" | "note" | "position" | "active">>
+  patch: Partial<
+    Pick<
+      ServiceCatalogItem,
+      "title" | "unit_price" | "default_hours" | "note" | "position" | "active" | "unit_type" | "description"
+    >
+  >
 ): Promise<ServiceCatalogItem> {
   const { data, error } = await supabase
     .from("service_catalog")
