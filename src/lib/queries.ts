@@ -628,3 +628,75 @@ export function useDeleteProjectMaterial(projectId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["project_materials", projectId] }),
   });
 }
+
+// ---- Service catalog (globálny cenník)
+export function useServiceCatalog(includeInactive = false) {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+  useEffect(() => {
+    if (!isReady || !user) return;
+    const channel = supabase
+      .channel(`service-catalog-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "service_catalog" }, () => {
+        qc.invalidateQueries({ queryKey: ["service_catalog"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isReady, user, qc]);
+  return useQuery({
+    queryKey: ["service_catalog", includeInactive],
+    queryFn: () => fetchServiceCatalog(includeInactive),
+    enabled: isReady && !!user,
+  });
+}
+
+export function useCreateServiceCatalogItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createServiceCatalogItem,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["service_catalog"] }),
+  });
+}
+
+export function useUpdateServiceCatalogItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateServiceCatalogItem>[1] }) =>
+      updateServiceCatalogItem(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["service_catalog"] }),
+  });
+}
+
+export function useDeleteServiceCatalogItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteServiceCatalogItem,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["service_catalog"] }),
+  });
+}
+
+// ---- Project service overrides (per-projekt prepis cien z cenníka)
+export function useProjectServiceOverrides(projectId: string | undefined) {
+  const { isReady, user } = useAuthReady();
+  return useQuery({
+    queryKey: ["project_service_overrides", projectId],
+    queryFn: () => fetchProjectServiceOverrides(projectId!),
+    enabled: !!projectId && isReady && !!user,
+  });
+}
+
+export function useUpsertProjectServiceOverride(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: upsertProjectServiceOverride,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_service_overrides", projectId] }),
+  });
+}
+
+export function useDeleteProjectServiceOverride(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteProjectServiceOverride,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_service_overrides", projectId] }),
+  });
+}
