@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from "./supabase";
 
 const REQUIRED_GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar";
 const REQUIRED_GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks.readonly";
@@ -8,6 +8,31 @@ const FULL_GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks";
 async function hasActiveSession(): Promise<boolean> {
   const { data } = await supabase.auth.getSession();
   return !!data.session?.access_token;
+}
+
+async function callGoogleFunction<T>(functionName: string, payload: unknown): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) throw new Error("No active session");
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    const error = new Error(`Edge function returned ${response.status}: ${body}`);
+    (error as Error & { status?: number }).status = response.status;
+    throw error;
+  }
+
+  return (await response.json()) as T;
 }
 
 function hasGoogleTasksScope(scopes: string[]) {
