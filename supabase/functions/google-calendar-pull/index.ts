@@ -106,8 +106,7 @@ Deno.serve(async (req) => {
   try {
     const user = getUserFromJwtPayload(req) ?? await getUserFromAuthHeader(req);
     if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+      return new Response(JSON.stringify({ ok: true, not_connected: true, not_authenticated: true, imported: 0, updated: 0, deleted: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

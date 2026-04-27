@@ -15,8 +15,7 @@ Deno.serve(async (req) => {
   try {
     const user = await getUserFromAuthHeader(req);
     if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+      return new Response(JSON.stringify({ ok: true, events: [], not_connected: true, not_authenticated: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
