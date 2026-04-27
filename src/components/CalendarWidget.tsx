@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUserId, useDeleteTask, useProfiles, useProjects, useTaskWatchers, useTasks, useToggleTaskDone } from "@/lib/queries";
-import type { Project, Task } from "@/lib/types";
+import type { Profile, Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
 import { fetchGoogleEvents, GoogleReconnectRequiredError, pullGoogleEvents, type GoogleEvent } from "@/lib/googleCalendar";
