@@ -37,10 +37,22 @@ function bonusValue(b: {
   unit_price: number | null;
   hours: number | null;
   hourly_rate: number | null;
+  unit_type?: "piece" | "hourly";
 }): number {
-  // Preferujeme jednotkovú cenu × množstvo. Ak nie je, počítame hodiny × hodinovka.
-  if (b.unit_price != null) return Number(b.unit_price) * Number(b.qty || 1);
-  if (b.hours != null && b.hourly_rate != null) return Number(b.hours) * Number(b.hourly_rate);
+  const qty = Number(b.qty || 1);
+  // Ak je položka explicitne hodinová, počítame hodiny × hodinovka × ks.
+  if (b.unit_type === "hourly") {
+    if (b.hours != null && b.hourly_rate != null) {
+      return Number(b.hours) * Number(b.hourly_rate) * qty;
+    }
+    return 0;
+  }
+  // Inak preferujeme fixnú jednotkovú cenu × ks.
+  if (b.unit_price != null) return Number(b.unit_price) * qty;
+  // Fallback (staré dáta bez unit_type): ak má hodiny + hodinovku, počítaj.
+  if (b.hours != null && b.hourly_rate != null) {
+    return Number(b.hours) * Number(b.hourly_rate) * qty;
+  }
   return 0;
 }
 
