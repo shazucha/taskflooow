@@ -195,6 +195,7 @@ Deno.serve(async (req) => {
       google_event_id: string;
       title: string;
       description: string | null;
+      status: "todo" | "done";
       due_date: string | null;
       due_end: string | null;
       google_imported: boolean;
@@ -203,7 +204,7 @@ Deno.serve(async (req) => {
     const { data: existing } = eventIds.length
       ? await admin
           .from("tasks")
-          .select("id, google_event_id, title, description, due_date, due_end, google_imported")
+          .select("id, google_event_id, title, description, status, due_date, due_end, google_imported")
           .eq("google_calendar_owner", user.id)
           .in("google_event_id", eventIds)
       : { data: [] as ExistingTaskRow[] };
