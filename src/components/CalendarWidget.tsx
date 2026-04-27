@@ -529,10 +529,12 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, googleEvents = [], myColor, projectsById, readOnly, onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, readOnly, onOpenTask, onCreateSlot, onCreateRange,
 }: {
   date: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
+  profilesById: Map<string, Profile>;
+  currentUserId: string | null | undefined;
   readOnly?: boolean;
   onOpenTask: (t: Task) => void;
   onCreateSlot: (slotIdx: number) => void;
@@ -555,6 +557,10 @@ function DayView({
     .filter((t) => hasTime(t))
     .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
 
+  const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
+  const allDayMine = allDay.filter(isMine);
+  const allDayOthers = allDay.filter((t) => !isMine(t));
+
   const googleAllDay = googleEvents.filter((e) => e.all_day);
   const googleTimed = googleEvents.filter((e) => !e.all_day && e.start);
 
@@ -567,7 +573,7 @@ function DayView({
       const endSlot = e.getHours() * 2 + Math.ceil(e.getMinutes() / 30);
       lengthSlots = Math.max(1, endSlot - startSlot);
     }
-    return { task: t, startSlot, lengthSlots };
+    return { task: t, startSlot, lengthSlots, mine: isMine(t) };
   });
 
   const gridRef = useRef<HTMLDivElement>(null);
@@ -585,10 +591,33 @@ function DayView({
       {(allDay.length > 0 || googleAllDay.length > 0) && (
         <div>
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
-          <ul className="space-y-1">
-            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />)}
-            {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
-          </ul>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Moje</p>
+              {allDayMine.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground/70">—</p>
+              ) : (
+                <ul className="space-y-1">
+                  {allDayMine.map((t) => (
+                    <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} owner={null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Ostatní</p>
+              {allDayOthers.length === 0 && googleAllDay.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground/70">—</p>
+              ) : (
+                <ul className="space-y-1">
+                  {allDayOthers.map((t) => (
+                    <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} owner={t.assignee_id ? profilesById.get(t.assignee_id) ?? null : null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />
+                  ))}
+                  {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
