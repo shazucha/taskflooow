@@ -1,11 +1,13 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import {
   GOOGLE_CALENDAR_SCOPE,
+  GOOGLE_TASKS_SCOPE,
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
   adminClient,
   getUserFromAuthHeader,
   hasRequiredGoogleCalendarScope,
+  hasRequiredGoogleTasksScope,
 } from "../_shared/google.ts";
 
 Deno.serve(async (req) => {
@@ -59,6 +61,16 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         error: "insufficient_scope",
         message: `Google nevrátil povolenie ${GOOGLE_CALENDAR_SCOPE}`,
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!hasRequiredGoogleTasksScope(tokens.scope)) {
+      return new Response(JSON.stringify({
+        error: "insufficient_scope",
+        message: `Google nevrátil povolenie ${GOOGLE_TASKS_SCOPE}`,
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
