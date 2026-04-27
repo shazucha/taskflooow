@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from "./supabase";
 
 const REQUIRED_GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar";
 const REQUIRED_GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks.readonly";
@@ -8,6 +8,31 @@ const FULL_GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks";
 async function hasActiveSession(): Promise<boolean> {
   const { data } = await supabase.auth.getSession();
   return !!data.session?.access_token;
+}
+
+async function callGoogleFunction<T>(functionName: string, payload: unknown): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) throw new Error("No active session");
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    const error = new Error(`Edge function returned ${response.status}: ${body}`);
+    (error as Error & { status?: number }).status = response.status;
+    throw error;
+  }
+
+  return (await response.json()) as T;
 }
 
 function hasGoogleTasksScope(scopes: string[]) {
@@ -36,6 +61,8 @@ function getErrorMessage(error: unknown): string {
 }
 
 function getFunctionErrorStatus(error: unknown): number | null {
+  const directStatus = (error as { status?: unknown })?.status;
+  if (typeof directStatus === "number") return directStatus;
   const context = (error as { context?: unknown })?.context;
   if (context instanceof Response) return context.status;
   if (context && typeof context === "object" && "status" in context) {
@@ -108,11 +135,14 @@ export async function disconnectGoogle(): Promise<void> {
 export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<GoogleEvent[]> {
   // No session yet (first paint / signed out) — skip silently to avoid 401 noise.
   if (!(await hasActiveSession())) return [];
-  const { data, error } = await supabase.functions.invoke<{ events: GoogleEvent[]; not_connected?: boolean }>(
-    "google-calendar-fetch",
-    { body: { time_min: timeMin.toISOString(), time_max: timeMax.toISOString() } }
-  );
-  if (error) {
+  try {
+    const data = await callGoogleFunction<{ events: GoogleEvent[]; not_connected?: boolean }>("google-calendar-fetch", {
+      time_min: timeMin.toISOString(),
+      time_max: timeMax.toISOString(),
+    });
+    if (data?.not_connected) return [];
+    return data?.events ?? [];
+  } catch (error) {
     const message = error.message || "";
     if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
       throw new GoogleReconnectRequiredError();
@@ -123,8 +153,6 @@ export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<G
     if (getFunctionErrorStatus(error) === 401) return [];
     throw error;
   }
-  if (data?.not_connected) return [];
-  return data?.events ?? [];
 }
 
 export interface PullResult {
@@ -163,8 +191,9 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
   // Skúsime až 5x s narastajúcim backoffom — ostatné chyby propagujeme hneď.
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < 5; attempt++) {
-    const { data, error } = await supabase.functions.invoke<PullResult>("google-calendar-pull", { body: {} });
-    if (!error) return data ?? null;
+    try {
+      return await callGoogleFunction<PullResult>("google-calendar-pull", {});
+    } catch (error) {
     if (isReconnectRequired(error)) {
       throw new GoogleReconnectRequiredError();
     }
@@ -175,6 +204,7 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
     lastErr = error;
     if (!isTransientFunctionError(error)) return null;
     await new Promise((r) => setTimeout(r, 800 * (attempt + 1) + Math.random() * 400));
+    }
   }
   console.warn("pullGoogleEvents failed after retries", lastErr);
   return null;
