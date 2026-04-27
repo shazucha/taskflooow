@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Calendar, ClipboardCheck, Loader2, Unlink, Wrench } from "lucide-react";
+import { Calendar, ClipboardCheck, Loader2, Undo2, Unlink, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   disconnectGoogle,
   fixGoogleTaskStatuses,
   isGoogleConnected,
   pullGoogleEvents,
+  rollbackGoogleTaskStatuses,
   startGoogleOAuth,
   type PullResult,
 } from "@/lib/googleCalendar";
@@ -19,6 +20,9 @@ export function GoogleCalendarConnect() {
   const [auditing, setAuditing] = useState(false);
   const [audit, setAudit] = useState<PullResult | null>(null);
   const [fixing, setFixing] = useState(false);
+  const [lastSnapshotId, setLastSnapshotId] = useState<string | null>(null);
+  const [lastFixCount, setLastFixCount] = useState<number>(0);
+  const [rollingBack, setRollingBack] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -82,9 +86,17 @@ export function GoogleCalendarConnect() {
         toast.error("Oprava zlyhala");
         return;
       }
+      const total = r.fixed_to_done + r.fixed_to_todo;
       toast.success(
         `Opravené: ${r.fixed_to_done} → done, ${r.fixed_to_todo} → todo (${r.scanned} kontrolovaných)`
       );
+      if (r.snapshot_id && total > 0) {
+        setLastSnapshotId(r.snapshot_id);
+        setLastFixCount(total);
+      } else {
+        setLastSnapshotId(null);
+        setLastFixCount(0);
+      }
       // Znovu spusti audit, aby sa karta aktualizovala.
       const a = await pullGoogleEvents();
       if (a) setAudit(a);
@@ -92,6 +104,27 @@ export function GoogleCalendarConnect() {
       toast.error(e instanceof Error ? e.message : "Chyba");
     } finally {
       setFixing(false);
+    }
+  };
+
+  const runRollback = async () => {
+    if (!lastSnapshotId) return;
+    setRollingBack(true);
+    try {
+      const r = await rollbackGoogleTaskStatuses(lastSnapshotId);
+      if (!r) {
+        toast.error("Rollback zlyhal");
+        return;
+      }
+      toast.success(`Vrátených ${r.restored} úloh do pôvodného stavu`);
+      setLastSnapshotId(null);
+      setLastFixCount(0);
+      const a = await pullGoogleEvents();
+      if (a) setAudit(a);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Chyba");
+    } finally {
+      setRollingBack(false);
     }
   };
 
@@ -175,6 +208,18 @@ export function GoogleCalendarConnect() {
                 >
                   {fixing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
                   Oprav nekonzistentné úlohy
+                </Button>
+              )}
+              {lastSnapshotId && lastFixCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={runRollback}
+                  disabled={rollingBack}
+                  className="ml-2 mt-2 h-7 gap-1.5 px-2 text-xs"
+                >
+                  {rollingBack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
+                  Vrátiť späť ({lastFixCount})
                 </Button>
               )}
             </div>
