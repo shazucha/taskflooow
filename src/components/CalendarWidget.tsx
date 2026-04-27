@@ -65,6 +65,11 @@ interface CalendarWidgetProps {
    * `null`/undefined = all team members.
    */
   teamFocusUserId?: string | null;
+  /**
+   * If set, calendar shows ALL tasks belonging to this project (regardless of assignee/watcher).
+   * New tasks created from the calendar are pre-assigned to this project.
+   */
+  projectId?: string;
 }
 
 export function CalendarWidget({
@@ -72,6 +77,7 @@ export function CalendarWidget({
   readOnly = false,
   mode = "personal",
   teamFocusUserId = null,
+  projectId,
 }: CalendarWidgetProps = {}) {
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => new Date());
@@ -102,6 +108,10 @@ export function CalendarWidget({
   }, [profiles]);
 
   const myTasks = useMemo(() => {
+    if (projectId) {
+      // Project mode: all tasks of this project that have a due date
+      return tasks.filter((t) => t.due_date && t.project_id === projectId);
+    }
     if (mode === "team") {
       // Team mode: show tasks of all members, optionally focused on a single user
       if (teamFocusUserId) {
@@ -116,7 +126,7 @@ export function CalendarWidget({
     }
     // Personal mode: ONLY tasks where I am the assignee (no watcher leak, no others)
     return tasks.filter((t) => t.due_date && t.assignee_id === targetUserId);
-  }, [tasks, watchers, targetUserId, mode, teamFocusUserId]);
+  }, [tasks, watchers, targetUserId, mode, teamFocusUserId, projectId]);
 
   const tasksByDay = useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -134,7 +144,7 @@ export function CalendarWidget({
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const warnedReconnectRef = useRef(false);
   const googlePullInFlightRef = useRef<Promise<void> | null>(null);
-  const showGoogle = !userId || userId === currentUserId;
+  const showGoogle = !projectId && (!userId || userId === currentUserId);
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -406,6 +416,7 @@ export function CalendarWidget({
 
       <NewTaskDialog
         hideTrigger
+        defaultProjectId={projectId}
         open={createOpen}
         onOpenChange={(v) => {
           setCreateOpen(v);

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronDown, NotebookPen } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronDown, NotebookPen } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
@@ -14,6 +14,7 @@ import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import { ProjectAccessCard } from "@/components/ProjectAccessCard";
 import { EditableProjectHeader } from "@/components/EditableProjectHeader";
 import { MonthFilter } from "@/components/MonthFilter";
+import { CalendarWidget } from "@/components/CalendarWidget";
 import type { Task } from "@/lib/types";
 import { useCurrentUserId, useIsAppAdmin, useProjects, useProjectTasks } from "@/lib/queries";
 
@@ -77,6 +78,13 @@ export default function ProjectDetail() {
           <ProjectMaterialsCard projectId={project.id} />
           <MonthlyDeliverablesCard projectId={project.id} />
           <MonthlyBonusesCard projectId={project.id} />
+
+          <section>
+            <h2 className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <CalendarDays className="h-4 w-4" /> Kalendár projektu
+            </h2>
+            <CalendarWidget projectId={project.id} readOnly={!(isAdmin || isOwner)} />
+          </section>
 
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Úlohy</h2>
