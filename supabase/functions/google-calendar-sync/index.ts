@@ -155,7 +155,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, skipped: "user_not_connected" });
     }
 
-    const start = new Date(task.due_date);
+    // hasInterval kontrola vyššie už zaručila task.due_date != null
+    const start = new Date(task.due_date!);
     const end = task.due_end ? new Date(task.due_end) : new Date(start.getTime() + 30 * 60 * 1000);
     const eventBody = {
       summary: task.title,
