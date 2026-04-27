@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Calendar, ClipboardCheck, Loader2, Undo2, Unlink, Wrench } from "lucide-react";
+import { AlertTriangle, Calendar, ClipboardCheck, Loader2, RefreshCw, Undo2, Unlink, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   disconnectGoogle,
@@ -24,6 +24,7 @@ export function GoogleCalendarConnect() {
   const [lastSnapshotId, setLastSnapshotId] = useState<string | null>(null);
   const [lastFixCount, setLastFixCount] = useState<number>(0);
   const [rollingBack, setRollingBack] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -130,6 +131,41 @@ export function GoogleCalendarConnect() {
     }
   };
 
+  const runRetrySync = async () => {
+    setRetrying(true);
+    setAudit(null);
+    try {
+      const status = await getGoogleConnectionStatus();
+      setConnected(status.connected);
+      setEmail(status.email);
+      setHasTasksScope(status.hasTasksScope);
+
+      if (!status.connected) {
+        toast.error("Google nie je pripojený");
+        return;
+      }
+
+      const r = await pullGoogleEvents();
+      if (!r) {
+        toast.error("Retry sync zlyhal");
+        return;
+      }
+      setAudit(r);
+      toast.success(
+        `Retry sync hotový: +${r.imported}, ✎${r.updated}, ✕${r.deleted}`
+      );
+
+      const after = await getGoogleConnectionStatus();
+      setConnected(after.connected);
+      setEmail(after.email);
+      setHasTasksScope(after.hasTasksScope);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Chyba");
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   return (
     <section className="card-elevated mt-4 p-4">
       <div className="flex items-start gap-3">
@@ -166,6 +202,16 @@ export function GoogleCalendarConnect() {
               >
                 {auditing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardCheck className="h-3.5 w-3.5" />}
                 Sync + audit
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={runRetrySync}
+                disabled={retrying || auditing}
+                className="h-7 gap-1.5 px-2 text-xs"
+              >
+                {retrying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                Retry sync
               </Button>
             </div>
           ) : (
