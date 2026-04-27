@@ -359,6 +359,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           myColor={myColor}
           projectsById={projectsById}
           onOpenTask={setOpenTask}
+          readOnly={isReadOnly}
         />
       )}
 
