@@ -165,7 +165,7 @@ export const PRIORITY_META: Record<Priority, { label: string; dot: string; soft:
 };
 
 export const STATUS_LABEL: Record<TaskStatus, string> = {
-  todo: "Nezačaté",
-  in_progress: "Prebieha",
-  done: "Hotové",
+  todo: "Nedokončená",
+  in_progress: "Nedokončená",
+  done: "Dokončená",
 };
