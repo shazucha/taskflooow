@@ -554,13 +554,14 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, readOnly, onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, readOnly, mode = "personal", onOpenTask, onCreateSlot, onCreateRange,
 }: {
   date: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
   profilesById: Map<string, Profile>;
   currentUserId: string | null | undefined;
   readOnly?: boolean;
+  mode?: "personal" | "team";
   onOpenTask: (t: Task) => void;
   onCreateSlot: (slotIdx: number) => void;
   onCreateRange: (startSlot: number, endSlot: number) => void;
@@ -585,6 +586,7 @@ function DayView({
   const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
   const allDayMine = allDay.filter(isMine);
   const allDayOthers = allDay.filter((t) => !isMine(t));
+  const splitView = mode === "team";
 
   const googleAllDay = googleEvents.filter((e) => e.all_day);
   const googleTimed = googleEvents.filter((e) => !e.all_day && e.start);
@@ -616,6 +618,7 @@ function DayView({
       {(allDay.length > 0 || googleAllDay.length > 0) && (
         <div>
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
+          {splitView ? (
           <div className="grid gap-2 sm:grid-cols-2">
             <div>
               <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Moje</p>
@@ -643,6 +646,22 @@ function DayView({
               )}
             </div>
           </div>
+          ) : (
+            <ul className="space-y-1">
+              {allDay.map((t) => (
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  myColor={myColor}
+                  project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
+                  owner={isMine(t) ? null : t.assignee_id ? profilesById.get(t.assignee_id) ?? null : null}
+                  onOpenTask={onOpenTask}
+                  onDelete={readOnly ? undefined : handleDelete}
+                />
+              ))}
+              {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
+            </ul>
+          )}
         </div>
       )}
 
@@ -715,14 +734,17 @@ function DayView({
             const accent = proj?.color || myColor;
             const isDone = task.status === "done";
             const ownerProfile = !mine && task.assignee_id ? profilesById.get(task.assignee_id) ?? null : null;
+            // In personal mode all blocks span full width; in team mode keep mine/others split
+            const left = splitView ? (mine ? "3rem" : "calc(50% + 2px)") : "3rem";
+            const right = splitView ? (mine ? "calc(50% + 2px)" : "0.5rem") : "0.5rem";
             return (
               <div
                 key={task.id}
                 data-task-block
                 className="group absolute flex gap-1 overflow-hidden rounded-md px-2 py-1 text-left text-[11px]"
                 style={{
-                  left: mine ? "3rem" : "calc(50% + 2px)",
-                  right: mine ? "calc(50% + 2px)" : "0.5rem",
+                  left,
+                  right,
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
                   backgroundColor: `${accent}22`,
