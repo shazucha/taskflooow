@@ -1,7 +1,7 @@
 // Shared helpers for Google OAuth + Calendar API.
 // Used by all google-* edge functions.
 
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2.104.0";
 
 export const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") ?? "";
 export const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") ?? "";
@@ -37,9 +37,10 @@ export function adminClient(): SupabaseClient {
 }
 
 export async function getUserFromAuthHeader(req: Request) {
-  const authHeader = req.headers.get("Authorization") ?? "";
+  const authHeader = req.headers.get("x-user-authorization") ?? req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
   if (!token) return null;
+  if (token === SUPABASE_ANON_KEY || token === SUPABASE_SERVICE_ROLE_KEY) return null;
 
   // 0) Fast path — decode JWT payload locally. Supabase už token podpísal,
   //    a my v edge function aj tak používame service-role klienta na DB.
