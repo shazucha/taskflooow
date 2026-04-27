@@ -79,6 +79,12 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
   const owner = profiles.find((p) => p.id === targetUserId);
   const myColor = owner?.color || "hsl(var(--primary))";
 
+  const profilesById = useMemo(() => {
+    const m = new Map<string, Profile>();
+    for (const p of profiles) m.set(p.id, p);
+    return m;
+  }, [profiles]);
+
   const myTasks = useMemo(
     () =>
       tasks.filter(
@@ -322,6 +328,8 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           googleEvents={googleByDay.get(dayKey(cursor)) ?? []}
           myColor={myColor}
           projectsById={projectsById}
+          profilesById={profilesById}
+          currentUserId={targetUserId}
           readOnly={isReadOnly}
           onOpenTask={setOpenTask}
           onCreateSlot={(slotIdx) => {
@@ -358,6 +366,8 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           googleEvents={googleByDay.get(dayKey(selected)) ?? []}
           myColor={myColor}
           projectsById={projectsById}
+          profilesById={profilesById}
+          currentUserId={targetUserId}
           onOpenTask={setOpenTask}
           readOnly={isReadOnly}
         />
