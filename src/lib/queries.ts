@@ -59,8 +59,9 @@ export function useCurrentUserId() {
 
 const ADMIN_EMAIL = "hazucha.stano@gmail.com";
 export function useIsAppAdmin() {
-  const { user } = useSession();
-  return !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL;
+  const { user, loading } = useSession();
+  const isAdmin = !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL;
+  return { isAdmin, loading };
 }
 
 export function useProjectMembers(projectId: string | undefined) {
