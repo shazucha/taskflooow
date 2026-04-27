@@ -37,8 +37,16 @@ function isSpecialTypeConflict(detail: string) {
 }
 
 function hasTime(iso: string) {
+  // Pracujeme s reťazcom v UTC (z DB chodí "...Z"), aby sme nezáviseli od
+  // timezone servera. Mobil aj desktop posielajú ISO; ak hodina/minúta
+  // v UTC nie je 00:00, považujeme to za "má čas".
+  // Zároveň: ak má string vôbec časovú časť ("T..."), berieme to za čas.
+  // (Predtým funkcia používala lokálne getHours/getMinutes, čo na rôznych
+  // platformách viedlo k preskakovaniu syncu.)
+  if (!iso.includes("T")) return false;
   const d = new Date(iso);
-  return d.getHours() !== 0 || d.getMinutes() !== 0;
+  if (isNaN(d.getTime())) return false;
+  return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
 }
 
 Deno.serve(async (req) => {
@@ -96,8 +104,14 @@ Deno.serve(async (req) => {
     }
 
     // ---- UPSERT
-    // Skip if no time (we only sync timed tasks)
-    if (!task.due_date || !hasTime(task.due_date)) {
+    // Synchronizujeme iba úlohy, ktoré majú definovaný interval:
+    //   - musia mať due_date (začiatok)
+    //   - a buď due_end (koniec) alebo non-zero čas v due_date.
+    // Toto rovnako funguje na desktope aj mobile (predtým spoliehalo na
+    // lokálny getHours, čo pri rôznych timezone fallback-och viedlo k
+    // preskakovaniu syncu na mobile).
+    const hasInterval = !!task.due_date && (!!task.due_end || hasTime(task.due_date));
+    if (!hasInterval) {
       // If we previously synced and now lost the time, delete the event
       if (task.google_event_id && targetUserId) {
         const tok = await getValidAccessToken(admin, targetUserId);
@@ -141,7 +155,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, skipped: "user_not_connected" });
     }
 
-    const start = new Date(task.due_date);
+    // hasInterval kontrola vyššie už zaručila task.due_date != null
+    const start = new Date(task.due_date!);
     const end = task.due_end ? new Date(task.due_end) : new Date(start.getTime() + 30 * 60 * 1000);
     const eventBody = {
       summary: task.title,
