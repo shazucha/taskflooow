@@ -151,26 +151,35 @@ export async function rollbackGoogleTaskStatuses(
 }
 
 export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delete" = "upsert"): Promise<GoogleSyncResult> {
-  const { data, error } = await supabase.functions.invoke<GoogleSyncResult>("google-calendar-sync", {
-    body: { action, task_id: taskId },
-  });
+  // Edge runtime občas vráti 503 (studený štart / dočasná nedostupnosť).
+  // Skúsime až 3x s krátkym backoffom — ostatné chyby propagujeme hneď.
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await supabase.functions.invoke<GoogleSyncResult>("google-calendar-sync", {
+      body: { action, task_id: taskId },
+    });
 
-  if (error) {
+    if (!error) {
+      if (data?.error) {
+        if (data.fallback || data.skipped) return data;
+        throw new Error(data.detail || data.error);
+      }
+      return data ?? { ok: true };
+    }
+
     const message = error.message || "";
     if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
       throw new GoogleReconnectRequiredError();
     }
-    throw error;
+    const isTransient =
+      message.includes("503") ||
+      message.includes("temporarily unavailable") ||
+      message.includes("SUPABASE_EDGE_RUNTIME_ERROR");
+    lastError = error;
+    if (!isTransient) throw error;
+    await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
   }
-
-  if (data?.error) {
-    if (data.fallback || data.skipped) {
-      return data;
-    }
-    throw new Error(data.detail || data.error);
-  }
-
-  return data ?? { ok: true };
+  throw lastError instanceof Error ? lastError : new Error("google-calendar-sync unavailable");
 }
 
 export async function isGoogleConnected(): Promise<{ connected: boolean; email: string | null }> {
