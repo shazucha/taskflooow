@@ -692,6 +692,16 @@ function DayView({
                   </div>
                   <div className={cn("truncate font-semibold", isDone && "line-through")}>{task.title}</div>
                 </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={(ev) => { ev.stopPropagation(); void handleDelete(task); }}
+                    title="Vymazať úlohu"
+                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             );
           })}
