@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Calendar, ClipboardCheck, Loader2, Unlink } from "lucide-react";
+import { Calendar, ClipboardCheck, Loader2, Unlink, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   disconnectGoogle,
+  fixGoogleTaskStatuses,
   isGoogleConnected,
   pullGoogleEvents,
   startGoogleOAuth,
@@ -17,6 +18,7 @@ export function GoogleCalendarConnect() {
   const [email, setEmail] = useState<string | null>(null);
   const [auditing, setAuditing] = useState(false);
   const [audit, setAudit] = useState<PullResult | null>(null);
+  const [fixing, setFixing] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -69,6 +71,27 @@ export function GoogleCalendarConnect() {
       toast.error(e instanceof Error ? e.message : "Chyba");
     } finally {
       setAuditing(false);
+    }
+  };
+
+  const runFix = async () => {
+    setFixing(true);
+    try {
+      const r = await fixGoogleTaskStatuses();
+      if (!r) {
+        toast.error("Oprava zlyhala");
+        return;
+      }
+      toast.success(
+        `Opravené: ${r.fixed_to_done} → done, ${r.fixed_to_todo} → todo (${r.scanned} kontrolovaných)`
+      );
+      // Znovu spusti audit, aby sa karta aktualizovala.
+      const a = await pullGoogleEvents();
+      if (a) setAudit(a);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Chyba");
+    } finally {
+      setFixing(false);
     }
   };
 
@@ -143,6 +166,17 @@ export function GoogleCalendarConnect() {
                   ⚠️ done, ale ešte len bude: <strong>{audit.audit.done_future_inconsistent}</strong>
                 </li>
               </ul>
+              {(audit.audit.todo_past_inconsistent > 0 || audit.audit.done_future_inconsistent > 0) && (
+                <Button
+                  size="sm"
+                  onClick={runFix}
+                  disabled={fixing}
+                  className="mt-2 h-7 gap-1.5 px-2 text-xs"
+                >
+                  {fixing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
+                  Oprav nekonzistentné úlohy
+                </Button>
+              )}
             </div>
           )}
 

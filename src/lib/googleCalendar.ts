@@ -102,6 +102,23 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
   return data ?? null;
 }
 
+export interface FixStatusesResult {
+  ok: boolean;
+  scanned: number;
+  fixed_to_done: number;
+  fixed_to_todo: number;
+}
+
+/** Auto-oprava statusov Google-importovaných úloh podľa end-dátumu. */
+export async function fixGoogleTaskStatuses(): Promise<FixStatusesResult | null> {
+  const { data, error } = await supabase.functions.invoke<FixStatusesResult>(
+    "google-calendar-fix-statuses",
+    { body: {} }
+  );
+  if (error) return null;
+  return data ?? null;
+}
+
 export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delete" = "upsert"): Promise<GoogleSyncResult> {
   const { data, error } = await supabase.functions.invoke<GoogleSyncResult>("google-calendar-sync", {
     body: { action, task_id: taskId },
