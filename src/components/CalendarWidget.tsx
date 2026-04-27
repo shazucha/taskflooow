@@ -5,6 +5,7 @@ import { useCurrentUserId, useDeleteTask, useProfiles, useProjects, useTaskWatch
 import type { Profile, Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
+import { InlineTaskComposer } from "./InlineTaskComposer";
 import { fetchGoogleEvents, GoogleReconnectRequiredError, pullGoogleEvents, type GoogleEvent } from "@/lib/googleCalendar";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -426,6 +427,18 @@ export function CalendarWidget({
         defaultDueTime={prefill?.time}
         defaultEndTime={prefill?.end}
       />
+
+      {projectId && prefill && !isReadOnly && (
+        <InlineTaskComposer
+          projectId={projectId}
+          date={prefill.date}
+          time={prefill.time}
+          endTime={prefill.end}
+          onClose={() => {
+            setPrefill(null);
+          }}
+        />
+      )}
     </div>
   );
 }
