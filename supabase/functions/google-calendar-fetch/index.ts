@@ -1,5 +1,8 @@
 // Fetch events from the current user's Google Calendar.
 // Body: { time_min: string, time_max: string }
+// NOTE: verify_jwt = false (see supabase/config.toml). Auth is validated in code
+// via getUserFromAuthHeader. This avoids the gateway returning 401 before our
+// function can run (which happens when the deployed verify_jwt flag is stale).
 
 import { corsHeaders } from "../_shared/cors.ts";
 import {
