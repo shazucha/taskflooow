@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/useSession";
 import { toast } from "sonner";
+import { InstallAppButton } from "@/components/InstallAppButton";
 
 export default function Auth() {
   const { user, loading } = useSession();
@@ -71,6 +72,20 @@ export default function Auth() {
             Účet ti vytvorí administrátor.
           </p>
         </form>
+
+        <div className="mt-6">
+          <div className="relative mb-4 flex items-center">
+            <div className="flex-grow border-t border-border" />
+            <span className="mx-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              alebo
+            </span>
+            <div className="flex-grow border-t border-border" />
+          </div>
+          <InstallAppButton />
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">
+            Nainštaluj si TaskFlow ako aplikáciu na svoj telefón alebo počítač.
+          </p>
+        </div>
       </div>
     </div>
   );
