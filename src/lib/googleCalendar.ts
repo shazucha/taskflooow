@@ -106,6 +106,8 @@ export async function disconnectGoogle(): Promise<void> {
 }
 
 export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<GoogleEvent[]> {
+  // No session yet (first paint / signed out) — skip silently to avoid 401 noise.
+  if (!(await hasActiveSession())) return [];
   const { data, error } = await supabase.functions.invoke<{ events: GoogleEvent[]; not_connected?: boolean }>(
     "google-calendar-fetch",
     { body: { time_min: timeMin.toISOString(), time_max: timeMax.toISOString() } }
@@ -150,6 +152,9 @@ export interface GoogleSyncResult {
 
 /** Pull events FROM Google INTO TaskFlow tasks. Returns counts of changes. */
 export async function pullGoogleEvents(): Promise<PullResult | null> {
+  // Skip if not authenticated yet — invoke would send no Authorization header
+  // and the edge function would return 401.
+  if (!(await hasActiveSession())) return null;
   // Edge runtime občas vráti 503 (studený štart / dočasná nedostupnosť).
   // Skúsime až 5x s narastajúcim backoffom — ostatné chyby propagujeme hneď.
   let lastErr: unknown = null;
