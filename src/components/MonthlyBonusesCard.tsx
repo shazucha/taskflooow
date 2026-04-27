@@ -89,15 +89,17 @@ export function MonthlyBonusesCard({ projectId }: Props) {
   }, [catalog, overrideMap]);
 
   const [adding, setAdding] = useState(false);
-  // 'template' | 'custom'
-  const [mode, setMode] = useState<"template" | "custom">("template");
+  // 'template' | 'custom_piece' | 'custom_hourly'
+  const [mode, setMode] = useState<"template" | "custom_piece" | "custom_hourly">("template");
   const [catalogId, setCatalogId] = useState<string>("");
   const [qty, setQty] = useState<string>("1");
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [unitPrice, setUnitPrice] = useState<string>("");
   const [hours, setHours] = useState<string>("");
-  const [unitType, setUnitType] = useState<"piece" | "hourly">("piece");
+
+  // Typ účtovania je odvodený priamo z módu (alebo zo šablóny pri 'template').
+  const customUnitType: "piece" | "hourly" = mode === "custom_hourly" ? "hourly" : "piece";
 
   const [taskOpen, setTaskOpen] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
@@ -121,7 +123,6 @@ export function MonthlyBonusesCard({ projectId }: Props) {
     setNote("");
     setUnitPrice("");
     setHours("");
-    setUnitType("piece");
   };
 
   const onPickTemplate = (id: string) => {
@@ -129,7 +130,6 @@ export function MonthlyBonusesCard({ projectId }: Props) {
     const item = effectiveCatalog.find((c) => c.id === id);
     if (item) {
       setTitle(item.title);
-      setUnitType(item.unit_type);
       if (item.unit_type === "hourly") {
         // Pri hodinovej službe nepredvyplníme cenu/ks – počíta sa hodiny × hodinovka projektu.
         setUnitPrice("");
@@ -148,13 +148,28 @@ export function MonthlyBonusesCard({ projectId }: Props) {
     const qtyNum = Number(qty || "1") || 1;
     let hoursNum = hours.trim() ? Number(hours) : null;
     let unitPriceNum = unitPrice.trim() ? Number(unitPrice) : null;
+
+    // Zisti efektívny typ účtovania:
+    // - šablóna z cenníka -> z položky cenníka
+    // - vlastná ks       -> piece
+    // - vlastná hodiny   -> hourly
+    let effectiveUnitType: "piece" | "hourly" = "piece";
+    if (mode === "template" && catalogId) {
+      const item = effectiveCatalog.find((c) => c.id === catalogId);
+      effectiveUnitType = item?.unit_type ?? "piece";
+    } else if (mode === "custom_hourly") {
+      effectiveUnitType = "hourly";
+    } else {
+      effectiveUnitType = "piece";
+    }
+
     // Vyčistíme polia podľa typu, aby sa nezamiešavali ceny.
-    if (unitType === "hourly") {
+    if (effectiveUnitType === "hourly") {
       unitPriceNum = null;
     } else {
       hoursNum = null;
     }
-    if (unitType === "hourly" && (hoursNum == null || projectHourlyRate == null)) {
+    if (effectiveUnitType === "hourly" && (hoursNum == null || projectHourlyRate == null)) {
       toast.error(
         projectHourlyRate == null
           ? "Najprv nastav hodinovú sadzbu projektu."
@@ -173,9 +188,9 @@ export function MonthlyBonusesCard({ projectId }: Props) {
         qty: qtyNum,
         unit_price: unitPriceNum,
         hours: hoursNum,
-        hourly_rate: unitType === "hourly" ? projectHourlyRate : null,
+        hourly_rate: effectiveUnitType === "hourly" ? projectHourlyRate : null,
         catalog_id: mode === "template" && catalogId ? catalogId : null,
-        unit_type: unitType,
+        unit_type: effectiveUnitType,
       });
       resetForm();
     } catch (e: any) {
@@ -363,8 +378,8 @@ export function MonthlyBonusesCard({ projectId }: Props) {
 
       {adding && (
         <div className="mt-3 space-y-2 rounded-xl bg-surface-muted/60 p-3">
-          {/* Prepínač zdroj */}
-          <div className="grid grid-cols-2 gap-1 rounded-lg bg-card p-1">
+          {/* Prepínač zdroj – 3 možnosti */}
+          <div className="grid grid-cols-3 gap-1 rounded-lg bg-card p-1">
             <button
               type="button"
               onClick={() => setMode("template")}
@@ -377,15 +392,46 @@ export function MonthlyBonusesCard({ projectId }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => { setMode("custom"); setCatalogId(""); }}
+              onClick={() => {
+                setMode("custom_piece");
+                setCatalogId("");
+                setHours("");
+              }}
               className={cn(
                 "rounded-md py-1.5 text-xs font-semibold transition",
-                mode === "custom" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                mode === "custom_piece" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Vlastná položka
+              Vlastná · ks
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("custom_hourly");
+                setCatalogId("");
+                setUnitPrice("");
+              }}
+              disabled={projectHourlyRate == null}
+              title={projectHourlyRate == null ? "Najprv nastav hodinovku projektu" : undefined}
+              className={cn(
+                "rounded-md py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+                mode === "custom_hourly" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Vlastná · h
             </button>
           </div>
+
+          {mode === "custom_hourly" && projectHourlyRate != null && (
+            <p className="text-[10px] text-muted-foreground">
+              Hodinovka projektu: <strong>{fmtMoney(projectHourlyRate, currency)}/h</strong>
+            </p>
+          )}
+          {mode === "custom_hourly" && projectHourlyRate == null && (
+            <p className="rounded-md bg-warning/10 px-2 py-1.5 text-[11px] text-warning-foreground">
+              Najprv nastav hodinovú sadzbu projektu v sekcii „Detaily projektu".
+            </p>
+          )}
 
           {mode === "template" && (
             <div className="space-y-1">
@@ -427,47 +473,13 @@ export function MonthlyBonusesCard({ projectId }: Props) {
             />
           </div>
 
-          {/* Prepínač typu účtovania – pri šablóne je odvodený z cenníka, dá sa však zmeniť pre vlastnú položku */}
-          {mode === "custom" && (
-            <div className="space-y-1">
-              <Label className="text-xs">Typ účtovania</Label>
-              <div className="grid grid-cols-2 gap-1 rounded-lg bg-card p-1">
-                <button
-                  type="button"
-                  onClick={() => setUnitType("piece")}
-                  className={cn(
-                    "rounded-md py-1.5 text-xs font-semibold transition",
-                    unitType === "piece"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Fixná cena / ks
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUnitType("hourly")}
-                  className={cn(
-                    "rounded-md py-1.5 text-xs font-semibold transition",
-                    unitType === "hourly"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  disabled={projectHourlyRate == null}
-                  title={projectHourlyRate == null ? "Najprv nastav hodinovku projektu" : undefined}
-                >
-                  Na hodiny
-                </button>
-              </div>
-              {unitType === "hourly" && projectHourlyRate != null && (
-                <p className="text-[10px] text-muted-foreground">
-                  Hodinovka projektu: <strong>{fmtMoney(projectHourlyRate, currency)}/h</strong>
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className={cn("grid gap-2", unitType === "hourly" ? "grid-cols-2" : "grid-cols-[80px_1fr]") }>
+          {(() => {
+            // Pri šablóne sa typ ber z cenníka, inak z módu.
+            const isHourlyForm =
+              mode === "custom_hourly" ||
+              (mode === "template" && effectiveCatalog.find((c) => c.id === catalogId)?.unit_type === "hourly");
+            return (
+          <div className={cn("grid gap-2", isHourlyForm ? "grid-cols-2" : "grid-cols-[80px_1fr]") }>
             <div className="space-y-1">
               <Label htmlFor="mb-qty" className="text-xs">Ks</Label>
               <Input
@@ -480,7 +492,7 @@ export function MonthlyBonusesCard({ projectId }: Props) {
                 onChange={(e) => setQty(e.target.value)}
               />
             </div>
-            {unitType === "hourly" ? (
+            {isHourlyForm ? (
               <div className="space-y-1">
                 <Label htmlFor="mb-hours" className="text-xs">Hodiny / ks</Label>
                 <Input
@@ -510,27 +522,32 @@ export function MonthlyBonusesCard({ projectId }: Props) {
               </div>
             )}
           </div>
+            );
+          })()}
 
           {/* Live preview hodnoty */}
           {(() => {
+            const isHourlyForm =
+              mode === "custom_hourly" ||
+              (mode === "template" && effectiveCatalog.find((c) => c.id === catalogId)?.unit_type === "hourly");
             const qtyN = Number(qty || "1") || 1;
-            const upN = unitType === "piece" && unitPrice.trim() ? Number(unitPrice) : null;
-            const hN = unitType === "hourly" && hours.trim() ? Number(hours) : null;
+            const upN = !isHourlyForm && unitPrice.trim() ? Number(unitPrice) : null;
+            const hN = isHourlyForm && hours.trim() ? Number(hours) : null;
             const value = bonusValue({
               qty: qtyN,
               unit_price: upN,
               hours: hN,
-              hourly_rate: unitType === "hourly" ? projectHourlyRate : null,
-              unit_type: unitType,
+              hourly_rate: isHourlyForm ? projectHourlyRate : null,
+              unit_type: isHourlyForm ? "hourly" : "piece",
             });
             if (value <= 0) return null;
             return (
               <p className="rounded-md bg-success/10 px-2 py-1.5 text-[11px] text-success">
                 Hodnota: <strong>{fmtMoney(value, currency)}</strong>
-                {unitType === "hourly" && hN != null && projectHourlyRate != null && (
+                {isHourlyForm && hN != null && projectHourlyRate != null && (
                   <> · {hN}h × {fmtMoney(projectHourlyRate, currency)}{qtyN > 1 ? ` × ${qtyN}ks` : ""}</>
                 )}
-                {unitType === "piece" && upN != null && qtyN > 1 && (
+                {!isHourlyForm && upN != null && qtyN > 1 && (
                   <> · {fmtMoney(upN, currency)} × {qtyN}ks</>
                 )}
               </p>
