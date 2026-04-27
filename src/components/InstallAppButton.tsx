@@ -14,49 +14,118 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+type WindowWithPrompt = typeof window & {
+  __deferredInstallPrompt?: BeforeInstallPromptEvent | null;
+  __pwaInstalled?: boolean;
+};
+
+function getStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  if (window.matchMedia?.("(display-mode: standalone)").matches) return true;
+  // iOS Safari
+  if ((window.navigator as unknown as { standalone?: boolean }).standalone)
+    return true;
+  return false;
+}
+
+function detectIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+    !(window as unknown as { MSStream?: unknown }).MSStream
+  );
+}
+
 export function InstallAppButton() {
+  // Initialize from any prompt captured before React mounted (see main.tsx).
   const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
+    useState<BeforeInstallPromptEvent | null>(() => {
+      if (typeof window === "undefined") return null;
+      return (window as WindowWithPrompt).__deferredInstallPrompt ?? null;
+    });
+  const [installed, setInstalled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      (window as WindowWithPrompt).__pwaInstalled === true || getStandalone()
+    );
+  });
   const [iosHelpOpen, setIosHelpOpen] = useState(false);
 
-  // Detect platform and current display mode
-  const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
-  const isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
-  const isStandalone =
-    typeof window !== "undefined" &&
-    (window.matchMedia?.("(display-mode: standalone)").matches ||
-      // iOS Safari
-      (window.navigator as any).standalone === true);
+  const isIOS = detectIOS();
+  const isStandalone = getStandalone();
 
   useEffect(() => {
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    const w = window as WindowWithPrompt;
+
+    // Re-sync from the early-capture stash in case it arrived between
+    // module import and effect mount.
+    if (w.__deferredInstallPrompt && !deferredPrompt) {
+      setDeferredPrompt(w.__deferredInstallPrompt);
+    }
+    if (w.__pwaInstalled && !installed) setInstalled(true);
+
+    const onAvailable = () => {
+      const evt = (window as WindowWithPrompt).__deferredInstallPrompt;
+      if (evt) setDeferredPrompt(evt);
     };
-    const onInstalled = () => {
+    const onInstalledEvt = () => {
       setInstalled(true);
       setDeferredPrompt(null);
     };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
+    // Also listen to the native events directly — covers the case where
+    // the component mounts before main.tsx's listener fires the custom event.
+    const onNativePrompt = (e: Event) => {
+      e.preventDefault();
+      const evt = e as BeforeInstallPromptEvent;
+      (window as WindowWithPrompt).__deferredInstallPrompt = evt;
+      setDeferredPrompt(evt);
     };
+    const onDisplayModeChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setInstalled(true);
+    };
+
+    window.addEventListener("pwa-install-available", onAvailable);
+    window.addEventListener("pwa-installed", onInstalledEvt);
+    window.addEventListener("beforeinstallprompt", onNativePrompt);
+    window.addEventListener("appinstalled", onInstalledEvt);
+    const mq = window.matchMedia?.("(display-mode: standalone)");
+    mq?.addEventListener?.("change", onDisplayModeChange);
+
+    return () => {
+      window.removeEventListener("pwa-install-available", onAvailable);
+      window.removeEventListener("pwa-installed", onInstalledEvt);
+      window.removeEventListener("beforeinstallprompt", onNativePrompt);
+      window.removeEventListener("appinstalled", onInstalledEvt);
+      mq?.removeEventListener?.("change", onDisplayModeChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Already installed / running as PWA — hide button entirely.
   if (isStandalone || installed) return null;
 
+  // Show the button only when we have a real install signal:
+  //  - Chrome/Edge/Android: a captured `beforeinstallprompt` event
+  //  - iOS Safari: never fires the event, but install is possible via Share
+  const canInstall = !!deferredPrompt || isIOS;
+  if (!canInstall) return null;
+
   const handleClick = async () => {
     if (deferredPrompt) {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") setDeferredPrompt(null);
+      try {
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        // The prompt event can only be used once — clear it either way.
+        (window as WindowWithPrompt).__deferredInstallPrompt = null;
+        setDeferredPrompt(null);
+        if (outcome === "accepted") setInstalled(true);
+      } catch {
+        (window as WindowWithPrompt).__deferredInstallPrompt = null;
+        setDeferredPrompt(null);
+      }
       return;
     }
-    // No native prompt available (typically iOS Safari, or browser hasn't fired it yet).
+    // iOS Safari path — show manual instructions.
     setIosHelpOpen(true);
   };
 
