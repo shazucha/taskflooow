@@ -337,6 +337,7 @@ Deno.serve(async (req) => {
       if (listsRes.ok) {
         const listsData = await listsRes.json();
         const taskLists = (listsData.items ?? []) as Array<{ id: string }>;
+        console.log(`[gtasks] found ${taskLists.length} task lists`, taskLists.map((l: any) => ({ id: l.id, title: l.title })));
         for (const list of taskLists.slice(0, 5)) {
           const url = new URL(`https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(list.id)}/tasks`);
           url.searchParams.set("showCompleted", "true");
@@ -347,6 +348,7 @@ Deno.serve(async (req) => {
           if (!gTasksRes.ok) continue;
           const gTasksData = await gTasksRes.json();
           const gTasks = (gTasksData.items ?? []) as GoogleTaskItem[];
+          console.log(`[gtasks] list ${list.id}: ${gTasks.length} tasks`, gTasks.map((t) => ({ id: t.id, title: t.title, due: t.due, status: t.status, deleted: t.deleted, hidden: t.hidden, updated: t.updated })));
           const googleTaskIds = gTasks.map((gt) => `gtask:${list.id}:${gt.id}`);
           const { data: existingGoogleTasks } = googleTaskIds.length
             ? await admin
@@ -366,13 +368,28 @@ Deno.serve(async (req) => {
                 await admin.from("tasks").delete().eq("id", existingTask.id);
                 deleted++;
               }
+              console.log(`[gtasks] skip ${gt.id} "${gt.title}" — deleted/hidden`);
               continue;
             }
-            if (!gt.due) continue;
-            const dueMs = new Date(gt.due).getTime();
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
-            if (dueMs < todayStart.getTime() && !existingTask) continue;
+            // Google Tasks vracia `due` ako date-only ISO (napr. "2026-04-27T00:00:00.000Z").
+            // Berieme len dátumovú časť, aby sme nemali off-by-one kvôli časovej zóne.
+            // Tasky bez `due` IMPORTUJEME tiež — priradíme im dnešok, aby sa zobrazili.
+            let dueIso: string;
+            if (gt.due) {
+              const datePart = gt.due.slice(0, 10); // "2026-04-27"
+              dueIso = `${datePart}T00:00:00`;
+              // Skip iba ak má due v minulosti A nie je už importovaný
+              const dueDateOnly = new Date(`${datePart}T23:59:59`).getTime();
+              if (dueDateOnly < Date.now() - 24 * 60 * 60 * 1000 && !existingTask) {
+                console.log(`[gtasks] skip ${gt.id} "${gt.title}" — due ${gt.due} is in the past`);
+                continue;
+              }
+            } else {
+              // bez due → priradíme dnešok aby sa task zobrazil v zozname
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              dueIso = today.toISOString().slice(0, 19);
+            }
             const title = gt.title?.trim() || "(bez názvu)";
             const description = gt.notes ?? null;
             const initialStatus: "todo" | "done" = gt.status === "completed" ? "done" : "todo";
@@ -380,14 +397,15 @@ Deno.serve(async (req) => {
               const changed =
                 existingTask.title !== title ||
                 existingTask.description !== description ||
-                existingTask.due_date !== gt.due ||
+                existingTask.due_date !== dueIso ||
                 existingTask.status !== initialStatus;
               if (changed) {
                 await admin
                   .from("tasks")
-                  .update({ title, description, due_date: gt.due, due_end: null, status: initialStatus })
+                  .update({ title, description, due_date: dueIso, due_end: null, status: initialStatus })
                   .eq("id", existingTask.id);
                 updated++;
+                console.log(`[gtasks] update ${gt.id} "${title}"`);
               }
             } else {
               const { error: insertErr } = await admin.from("tasks").insert({
@@ -398,16 +416,17 @@ Deno.serve(async (req) => {
                 project_id: null,
                 assignee_id: user.id,
                 created_by: user.id,
-                due_date: gt.due,
+                due_date: dueIso,
                 due_end: null,
                 google_event_id: googleId,
                 google_calendar_owner: user.id,
                 google_imported: true,
               });
-              if (insertErr) console.error("insert google task failed", insertErr);
+              if (insertErr) console.error(`[gtasks] insert failed for ${gt.id} "${title}":`, insertErr);
               else {
                 imported++;
                 if (initialStatus === "done") importedDone++; else importedTodo++;
+                console.log(`[gtasks] imported ${gt.id} "${title}" due=${dueIso} status=${initialStatus}`);
               }
             }
           }
@@ -415,6 +434,8 @@ Deno.serve(async (req) => {
       } else {
         console.warn("google tasks list failed", listsRes.status, await listsRes.text());
       }
+    } else {
+      console.log("[gtasks] skipping — no tasks scope");
     }
 
     // Audit: skontroluj konzistenciu už uložených Google-importovaných úloh
