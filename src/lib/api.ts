@@ -332,6 +332,15 @@ export async function deleteProjectRecurringWork(id: string) {
   if (error) throw error;
 }
 
+export async function reorderProjectRecurringWorks(items: { id: string; position: number }[]) {
+  // Aktualizujeme position pre každú položku jednotlivo (RLS-friendly).
+  await Promise.all(
+    items.map(({ id, position }) =>
+      supabase.from("project_recurring_works").update({ position }).eq("id", id)
+    )
+  );
+}
+
 export async function fetchRecurringWorkCompletions(
   projectId: string
 ): Promise<ProjectRecurringWorkCompletion[]> {

@@ -13,6 +13,7 @@ import {
   deleteProject,
   deleteProjectMonthlyBonus,
   deleteProjectRecurringWork,
+  reorderProjectRecurringWorks,
   deleteProjectWork,
   deleteTask,
   deleteTaskMaterial,
@@ -273,6 +274,29 @@ export function useToggleRecurringWorkDone(projectId: string) {
       await unmarkRecurringWorkDone(vars.work_id, vars.month_key);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["recurring_work_completions", projectId] }),
+  });
+}
+
+export function useReorderRecurringWorks(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items: { id: string; position: number }[]) => reorderProjectRecurringWorks(items),
+    onMutate: async (items) => {
+      await qc.cancelQueries({ queryKey: ["project_recurring_works", projectId] });
+      const prev = qc.getQueryData<any[]>(["project_recurring_works", projectId]);
+      if (prev) {
+        const map = new Map(items.map((i) => [i.id, i.position]));
+        const next = [...prev]
+          .map((w) => ({ ...w, position: map.get(w.id) ?? w.position }))
+          .sort((a, b) => a.position - b.position);
+        qc.setQueryData(["project_recurring_works", projectId], next);
+      }
+      return { prev };
+    },
+    onError: (_e, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["project_recurring_works", projectId], ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["project_recurring_works", projectId] }),
   });
 }
 

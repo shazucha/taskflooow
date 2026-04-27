@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarCheck2, Check, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { CalendarCheck2, Check, ChevronLeft, ChevronRight, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,15 +10,118 @@ import {
   useDeleteRecurringWork,
   useProjectRecurringWorks,
   useRecurringWorkCompletions,
+  useReorderRecurringWorks,
   useToggleRecurringWorkDone,
 } from "@/lib/queries";
 import { NewTaskDialog } from "./NewTaskDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { currentMonthKey, formatMonthLabel, shiftMonth } from "@/lib/recurring";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import type { ProjectRecurringWork } from "@/lib/types";
 
 interface Props {
   projectId: string;
+}
+
+function SortableRow({
+  work,
+  done,
+  onToggle,
+  onOpen,
+  onDelete,
+  toggleDisabled,
+}: {
+  work: ProjectRecurringWork;
+  done: boolean;
+  onToggle: () => void;
+  onOpen: () => void;
+  onDelete: () => void;
+  toggleDisabled: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: work.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group flex items-center gap-2 rounded-xl border px-2 py-2 transition",
+        done
+          ? "border-success/30 bg-success/5"
+          : "border-border bg-surface-muted/40 hover:border-primary/40",
+        isDragging && "shadow-lg ring-2 ring-primary/40"
+      )}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="flex h-6 w-5 shrink-0 cursor-grab items-center justify-center text-muted-foreground hover:text-foreground active:cursor-grabbing touch-none"
+        aria-label="Presunúť"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        disabled={toggleDisabled}
+        onClick={onToggle}
+        className={cn(
+          "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition",
+          done
+            ? "border-success bg-success text-success-foreground"
+            : "border-border bg-card hover:border-primary"
+        )}
+        aria-label={done ? "Označiť ako nehotové" : "Označiť ako hotové"}
+      >
+        {done && <Check className="h-3.5 w-3.5" />}
+      </button>
+      <button
+        type="button"
+        onClick={onOpen}
+        className={cn(
+          "min-w-0 flex-1 text-left text-sm transition",
+          done ? "text-muted-foreground line-through" : "text-foreground hover:text-primary"
+        )}
+        title={work.note ?? `Vytvoriť úlohu: ${work.title}`}
+      >
+        <span className="truncate block">{work.title}</span>
+        {work.note && (
+          <span className="block truncate text-[11px] text-muted-foreground">{work.note}</span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="rounded-md p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+        aria-label="Odstrániť"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </li>
+  );
 }
 
 export function MonthlyDeliverablesCard({ projectId }: Props) {
@@ -28,6 +131,12 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
   const create = useCreateRecurringWork(projectId);
   const remove = useDeleteRecurringWork(projectId);
   const toggle = useToggleRecurringWorkDone(projectId);
+  const reorder = useReorderRecurringWorks(projectId);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
 
   const [monthKey, setMonthKey] = useState<string>(currentMonthKey());
   const [adding, setAdding] = useState(false);
@@ -65,6 +174,16 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
   const onWorkClick = (name: string) => {
     setTaskTitle(name);
     setTaskOpen(true);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = works.findIndex((w) => w.id === active.id);
+    const newIndex = works.findIndex((w) => w.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const next = arrayMove(works, oldIndex, newIndex);
+    reorder.mutate(next.map((w, i) => ({ id: w.id, position: i })));
   };
 
   return (
@@ -119,73 +238,33 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
           Zatiaľ žiadne práce. Klikni „Pridať".
         </p>
       ) : (
-        <ul className="space-y-1.5">
-          {works.map((w) => {
-            const done = doneSet.has(w.id);
-            return (
-              <li
-                key={w.id}
-                className={cn(
-                  "group flex items-center gap-2 rounded-xl border px-2 py-2 transition",
-                  done
-                    ? "border-success/30 bg-success/5"
-                    : "border-border bg-surface-muted/40 hover:border-primary/40"
-                )}
-              >
-                <button
-                  type="button"
-                  disabled={!userId || toggle.isPending}
-                  onClick={() =>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={works.map((w) => w.id)} strategy={verticalListSortingStrategy}>
+            <ul className="space-y-1.5">
+              {works.map((w) => (
+                <SortableRow
+                  key={w.id}
+                  work={w}
+                  done={doneSet.has(w.id)}
+                  onToggle={() =>
                     userId &&
                     toggle.mutate({
                       work_id: w.id,
                       month_key: monthKey,
                       user_id: userId,
-                      done: !done,
+                      done: !doneSet.has(w.id),
                     })
                   }
-                  className={cn(
-                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition",
-                    done
-                      ? "border-success bg-success text-success-foreground"
-                      : "border-border bg-card hover:border-primary"
-                  )}
-                  aria-label={done ? "Označiť ako nehotové" : "Označiť ako hotové"}
-                >
-                  {done && <Check className="h-3.5 w-3.5" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onWorkClick(w.title)}
-                  className={cn(
-                    "min-w-0 flex-1 text-left text-sm transition",
-                    done
-                      ? "text-muted-foreground line-through"
-                      : "text-foreground hover:text-primary"
-                  )}
-                  title={w.note ?? `Vytvoriť úlohu: ${w.title}`}
-                >
-                  <span className="truncate block">{w.title}</span>
-                  {w.note && (
-                    <span className="block truncate text-[11px] text-muted-foreground">{w.note}</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm(`Odstrániť "${w.title}" zo zoznamu?`)) {
-                      remove.mutate(w.id);
-                    }
+                  onOpen={() => onWorkClick(w.title)}
+                  onDelete={() => {
+                    if (confirm(`Odstrániť "${w.title}" zo zoznamu?`)) remove.mutate(w.id);
                   }}
-                  className="rounded-md p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                  aria-label="Odstrániť"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  toggleDisabled={!userId || toggle.isPending}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
 
       {adding && (
