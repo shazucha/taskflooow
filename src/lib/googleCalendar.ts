@@ -2,6 +2,11 @@ import { supabase } from "./supabase";
 
 const REQUIRED_GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar";
 const REQUIRED_GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks.readonly";
+const FULL_GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks";
+
+function hasGoogleTasksScope(scopes: string[]) {
+  return scopes.includes(REQUIRED_GOOGLE_TASKS_SCOPE) || scopes.includes(FULL_GOOGLE_TASKS_SCOPE);
+}
 
 export interface GoogleEvent {
   id: string;
@@ -252,6 +257,6 @@ export async function getGoogleConnectionStatus(): Promise<{
   if (error || !data) return { connected: false, email: null, hasTasksScope: false };
   const scopes = data.scope?.split(/\s+/) ?? [];
   const connected = scopes.includes(REQUIRED_GOOGLE_SCOPE);
-  const hasTasksScope = scopes.includes(REQUIRED_GOOGLE_TASKS_SCOPE);
+  const hasTasksScope = hasGoogleTasksScope(scopes);
   return { connected, email: connected ? (data.google_email ?? null) : null, hasTasksScope };
 }
