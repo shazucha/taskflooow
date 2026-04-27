@@ -117,6 +117,10 @@ export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<G
     if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
       throw new GoogleReconnectRequiredError();
     }
+    // 401 = auth race (session expired between getSession() and invoke,
+    // or token rejected by edge function). Treat as "no events yet" instead
+    // of crashing the calendar. Caller will retry on next interval/focus.
+    if (getFunctionErrorStatus(error) === 401) return [];
     throw error;
   }
   if (data?.not_connected) return [];
