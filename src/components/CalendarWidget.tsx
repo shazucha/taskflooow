@@ -144,7 +144,7 @@ export function CalendarWidget({
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const warnedReconnectRef = useRef(false);
   const googlePullInFlightRef = useRef<Promise<void> | null>(null);
-  const showGoogle = !userId || userId === currentUserId;
+  const showGoogle = !projectId && (!userId || userId === currentUserId);
   const qc = useQueryClient();
 
   useEffect(() => {
