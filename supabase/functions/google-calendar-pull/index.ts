@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const user = await getUserFromAuthHeader(req) ?? getUserFromJwtPayload(req);
+    const user = getUserFromJwtPayload(req) ?? await getUserFromAuthHeader(req);
     if (!user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
