@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
 import Auth from "./pages/Auth";
 import GoogleOAuthCallback from "./pages/GoogleOAuthCallback";
+import GoogleSyncDiag from "./pages/GoogleSyncDiag";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/chat" element={<Messages />} />
             <Route path="/me" element={<Profile />} />
+            <Route path="/diag/google-sync" element={<GoogleSyncDiag />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
