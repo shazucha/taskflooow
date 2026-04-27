@@ -130,8 +130,14 @@ export function MonthlyBonusesCard({ projectId }: Props) {
     if (item) {
       setTitle(item.title);
       setUnitType(item.unit_type);
-      setUnitPrice(String(item.effective_unit_price ?? ""));
-      setHours(item.effective_default_hours != null ? String(item.effective_default_hours) : "");
+      if (item.unit_type === "hourly") {
+        // Pri hodinovej službe nepredvyplníme cenu/ks – počíta sa hodiny × hodinovka projektu.
+        setUnitPrice("");
+        setHours(item.effective_default_hours != null ? String(item.effective_default_hours) : "");
+      } else {
+        setUnitPrice(String(item.effective_unit_price ?? ""));
+        setHours(item.effective_default_hours != null ? String(item.effective_default_hours) : "");
+      }
     }
   };
 
@@ -140,8 +146,22 @@ export function MonthlyBonusesCard({ projectId }: Props) {
     const finalTitle = title.trim();
     if (!finalTitle) return;
     const qtyNum = Number(qty || "1") || 1;
-    const hoursNum = hours.trim() ? Number(hours) : null;
-    const unitPriceNum = unitPrice.trim() ? Number(unitPrice) : null;
+    let hoursNum = hours.trim() ? Number(hours) : null;
+    let unitPriceNum = unitPrice.trim() ? Number(unitPrice) : null;
+    // Vyčistíme polia podľa typu, aby sa nezamiešavali ceny.
+    if (unitType === "hourly") {
+      unitPriceNum = null;
+    } else {
+      hoursNum = null;
+    }
+    if (unitType === "hourly" && (hoursNum == null || projectHourlyRate == null)) {
+      toast.error(
+        projectHourlyRate == null
+          ? "Najprv nastav hodinovú sadzbu projektu."
+          : "Doplň počet hodín."
+      );
+      return;
+    }
     try {
       await create.mutateAsync({
         project_id: projectId,
@@ -153,7 +173,7 @@ export function MonthlyBonusesCard({ projectId }: Props) {
         qty: qtyNum,
         unit_price: unitPriceNum,
         hours: hoursNum,
-        hourly_rate: projectHourlyRate,
+        hourly_rate: unitType === "hourly" ? projectHourlyRate : null,
         catalog_id: mode === "template" && catalogId ? catalogId : null,
         unit_type: unitType,
       });
