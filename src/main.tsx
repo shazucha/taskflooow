@@ -6,6 +6,33 @@ import { applyTheme, getInitialTheme } from "./lib/useTheme";
 // Apply persisted theme before React mounts to avoid flash of wrong theme.
 applyTheme(getInitialTheme());
 
+// Hard-block pinch-zoom and double-tap-zoom on iOS Safari, which ignores
+// `user-scalable=no` in the viewport meta. Multi-touch and gesture* events
+// are the only reliable way to suppress it.
+(() => {
+  const stop = (e: Event) => e.preventDefault();
+  document.addEventListener("gesturestart", stop, { passive: false });
+  document.addEventListener("gesturechange", stop, { passive: false });
+  document.addEventListener("gestureend", stop, { passive: false });
+  document.addEventListener(
+    "touchmove",
+    (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    },
+    { passive: false }
+  );
+  let lastTouchEnd = 0;
+  document.addEventListener(
+    "touchend",
+    (e: TouchEvent) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) e.preventDefault();
+      lastTouchEnd = now;
+    },
+    { passive: false }
+  );
+})();
+
 // Capture `beforeinstallprompt` as early as possible (before React mounts),
 // so it is not missed when the browser fires it during initial page load
 // (e.g. on a hard reload). The event is stashed on `window` and a custom
