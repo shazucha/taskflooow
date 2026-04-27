@@ -91,15 +91,26 @@ export interface GoogleSyncResult {
 
 /** Pull events FROM Google INTO TaskFlow tasks. Returns counts of changes. */
 export async function pullGoogleEvents(): Promise<PullResult | null> {
-  const { data, error } = await supabase.functions.invoke<PullResult>("google-calendar-pull", { body: {} });
-  if (error) {
+  // Edge runtime občas vráti 503 (studený štart / dočasná nedostupnosť).
+  // Skúsime až 3x s krátkym backoffom — ostatné chyby propagujeme hneď.
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await supabase.functions.invoke<PullResult>("google-calendar-pull", { body: {} });
+    if (!error) return data ?? null;
     const message = error.message || "";
     if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
       throw new GoogleReconnectRequiredError();
     }
-    return null;
+    const isTransient =
+      message.includes("503") ||
+      message.includes("temporarily unavailable") ||
+      message.includes("SUPABASE_EDGE_RUNTIME_ERROR");
+    lastErr = error;
+    if (!isTransient) return null;
+    await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
   }
-  return data ?? null;
+  console.warn("pullGoogleEvents failed after retries", lastErr);
+  return null;
 }
 
 export interface FixStatusesResult {
