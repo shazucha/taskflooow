@@ -37,10 +37,22 @@ function bonusValue(b: {
   unit_price: number | null;
   hours: number | null;
   hourly_rate: number | null;
+  unit_type?: "piece" | "hourly";
 }): number {
-  // Preferujeme jednotkovú cenu × množstvo. Ak nie je, počítame hodiny × hodinovka.
-  if (b.unit_price != null) return Number(b.unit_price) * Number(b.qty || 1);
-  if (b.hours != null && b.hourly_rate != null) return Number(b.hours) * Number(b.hourly_rate);
+  const qty = Number(b.qty || 1);
+  // Ak je položka explicitne hodinová, počítame hodiny × hodinovka × ks.
+  if (b.unit_type === "hourly") {
+    if (b.hours != null && b.hourly_rate != null) {
+      return Number(b.hours) * Number(b.hourly_rate) * qty;
+    }
+    return 0;
+  }
+  // Inak preferujeme fixnú jednotkovú cenu × ks.
+  if (b.unit_price != null) return Number(b.unit_price) * qty;
+  // Fallback (staré dáta bez unit_type): ak má hodiny + hodinovku, počítaj.
+  if (b.hours != null && b.hourly_rate != null) {
+    return Number(b.hours) * Number(b.hourly_rate) * qty;
+  }
   return 0;
 }
 
@@ -118,8 +130,14 @@ export function MonthlyBonusesCard({ projectId }: Props) {
     if (item) {
       setTitle(item.title);
       setUnitType(item.unit_type);
-      setUnitPrice(String(item.effective_unit_price ?? ""));
-      setHours(item.effective_default_hours != null ? String(item.effective_default_hours) : "");
+      if (item.unit_type === "hourly") {
+        // Pri hodinovej službe nepredvyplníme cenu/ks – počíta sa hodiny × hodinovka projektu.
+        setUnitPrice("");
+        setHours(item.effective_default_hours != null ? String(item.effective_default_hours) : "");
+      } else {
+        setUnitPrice(String(item.effective_unit_price ?? ""));
+        setHours(item.effective_default_hours != null ? String(item.effective_default_hours) : "");
+      }
     }
   };
 
@@ -128,8 +146,22 @@ export function MonthlyBonusesCard({ projectId }: Props) {
     const finalTitle = title.trim();
     if (!finalTitle) return;
     const qtyNum = Number(qty || "1") || 1;
-    const hoursNum = hours.trim() ? Number(hours) : null;
-    const unitPriceNum = unitPrice.trim() ? Number(unitPrice) : null;
+    let hoursNum = hours.trim() ? Number(hours) : null;
+    let unitPriceNum = unitPrice.trim() ? Number(unitPrice) : null;
+    // Vyčistíme polia podľa typu, aby sa nezamiešavali ceny.
+    if (unitType === "hourly") {
+      unitPriceNum = null;
+    } else {
+      hoursNum = null;
+    }
+    if (unitType === "hourly" && (hoursNum == null || projectHourlyRate == null)) {
+      toast.error(
+        projectHourlyRate == null
+          ? "Najprv nastav hodinovú sadzbu projektu."
+          : "Doplň počet hodín."
+      );
+      return;
+    }
     try {
       await create.mutateAsync({
         project_id: projectId,
@@ -141,7 +173,7 @@ export function MonthlyBonusesCard({ projectId }: Props) {
         qty: qtyNum,
         unit_price: unitPriceNum,
         hours: hoursNum,
-        hourly_rate: projectHourlyRate,
+        hourly_rate: unitType === "hourly" ? projectHourlyRate : null,
         catalog_id: mode === "template" && catalogId ? catalogId : null,
         unit_type: unitType,
       });
@@ -290,13 +322,17 @@ export function MonthlyBonusesCard({ projectId }: Props) {
                 )}
                 {(b.hours != null || b.unit_price != null) && (
                   <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
-                    {b.hours != null && (
+                    {b.unit_type === "hourly" && b.hours != null && (
                       <span className="inline-flex items-center gap-0.5">
                         <Clock className="h-2.5 w-2.5" />
-                        {Number(b.hours)}h{Number(b.qty) > 1 ? ` × ${Number(b.qty)}` : ""}
+                        {Number(b.hours)}h
+                        {b.hourly_rate != null && (
+                          <> × {fmtMoney(b.hourly_rate, currency)}</>
+                        )}
+                        {Number(b.qty) > 1 ? ` × ${Number(b.qty)}ks` : ""}
                       </span>
                     )}
-                    {b.unit_price != null && (
+                    {b.unit_type !== "hourly" && b.unit_price != null && (
                       <span>
                         {fmtMoney(b.unit_price, currency)}
                         {Number(b.qty) > 1 ? ` × ${Number(b.qty)}` : ""} / ks
@@ -391,7 +427,47 @@ export function MonthlyBonusesCard({ projectId }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          {/* Prepínač typu účtovania – pri šablóne je odvodený z cenníka, dá sa však zmeniť pre vlastnú položku */}
+          {mode === "custom" && (
+            <div className="space-y-1">
+              <Label className="text-xs">Typ účtovania</Label>
+              <div className="grid grid-cols-2 gap-1 rounded-lg bg-card p-1">
+                <button
+                  type="button"
+                  onClick={() => setUnitType("piece")}
+                  className={cn(
+                    "rounded-md py-1.5 text-xs font-semibold transition",
+                    unitType === "piece"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Fixná cena / ks
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUnitType("hourly")}
+                  className={cn(
+                    "rounded-md py-1.5 text-xs font-semibold transition",
+                    unitType === "hourly"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  disabled={projectHourlyRate == null}
+                  title={projectHourlyRate == null ? "Najprv nastav hodinovku projektu" : undefined}
+                >
+                  Na hodiny
+                </button>
+              </div>
+              {unitType === "hourly" && projectHourlyRate != null && (
+                <p className="text-[10px] text-muted-foreground">
+                  Hodinovka projektu: <strong>{fmtMoney(projectHourlyRate, currency)}/h</strong>
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className={cn("grid gap-2", unitType === "hourly" ? "grid-cols-2" : "grid-cols-[80px_1fr]") }>
             <div className="space-y-1">
               <Label htmlFor="mb-qty" className="text-xs">Ks</Label>
               <Input
@@ -404,51 +480,58 @@ export function MonthlyBonusesCard({ projectId }: Props) {
                 onChange={(e) => setQty(e.target.value)}
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="mb-hours" className="text-xs">Hodiny / ks</Label>
-              <Input
-                id="mb-hours"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.25"
-                placeholder={projectHourlyRate ? `× ${projectHourlyRate}€` : "—"}
-                value={hours}
-                onChange={(e) => setHours(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="mb-price" className="text-xs">Cena / ks</Label>
-              <Input
-                id="mb-price"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                placeholder="€"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-              />
-            </div>
+            {unitType === "hourly" ? (
+              <div className="space-y-1">
+                <Label htmlFor="mb-hours" className="text-xs">Hodiny / ks</Label>
+                <Input
+                  id="mb-hours"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.25"
+                  placeholder={projectHourlyRate ? `× ${projectHourlyRate}€/h` : "nastav hodinovku projektu"}
+                  value={hours}
+                  onChange={(e) => setHours(e.target.value)}
+                />
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label htmlFor="mb-price" className="text-xs">Cena / ks</Label>
+                <Input
+                  id="mb-price"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  placeholder="€"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           {/* Live preview hodnoty */}
           {(() => {
             const qtyN = Number(qty || "1") || 1;
-            const upN = unitPrice.trim() ? Number(unitPrice) : null;
-            const hN = hours.trim() ? Number(hours) : null;
+            const upN = unitType === "piece" && unitPrice.trim() ? Number(unitPrice) : null;
+            const hN = unitType === "hourly" && hours.trim() ? Number(hours) : null;
             const value = bonusValue({
               qty: qtyN,
               unit_price: upN,
               hours: hN,
-              hourly_rate: projectHourlyRate,
+              hourly_rate: unitType === "hourly" ? projectHourlyRate : null,
+              unit_type: unitType,
             });
             if (value <= 0) return null;
             return (
               <p className="rounded-md bg-success/10 px-2 py-1.5 text-[11px] text-success">
                 Hodnota: <strong>{fmtMoney(value, currency)}</strong>
-                {hN != null && upN == null && projectHourlyRate != null && (
-                  <> · {hN}h × {fmtMoney(projectHourlyRate, currency)} × {qtyN}ks</>
+                {unitType === "hourly" && hN != null && projectHourlyRate != null && (
+                  <> · {hN}h × {fmtMoney(projectHourlyRate, currency)}{qtyN > 1 ? ` × ${qtyN}ks` : ""}</>
+                )}
+                {unitType === "piece" && upN != null && qtyN > 1 && (
+                  <> · {fmtMoney(upN, currency)} × {qtyN}ks</>
                 )}
               </p>
             );
