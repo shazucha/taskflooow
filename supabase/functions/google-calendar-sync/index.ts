@@ -37,8 +37,16 @@ function isSpecialTypeConflict(detail: string) {
 }
 
 function hasTime(iso: string) {
+  // Pracujeme s reťazcom v UTC (z DB chodí "...Z"), aby sme nezáviseli od
+  // timezone servera. Mobil aj desktop posielajú ISO; ak hodina/minúta
+  // v UTC nie je 00:00, považujeme to za "má čas".
+  // Zároveň: ak má string vôbec časovú časť ("T..."), berieme to za čas.
+  // (Predtým funkcia používala lokálne getHours/getMinutes, čo na rôznych
+  // platformách viedlo k preskakovaniu syncu.)
+  if (!iso.includes("T")) return false;
   const d = new Date(iso);
-  return d.getHours() !== 0 || d.getMinutes() !== 0;
+  if (isNaN(d.getTime())) return false;
+  return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
 }
 
 Deno.serve(async (req) => {
