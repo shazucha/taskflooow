@@ -528,6 +528,17 @@ function DayView({
   onCreateRange: (startSlot: number, endSlot: number) => void;
 }) {
   const toggleStatus = useToggleTaskDone();
+  const del = useDeleteTask();
+  const handleDelete = async (task: Task) => {
+    if (!confirm("Naozaj zmazať túto úlohu?")) return;
+    try {
+      await del.mutateAsync(task.id);
+      toast.success("Úloha zmazaná");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Nepodarilo sa zmazať úlohu";
+      toast.error(msg);
+    }
+  };
   const allDay = tasks.filter((t) => !hasTime(t));
   const timed = tasks
     .filter((t) => hasTime(t))
@@ -564,7 +575,7 @@ function DayView({
         <div>
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
           <ul className="space-y-1">
-            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} onOpenTask={onOpenTask} />)}
+            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />)}
             {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
           </ul>
         </div>
