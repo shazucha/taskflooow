@@ -43,8 +43,7 @@ export default function ProjectDetail() {
 
   const grouped = useMemo(() => {
     return {
-      todo: monthFiltered.filter((t) => t.status === "todo"),
-      in_progress: monthFiltered.filter((t) => t.status === "in_progress"),
+      todo: monthFiltered.filter((t) => t.status !== "done"),
       done: monthFiltered.filter((t) => t.status === "done"),
     };
   }, [monthFiltered]);
@@ -84,10 +83,10 @@ export default function ProjectDetail() {
             <MonthFilter value={monthKey} onChange={setMonthKey} />
           </div>
 
-          {(["in_progress", "todo", "done"] as const).map((s) => {
+          {(["todo", "done"] as const).map((s) => {
             const list = grouped[s];
             if (list.length === 0) return null;
-            const labels = { in_progress: "Prebieha", todo: "Nezačaté", done: "Hotové" };
+            const labels = { todo: "Nedokončené", done: "Dokončené" };
             const defaultOpen = s === "todo";
             return (
               <Collapsible key={s} defaultOpen={defaultOpen} className="rounded-2xl bg-surface-muted/40">
