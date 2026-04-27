@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const canReadGoogleTasks = hasRequiredGoogleTasksScope(tokenRow.scope);
 
     const tok = await getValidAccessToken(admin, user.id);
     if (!tok) {
