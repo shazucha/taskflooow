@@ -70,7 +70,10 @@ export interface ProjectMonthlyBonus {
   hours: number | null;
   hourly_rate: number | null;
   catalog_id: string | null;
+  unit_type: ServiceUnitType;
 }
+
+export type ServiceUnitType = "piece" | "hourly";
 
 export interface ServiceCatalogItem {
   id: string;
@@ -81,6 +84,8 @@ export interface ServiceCatalogItem {
   position: number;
   active: boolean;
   created_at: string;
+  unit_type: ServiceUnitType;
+  description: string | null;
 }
 
 export interface ProjectServiceOverride {

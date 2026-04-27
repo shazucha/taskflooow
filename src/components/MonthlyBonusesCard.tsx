@@ -85,6 +85,7 @@ export function MonthlyBonusesCard({ projectId }: Props) {
   const [note, setNote] = useState("");
   const [unitPrice, setUnitPrice] = useState<string>("");
   const [hours, setHours] = useState<string>("");
+  const [unitType, setUnitType] = useState<"piece" | "hourly">("piece");
 
   const [taskOpen, setTaskOpen] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
@@ -108,6 +109,7 @@ export function MonthlyBonusesCard({ projectId }: Props) {
     setNote("");
     setUnitPrice("");
     setHours("");
+    setUnitType("piece");
   };
 
   const onPickTemplate = (id: string) => {
@@ -115,6 +117,7 @@ export function MonthlyBonusesCard({ projectId }: Props) {
     const item = effectiveCatalog.find((c) => c.id === id);
     if (item) {
       setTitle(item.title);
+      setUnitType(item.unit_type);
       setUnitPrice(String(item.effective_unit_price ?? ""));
       setHours(item.effective_default_hours != null ? String(item.effective_default_hours) : "");
     }
@@ -140,6 +143,7 @@ export function MonthlyBonusesCard({ projectId }: Props) {
         hours: hoursNum,
         hourly_rate: projectHourlyRate,
         catalog_id: mode === "template" && catalogId ? catalogId : null,
+        unit_type: unitType,
       });
       resetForm();
     } catch (e: any) {
@@ -364,7 +368,8 @@ export function MonthlyBonusesCard({ projectId }: Props) {
                   <option value="">— vyber —</option>
                   {effectiveCatalog.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.title} · {fmtMoney(c.effective_unit_price, currency)}/ks
+                      {c.title} · {fmtMoney(c.effective_unit_price, currency)}
+                      {c.unit_type === "hourly" ? ` / balík (${c.effective_default_hours ?? "?"}h)` : " / ks"}
                     </option>
                   ))}
                 </select>
