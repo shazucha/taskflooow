@@ -328,7 +328,10 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
             if (isReadOnly) return;
             const h = Math.floor(slotIdx / 2);
             const m = slotIdx % 2 === 0 ? 0 : 30;
-            setPrefill({ date: fmtDate(cursor), time: fmtTime(h, m) });
+            const endSlot = Math.min(slotIdx + 2, 48);
+            const eh = Math.floor(endSlot / 2);
+            const em = endSlot % 2 === 0 ? 0 : 30;
+            setPrefill({ date: fmtDate(cursor), time: fmtTime(h, m), end: fmtTime(eh, em) });
             setCreateOpen(true);
           }}
           onCreateRange={(startSlot, endSlot) => {
@@ -719,7 +722,7 @@ function DayView({
       </div>
 
       <p className="text-center text-[11px] text-muted-foreground">
-        {readOnly ? "Náhľad iba na čítanie." : "Klikni na hodinu alebo potiahni pre vytvorenie úlohy. Bez konca = 30 min."}
+        {readOnly ? "Náhľad iba na čítanie." : "Klikni na hodinu pre 1 h úlohu alebo potiahni pre vlastný rozsah."}
       </p>
 
       {tasks.length === 0 && (
