@@ -168,6 +168,10 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
     if (isReconnectRequired(error)) {
       throw new GoogleReconnectRequiredError();
     }
+    // 401 = auth race (session expired between getSession() and invoke,
+    // or token rejected by edge function). Skip silently — caller will
+    // retry on next interval/focus.
+    if (getFunctionErrorStatus(error) === 401) return null;
     lastErr = error;
     if (!isTransientFunctionError(error)) return null;
     await new Promise((r) => setTimeout(r, 800 * (attempt + 1) + Math.random() * 400));
