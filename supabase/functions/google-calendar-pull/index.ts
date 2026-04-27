@@ -111,6 +111,12 @@ Deno.serve(async (req) => {
       });
     }
     const canReadGoogleTasks = hasRequiredGoogleTasksScope(tokenRow.scope);
+    if (!canReadGoogleTasks) {
+      return new Response(JSON.stringify({ error: "reauth_required", detail: "missing_tasks_scope" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const tok = await getValidAccessToken(admin, user.id);
     if (!tok) {
@@ -325,9 +331,20 @@ Deno.serve(async (req) => {
           if (!gTasksRes.ok) continue;
           const gTasksData = await gTasksRes.json();
           const gTasks = (gTasksData.items ?? []) as GoogleTaskItem[];
+          const googleTaskIds = gTasks.map((gt) => `gtask:${list.id}:${gt.id}`);
+          const { data: existingGoogleTasks } = googleTaskIds.length
+            ? await admin
+                .from("tasks")
+                .select("id, google_event_id, title, description, status, due_date, due_end, google_imported")
+                .eq("google_calendar_owner", user.id)
+                .in("google_event_id", googleTaskIds)
+            : { data: [] as ExistingTaskRow[] };
+          const byGoogleTaskId = new Map<string, ExistingTaskRow>();
+          for (const t of existingGoogleTasks ?? []) byGoogleTaskId.set(t.google_event_id, t);
+
           for (const gt of gTasks) {
             const googleId = `gtask:${list.id}:${gt.id}`;
-            const existingTask = byEventId.get(googleId);
+            const existingTask = byGoogleTaskId.get(googleId);
             if (gt.deleted || gt.hidden) {
               if (existingTask) {
                 await admin.from("tasks").delete().eq("id", existingTask.id);
