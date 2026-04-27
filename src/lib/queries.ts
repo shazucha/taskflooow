@@ -468,8 +468,7 @@ export function useDeleteTasks() {
 export function useToggleTaskStatus() {
   const update = useUpdateTask();
   return (task: Task) => {
-    const next: TaskStatus =
-      task.status === "todo" ? "in_progress" : task.status === "in_progress" ? "done" : "todo";
+    const next: TaskStatus = task.status === "done" ? "todo" : "done";
     return update.mutateAsync({ id: task.id, patch: { status: next } });
   };
 }
