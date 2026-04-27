@@ -131,12 +131,8 @@ Deno.serve(async (req) => {
       });
     }
     const canReadGoogleTasks = hasRequiredGoogleTasksScope(tokenRow.scope);
-    if (!canReadGoogleTasks) {
-      return new Response(JSON.stringify({ error: "reauth_required", detail: "missing_tasks_scope" }), {
-        status: 409,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Tasks scope je voliteľný — bez neho len nebudeme importovať Google Tasks,
+    // Calendar events sa stále synchronizujú normálne.
 
     const tok = await getValidAccessToken(admin, user.id);
     if (!tok) {

@@ -235,6 +235,23 @@ export async function isGoogleConnected(): Promise<{ connected: boolean; email: 
     .maybeSingle();
   if (error) return { connected: false, email: null };
   const scopes = data?.scope?.split(/\s+/) ?? [];
-  const connected = !!data && scopes.includes(REQUIRED_GOOGLE_SCOPE) && scopes.includes(REQUIRED_GOOGLE_TASKS_SCOPE);
+  // Connected = aspoň Calendar scope. Tasks scope je voliteľný bonus (Google Tasks import).
+  const connected = !!data && scopes.includes(REQUIRED_GOOGLE_SCOPE);
   return { connected, email: connected ? (data?.google_email ?? null) : null };
+}
+
+export async function getGoogleConnectionStatus(): Promise<{
+  connected: boolean;
+  email: string | null;
+  hasTasksScope: boolean;
+}> {
+  const { data, error } = await supabase
+    .from("google_calendar_tokens")
+    .select("google_email, scope")
+    .maybeSingle();
+  if (error || !data) return { connected: false, email: null, hasTasksScope: false };
+  const scopes = data.scope?.split(/\s+/) ?? [];
+  const connected = scopes.includes(REQUIRED_GOOGLE_SCOPE);
+  const hasTasksScope = scopes.includes(REQUIRED_GOOGLE_TASKS_SCOPE);
+  return { connected, email: connected ? (data.google_email ?? null) : null, hasTasksScope };
 }

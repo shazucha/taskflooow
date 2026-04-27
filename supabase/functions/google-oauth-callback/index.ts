@@ -67,15 +67,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!hasRequiredGoogleTasksScope(tokens.scope)) {
-      return new Response(JSON.stringify({
-        error: "insufficient_scope",
-        message: `Google nevrátil povolenie ${GOOGLE_TASKS_SCOPE}`,
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Tasks scope je voliteľný — ak ho používateľ neudelil, pripojenie aj tak uložíme,
+    // len bez možnosti importovať Google Tasks. Frontend zobrazí warning banner.
+    const hasTasksScope = hasRequiredGoogleTasksScope(tokens.scope);
 
     if (!tokens.refresh_token) {
       return new Response(JSON.stringify({
@@ -116,7 +110,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: true, email: profile.email ?? null }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      email: profile.email ?? null,
+      has_tasks_scope: hasTasksScope,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

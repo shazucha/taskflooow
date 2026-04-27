@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Calendar, ClipboardCheck, Loader2, Undo2, Unlink, Wrench } from "lucide-react";
+import { AlertTriangle, Calendar, ClipboardCheck, Loader2, Undo2, Unlink, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   disconnectGoogle,
   fixGoogleTaskStatuses,
-  isGoogleConnected,
+  getGoogleConnectionStatus,
   pullGoogleEvents,
   rollbackGoogleTaskStatuses,
   startGoogleOAuth,
@@ -17,6 +17,7 @@ export function GoogleCalendarConnect() {
   const [busy, setBusy] = useState(false);
   const [connected, setConnected] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  const [hasTasksScope, setHasTasksScope] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const [audit, setAudit] = useState<PullResult | null>(null);
   const [fixing, setFixing] = useState(false);
@@ -26,9 +27,10 @@ export function GoogleCalendarConnect() {
 
   const refresh = async () => {
     setLoading(true);
-    const r = await isGoogleConnected();
+    const r = await getGoogleConnectionStatus();
     setConnected(r.connected);
     setEmail(r.email);
+    setHasTasksScope(r.hasTasksScope);
     setLoading(false);
   };
 
@@ -173,6 +175,23 @@ export function GoogleCalendarConnect() {
           )
         )}
       </div>
+
+      {connected && !hasTasksScope && (
+        <div className="mt-3 flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 p-3 text-xs">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <div className="flex-1">
+            <p className="font-semibold text-foreground">Google Tasks sa nesynchronizuje</p>
+            <p className="mt-0.5 text-muted-foreground">
+              Pri pripojení si neudelil povolenie pre Google Tasks. Calendar funguje normálne,
+              ale úlohy z Google Tasks sa neimportujú. Klikni „Znova pripojiť" a v Google
+              consent screene <strong>zaškrtni „View your tasks"</strong>.
+            </p>
+            <Button size="sm" onClick={connect} disabled={busy} className="mt-2 h-7 px-2 text-xs">
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Znova pripojiť s Tasks"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {audit && (
         <div className="mt-3 space-y-2 rounded-xl bg-surface-muted/60 p-3 text-xs">
