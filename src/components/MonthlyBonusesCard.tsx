@@ -322,13 +322,17 @@ export function MonthlyBonusesCard({ projectId }: Props) {
                 )}
                 {(b.hours != null || b.unit_price != null) && (
                   <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
-                    {b.hours != null && (
+                    {b.unit_type === "hourly" && b.hours != null && (
                       <span className="inline-flex items-center gap-0.5">
                         <Clock className="h-2.5 w-2.5" />
-                        {Number(b.hours)}h{Number(b.qty) > 1 ? ` × ${Number(b.qty)}` : ""}
+                        {Number(b.hours)}h
+                        {b.hourly_rate != null && (
+                          <> × {fmtMoney(b.hourly_rate, currency)}</>
+                        )}
+                        {Number(b.qty) > 1 ? ` × ${Number(b.qty)}ks` : ""}
                       </span>
                     )}
-                    {b.unit_price != null && (
+                    {b.unit_type !== "hourly" && b.unit_price != null && (
                       <span>
                         {fmtMoney(b.unit_price, currency)}
                         {Number(b.qty) > 1 ? ` × ${Number(b.qty)}` : ""} / ks
