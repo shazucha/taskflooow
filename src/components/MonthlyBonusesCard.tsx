@@ -163,11 +163,11 @@ export function MonthlyBonusesCard({ projectId }: Props) {
       effectiveUnitType = "piece";
     }
 
-    // Vyčistíme polia podľa typu, aby sa nezamiešavali ceny.
+    // Pri hodinovej položke ignorujeme fixnú cenu (počíta sa hodiny × hodinovka).
+    // Pri "piece" položke môžu byť hodiny vyplnené iba orientačne (do súhrnu hodín)
+    // a do ceny sa nepočítajú – preto si ich ponecháme.
     if (effectiveUnitType === "hourly") {
       unitPriceNum = null;
-    } else {
-      hoursNum = null;
     }
     if (effectiveUnitType === "hourly" && (hoursNum == null || projectHourlyRate == null)) {
       toast.error(
@@ -479,7 +479,7 @@ export function MonthlyBonusesCard({ projectId }: Props) {
               mode === "custom_hourly" ||
               (mode === "template" && effectiveCatalog.find((c) => c.id === catalogId)?.unit_type === "hourly");
             return (
-          <div className={cn("grid gap-2", isHourlyForm ? "grid-cols-2" : "grid-cols-[80px_1fr]") }>
+          <div className={cn("grid gap-2", isHourlyForm ? "grid-cols-2" : "grid-cols-3") }>
             <div className="space-y-1">
               <Label htmlFor="mb-qty" className="text-xs">Ks</Label>
               <Input
@@ -507,19 +507,36 @@ export function MonthlyBonusesCard({ projectId }: Props) {
                 />
               </div>
             ) : (
-              <div className="space-y-1">
-                <Label htmlFor="mb-price" className="text-xs">Cena / ks</Label>
-                <Input
-                  id="mb-price"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  placeholder="€"
-                  value={unitPrice}
-                  onChange={(e) => setUnitPrice(e.target.value)}
-                />
-              </div>
+              <>
+                <div className="space-y-1">
+                  <Label htmlFor="mb-price" className="text-xs">Cena / ks</Label>
+                  <Input
+                    id="mb-price"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    placeholder="€"
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="mb-hours-info" className="text-xs">
+                    Hodiny / ks <span className="text-muted-foreground">(orientačne)</span>
+                  </Label>
+                  <Input
+                    id="mb-hours-info"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.25"
+                    placeholder="napr. 1"
+                    value={hours}
+                    onChange={(e) => setHours(e.target.value)}
+                  />
+                </div>
+              </>
             )}
           </div>
             );
@@ -532,23 +549,27 @@ export function MonthlyBonusesCard({ projectId }: Props) {
               (mode === "template" && effectiveCatalog.find((c) => c.id === catalogId)?.unit_type === "hourly");
             const qtyN = Number(qty || "1") || 1;
             const upN = !isHourlyForm && unitPrice.trim() ? Number(unitPrice) : null;
-            const hN = isHourlyForm && hours.trim() ? Number(hours) : null;
+            const hN = hours.trim() ? Number(hours) : null;
             const value = bonusValue({
               qty: qtyN,
               unit_price: upN,
-              hours: hN,
+              hours: isHourlyForm ? hN : null,
               hourly_rate: isHourlyForm ? projectHourlyRate : null,
               unit_type: isHourlyForm ? "hourly" : "piece",
             });
-            if (value <= 0) return null;
+            const totalH = hN != null ? hN * qtyN : 0;
+            if (value <= 0 && totalH <= 0) return null;
             return (
               <p className="rounded-md bg-success/10 px-2 py-1.5 text-[11px] text-success">
-                Hodnota: <strong>{fmtMoney(value, currency)}</strong>
+                {value > 0 && <>Hodnota: <strong>{fmtMoney(value, currency)}</strong></>}
                 {isHourlyForm && hN != null && projectHourlyRate != null && (
                   <> · {hN}h × {fmtMoney(projectHourlyRate, currency)}{qtyN > 1 ? ` × ${qtyN}ks` : ""}</>
                 )}
                 {!isHourlyForm && upN != null && qtyN > 1 && (
                   <> · {fmtMoney(upN, currency)} × {qtyN}ks</>
+                )}
+                {!isHourlyForm && totalH > 0 && (
+                  <> · započíta {totalH.toFixed(2)}h do súhrnu</>
                 )}
               </p>
             );
