@@ -39,6 +39,91 @@ interface Props {
   projectId: string;
 }
 
+function SortableRow({
+  work,
+  done,
+  onToggle,
+  onOpen,
+  onDelete,
+  toggleDisabled,
+}: {
+  work: ProjectRecurringWork;
+  done: boolean;
+  onToggle: () => void;
+  onOpen: () => void;
+  onDelete: () => void;
+  toggleDisabled: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: work.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group flex items-center gap-2 rounded-xl border px-2 py-2 transition",
+        done
+          ? "border-success/30 bg-success/5"
+          : "border-border bg-surface-muted/40 hover:border-primary/40",
+        isDragging && "shadow-lg ring-2 ring-primary/40"
+      )}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="flex h-6 w-5 shrink-0 cursor-grab items-center justify-center text-muted-foreground hover:text-foreground active:cursor-grabbing touch-none"
+        aria-label="Presunúť"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        disabled={toggleDisabled}
+        onClick={onToggle}
+        className={cn(
+          "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition",
+          done
+            ? "border-success bg-success text-success-foreground"
+            : "border-border bg-card hover:border-primary"
+        )}
+        aria-label={done ? "Označiť ako nehotové" : "Označiť ako hotové"}
+      >
+        {done && <Check className="h-3.5 w-3.5" />}
+      </button>
+      <button
+        type="button"
+        onClick={onOpen}
+        className={cn(
+          "min-w-0 flex-1 text-left text-sm transition",
+          done ? "text-muted-foreground line-through" : "text-foreground hover:text-primary"
+        )}
+        title={work.note ?? `Vytvoriť úlohu: ${work.title}`}
+      >
+        <span className="truncate block">{work.title}</span>
+        {work.note && (
+          <span className="block truncate text-[11px] text-muted-foreground">{work.note}</span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="rounded-md p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+        aria-label="Odstrániť"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </li>
+  );
+}
+
 export function MonthlyDeliverablesCard({ projectId }: Props) {
   const userId = useCurrentUserId();
   const { data: works = [], isLoading } = useProjectRecurringWorks(projectId);
