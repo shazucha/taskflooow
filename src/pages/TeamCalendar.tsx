@@ -6,7 +6,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { cn } from "@/lib/utils";
 import {
   useCurrentUserId,
-  useIsAppAdmin,
+  useIsAppAdminStatus,
   useProfiles,
   useTasks,
 } from "@/lib/queries";
@@ -14,7 +14,7 @@ import {
 type Layout = "merged" | "columns";
 
 export default function TeamCalendar() {
-  const isAdmin = useIsAppAdmin();
+  const { isAdmin, loading: adminLoading } = useIsAppAdminStatus();
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
   const { data: tasks = [] } = useTasks();
@@ -34,6 +34,14 @@ export default function TeamCalendar() {
       });
   }, [profiles, tasks, currentUserId]);
 
+  // Wait for the session to hydrate before deciding whether to redirect.
+  if (adminLoading) {
+    return (
+      <div className="page-container">
+        <div className="h-32 animate-pulse rounded-2xl bg-surface-muted" />
+      </div>
+    );
+  }
   if (!isAdmin) return <Navigate to="/" replace />;
 
   const allActive = focusUserId === null;
