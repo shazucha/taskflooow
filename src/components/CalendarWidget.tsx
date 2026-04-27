@@ -756,12 +756,24 @@ function DayView({
 
 /* ---------------- Helpers ---------------- */
 function SelectedDayList({
-  selected, tasks, googleEvents = [], myColor, projectsById, onOpenTask,
+  selected, tasks, googleEvents = [], myColor, projectsById, onOpenTask, readOnly,
 }: {
   selected: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
   onOpenTask: (t: Task) => void;
+  readOnly?: boolean;
 }) {
+  const del = useDeleteTask();
+  const handleDelete = async (task: Task) => {
+    if (!confirm("Naozaj zmazať túto úlohu?")) return;
+    try {
+      await del.mutateAsync(task.id);
+      toast.success("Úloha zmazaná");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Nepodarilo sa zmazať úlohu";
+      toast.error(msg);
+    }
+  };
   return (
     <div className="mt-3 border-t border-border/60 pt-3">
       <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -779,6 +791,7 @@ function SelectedDayList({
                 myColor={myColor}
                 project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
                 onOpenTask={onOpenTask}
+                onDelete={readOnly ? undefined : handleDelete}
               />
             ))}
           </ul>
