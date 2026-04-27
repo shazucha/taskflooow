@@ -4,6 +4,8 @@
 // - Events deleted in Google -> matching task is deleted (per user choice)
 // We only touch rows where google_calendar_owner = current user, so we never
 // overwrite tasks that belong to other people.
+// NOTE: verify_jwt = false (see supabase/config.toml). Auth validated in code
+// via getUserFromAuthHeader to avoid gateway 401 from stale deployed flag.
 
 import { corsHeaders } from "../_shared/cors.ts";
 import {
