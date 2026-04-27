@@ -240,12 +240,16 @@ Deno.serve(async (req) => {
           updated++;
         }
       } else {
-        // New event from Google -> create task
+        // New event from Google -> create task.
+        // Ak udalosť už skončila, vytvoríme ju rovno ako "done", aby
+        // používateľ nemal v zozname stovky historických otvorených úloh.
+        const endMs = end ? new Date(end).getTime() : startMs;
+        const initialStatus = endMs < Date.now() ? "done" : "todo";
         const { error: insertErr } = await admin.from("tasks").insert({
           title,
           description,
           priority: "low",
-          status: "todo",
+          status: initialStatus,
           project_id: inferredProjectId,
           assignee_id: user.id,
           created_by: user.id,
