@@ -163,7 +163,10 @@ export async function disconnectGoogle(): Promise<void> {
 
 export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<GoogleEvent[]> {
   // No session yet (first paint / signed out) — skip silently to avoid 401 noise.
-  if (!(await hasActiveSession())) return [];
+  if (!(await hasActiveSession())) {
+    queueRetryUntilAuthenticated(() => { void fetchGoogleEvents(timeMin, timeMax); });
+    return [];
+  }
   try {
     const data = await callGoogleFunction<{ events: GoogleEvent[]; not_connected?: boolean }>("google-calendar-fetch", {
       time_min: timeMin.toISOString(),
@@ -176,10 +179,11 @@ export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<G
     if (message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT")) {
       throw new GoogleReconnectRequiredError();
     }
-    // 401 = auth race (session expired between getSession() and invoke,
-    // or token rejected by edge function). Treat as "no events yet" instead
-    // of crashing the calendar. Caller will retry on next interval/focus.
-    if (getFunctionErrorStatus(error) === 401) return [];
+    // 401 = auth race. Queue a retry to fire as soon as the user is authenticated.
+    if (getFunctionErrorStatus(error) === 401) {
+      queueRetryUntilAuthenticated(() => { void fetchGoogleEvents(timeMin, timeMax); });
+      return [];
+    }
     throw error;
   }
 }
@@ -215,7 +219,10 @@ export interface GoogleSyncResult {
 export async function pullGoogleEvents(): Promise<PullResult | null> {
   // Skip if not authenticated yet — invoke would send no Authorization header
   // and the edge function would return 401.
-  if (!(await hasActiveSession())) return null;
+  if (!(await hasActiveSession())) {
+    queueRetryUntilAuthenticated(() => { void pullGoogleEvents(); });
+    return null;
+  }
   // Edge runtime občas vráti 503 (studený štart / dočasná nedostupnosť).
   // Skúsime až 5x s narastajúcim backoffom — ostatné chyby propagujeme hneď.
   let lastErr: unknown = null;
@@ -232,10 +239,11 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
     if (isReconnectRequired(error)) {
       throw new GoogleReconnectRequiredError();
     }
-    // 401 = auth race (session expired between getSession() and invoke,
-    // or token rejected by edge function). Skip silently — caller will
-    // retry on next interval/focus.
-    if (getFunctionErrorStatus(error) === 401) return null;
+    // 401 = auth race. Queue a retry that fires after re-authentication.
+    if (getFunctionErrorStatus(error) === 401) {
+      queueRetryUntilAuthenticated(() => { void pullGoogleEvents(); });
+      return null;
+    }
     lastErr = error;
     if (!isTransientFunctionError(error)) return null;
     await new Promise((r) => setTimeout(r, 800 * (attempt + 1) + Math.random() * 400));
