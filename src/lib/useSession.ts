@@ -13,18 +13,23 @@ export function useSession() {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data, error }) => {
-      if (!mounted) return;
-      if (isInvalidRefreshTokenError(error)) {
-        await supabase.auth.signOut({ scope: "local" });
+    supabase.auth.getSession()
+      .then(async ({ data, error }) => {
         if (!mounted) return;
-        setSession(null);
-        setLoading(false);
-        return;
-      }
-      setSession(data.session);
-      setLoading(false);
-    });
+        if (isInvalidRefreshTokenError(error)) {
+          await supabase.auth.signOut({ scope: "local" });
+          if (!mounted) return;
+          setSession(null);
+          return;
+        }
+        setSession(data.session);
+      })
+      .catch(() => {
+        if (mounted) setSession(null);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, s) => {
       if (!mounted) return;
