@@ -13,12 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useCurrentUserId, useProfiles, useTasks, useUpdateProfile } from "@/lib/queries";
+import { useCurrentUserId, useIsAppAdmin, useProfiles, useTasks, useUpdateProfile } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect";
+import { ServiceCatalogAdmin } from "@/components/ServiceCatalogAdmin";
 import { useTheme } from "@/lib/useTheme";
 
 const COLOR_OPTIONS = [
@@ -42,6 +43,7 @@ export default function Profile() {
   const me = profiles.find((p) => p.id === currentUserId);
   const updateProfile = useUpdateProfile();
   const { theme, toggle: toggleTheme } = useTheme();
+  const isAdmin = useIsAppAdmin();
 
   const [name, setName] = useState("");
   const [savingName, setSavingName] = useState(false);
@@ -238,6 +240,8 @@ export default function Profile() {
           ))}
         </div>
       </section>
+
+      {isAdmin && <ServiceCatalogAdmin />}
 
       <Button
         variant="outline"

@@ -24,6 +24,7 @@ export interface Project {
   currency: string | null;
   client_since: string | null;
   category: ProjectCategory | null;
+  hourly_rate: number | null;
 }
 
 export interface ProjectWork {
@@ -63,6 +64,31 @@ export interface ProjectMonthlyBonus {
   done_by: string | null;
   done_at: string | null;
   created_by: string | null;
+  created_at: string;
+  qty: number;
+  unit_price: number | null;
+  hours: number | null;
+  hourly_rate: number | null;
+  catalog_id: string | null;
+}
+
+export interface ServiceCatalogItem {
+  id: string;
+  title: string;
+  unit_price: number;
+  default_hours: number | null;
+  note: string | null;
+  position: number;
+  active: boolean;
+  created_at: string;
+}
+
+export interface ProjectServiceOverride {
+  id: string;
+  project_id: string;
+  catalog_id: string;
+  unit_price: number | null;
+  default_hours: number | null;
   created_at: string;
 }
 

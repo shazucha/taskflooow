@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Trash2, Wallet, CalendarDays, Receipt } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Trash2, Wallet, CalendarDays, Receipt, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,23 @@ export function ProjectMetaCard({ project }: { project: Project }) {
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+
+  // Inline editor pre hodinovku
+  const [hourly, setHourly] = useState<string>(project.hourly_rate != null ? String(project.hourly_rate) : "");
+  useEffect(() => {
+    setHourly(project.hourly_rate != null ? String(project.hourly_rate) : "");
+  }, [project.id, project.hourly_rate]);
+
+  const saveHourly = async () => {
+    const next = hourly.trim() ? Number(hourly) : null;
+    if (next === project.hourly_rate) return;
+    try {
+      await updateProject.mutateAsync({ id: project.id, patch: { hourly_rate: next } });
+      toast.success("Hodinovka uložená");
+    } catch (e: any) {
+      toast.error(e.message ?? "Nepodarilo sa uložiť hodinovku");
+    }
+  };
 
   const months = monthsSince(project.client_since);
   const totalWorks = works.reduce((s, w) => s + (w.price ?? 0), 0);
@@ -110,6 +127,31 @@ export function ProjectMetaCard({ project }: { project: Project }) {
             <div className="text-xs text-muted-foreground">od {fmtMonth(project.client_since)}</div>
           )}
         </div>
+      </div>
+
+      <div className="mt-3 rounded-xl bg-surface-muted p-3">
+        <Label htmlFor="phr" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Clock className="h-3.5 w-3.5" /> Hodinová sadzba (pre tento projekt)
+        </Label>
+        <div className="mt-1.5 flex items-center gap-2">
+          <Input
+            id="phr"
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.5"
+            placeholder="napr. 35"
+            value={hourly}
+            onChange={(e) => setHourly(e.target.value)}
+            onBlur={saveHourly}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            className="h-9"
+          />
+          <span className="text-sm text-muted-foreground">{project.currency ?? "EUR"} / h</span>
+        </div>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Použije sa pri bonusoch zadaných v hodinách.
+        </p>
       </div>
 
       <div className="mt-3 rounded-xl bg-primary/10 p-3">
