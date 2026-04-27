@@ -59,6 +59,16 @@ export function useCurrentUserId() {
 
 const ADMIN_EMAIL = "hazucha.stano@gmail.com";
 export function useIsAppAdmin() {
+  const { user } = useSession();
+  return !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL;
+}
+
+/**
+ * Same as `useIsAppAdmin` but also exposes the auth loading state.
+ * Use in pages that gate access with <Navigate /> so we don't redirect
+ * on the first render (before the session is hydrated).
+ */
+export function useIsAppAdminStatus() {
   const { user, loading } = useSession();
   const isAdmin = !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL;
   return { isAdmin, loading };
