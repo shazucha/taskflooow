@@ -6,13 +6,16 @@ import type {
   ProjectMonthlyBonus,
   ProjectRecurringWork,
   ProjectRecurringWorkCompletion,
+  ProjectServiceOverride,
   ProjectWork,
+  ServiceCatalogItem,
   Task,
   TaskActivity,
   TaskMaterial,
 } from "./types";
 
-const PROJECT_COLS = "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since, category";
+const PROJECT_COLS =
+  "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since, category, hourly_rate";
 
 // ---- Profiles
 export async function fetchProfiles(): Promise<Profile[]> {
@@ -472,7 +475,7 @@ export async function deleteProjectMaterial(id: string): Promise<void> {
 
 // ---- Monthly bonuses (per project + konkrétny mesiac, bez šablóny)
 const BONUS_COLS =
-  "id, project_id, month_key, title, note, position, done, done_by, done_at, created_by, created_at";
+  "id, project_id, month_key, title, note, position, done, done_by, done_at, created_by, created_at, qty, unit_price, hours, hourly_rate, catalog_id";
 
 export async function fetchProjectMonthlyBonuses(
   projectId: string,
@@ -529,5 +532,89 @@ export async function updateProjectMonthlyBonus(
 
 export async function deleteProjectMonthlyBonus(id: string): Promise<void> {
   const { error } = await supabase.from("project_monthly_bonuses").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---- Service catalog (globálny cenník extra služieb)
+const CATALOG_COLS = "id, title, unit_price, default_hours, note, position, active, created_at";
+
+export async function fetchServiceCatalog(includeInactive = false): Promise<ServiceCatalogItem[]> {
+  let q = supabase.from("service_catalog").select(CATALOG_COLS);
+  if (!includeInactive) q = q.eq("active", true);
+  const { data, error } = await q.order("position", { ascending: true }).order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ServiceCatalogItem[];
+}
+
+export async function createServiceCatalogItem(input: {
+  title: string;
+  unit_price: number;
+  default_hours: number | null;
+  note: string | null;
+  position?: number;
+}): Promise<ServiceCatalogItem> {
+  const { data, error } = await supabase
+    .from("service_catalog")
+    .insert({
+      title: input.title,
+      unit_price: input.unit_price,
+      default_hours: input.default_hours,
+      note: input.note,
+      position: input.position ?? 0,
+    })
+    .select(CATALOG_COLS)
+    .single();
+  if (error) throw error;
+  return data as ServiceCatalogItem;
+}
+
+export async function updateServiceCatalogItem(
+  id: string,
+  patch: Partial<Pick<ServiceCatalogItem, "title" | "unit_price" | "default_hours" | "note" | "position" | "active">>
+): Promise<ServiceCatalogItem> {
+  const { data, error } = await supabase
+    .from("service_catalog")
+    .update(patch)
+    .eq("id", id)
+    .select(CATALOG_COLS)
+    .single();
+  if (error) throw error;
+  return data as ServiceCatalogItem;
+}
+
+export async function deleteServiceCatalogItem(id: string): Promise<void> {
+  const { error } = await supabase.from("service_catalog").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---- Project service overrides
+const OVERRIDE_COLS = "id, project_id, catalog_id, unit_price, default_hours, created_at";
+
+export async function fetchProjectServiceOverrides(projectId: string): Promise<ProjectServiceOverride[]> {
+  const { data, error } = await supabase
+    .from("project_service_overrides")
+    .select(OVERRIDE_COLS)
+    .eq("project_id", projectId);
+  if (error) throw error;
+  return (data ?? []) as ProjectServiceOverride[];
+}
+
+export async function upsertProjectServiceOverride(input: {
+  project_id: string;
+  catalog_id: string;
+  unit_price: number | null;
+  default_hours: number | null;
+}): Promise<ProjectServiceOverride> {
+  const { data, error } = await supabase
+    .from("project_service_overrides")
+    .upsert(input, { onConflict: "project_id,catalog_id" })
+    .select(OVERRIDE_COLS)
+    .single();
+  if (error) throw error;
+  return data as ProjectServiceOverride;
+}
+
+export async function deleteProjectServiceOverride(id: string): Promise<void> {
+  const { error } = await supabase.from("project_service_overrides").delete().eq("id", id);
   if (error) throw error;
 }
