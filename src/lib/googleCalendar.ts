@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 
 const REQUIRED_GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar";
+const REQUIRED_GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks.readonly";
 
 export interface GoogleEvent {
   id: string;
@@ -35,7 +36,8 @@ function getFunctionErrorStatus(error: unknown): number | null {
 
 function isReconnectRequired(error: unknown): boolean {
   const message = getErrorMessage(error);
-  return message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT");
+  const status = getFunctionErrorStatus(error);
+  return status === 409 || message.includes("reauth_required") || message.includes("insufficientPermissions") || message.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT");
 }
 
 function isTransientFunctionError(error: unknown): boolean {
@@ -208,6 +210,7 @@ export async function isGoogleConnected(): Promise<{ connected: boolean; email: 
     .select("google_email, scope")
     .maybeSingle();
   if (error) return { connected: false, email: null };
-  const connected = !!data && !!data.scope?.split(/\s+/).includes(REQUIRED_GOOGLE_SCOPE);
+  const scopes = data?.scope?.split(/\s+/) ?? [];
+  const connected = !!data && scopes.includes(REQUIRED_GOOGLE_SCOPE) && scopes.includes(REQUIRED_GOOGLE_TASKS_SCOPE);
   return { connected, email: connected ? (data?.google_email ?? null) : null };
 }
