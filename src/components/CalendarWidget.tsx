@@ -855,7 +855,7 @@ function DayView({
 
 /* ---------------- Helpers ---------------- */
 function SelectedDayList({
-  selected, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, onOpenTask, readOnly,
+  selected, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, onOpenTask, readOnly, mode = "personal",
 }: {
   selected: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
@@ -863,6 +863,7 @@ function SelectedDayList({
   currentUserId: string | null | undefined;
   onOpenTask: (t: Task) => void;
   readOnly?: boolean;
+  mode?: "personal" | "team";
 }) {
   const del = useDeleteTask();
   const handleDelete = async (task: Task) => {
@@ -878,6 +879,7 @@ function SelectedDayList({
   const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
   const myTasks = tasks.filter(isMine);
   const otherTasks = tasks.filter((t) => !isMine(t));
+  const splitView = mode === "team";
   return (
     <div className="mt-3 border-t border-border/60 pt-3">
       <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -885,7 +887,7 @@ function SelectedDayList({
       </p>
       {tasks.length === 0 && googleEvents.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">Žiadne úlohy.</p>
-      ) : (
+      ) : splitView ? (
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <div>
             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Moje</p>
@@ -931,6 +933,23 @@ function SelectedDayList({
             )}
           </div>
         </div>
+      ) : (
+        <ul className="mt-2 space-y-1.5">
+          {tasks.map((t) => (
+            <TaskRow
+              key={t.id}
+              task={t}
+              myColor={myColor}
+              project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
+              owner={isMine(t) ? null : t.assignee_id ? profilesById.get(t.assignee_id) ?? null : null}
+              onOpenTask={onOpenTask}
+              onDelete={readOnly ? undefined : handleDelete}
+            />
+          ))}
+          {googleEvents.map((e) => (
+            <GoogleEventRow key={e.id} event={e} />
+          ))}
+        </ul>
       )}
     </div>
   );
