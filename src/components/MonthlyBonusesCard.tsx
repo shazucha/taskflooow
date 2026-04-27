@@ -479,7 +479,7 @@ export function MonthlyBonusesCard({ projectId }: Props) {
               mode === "custom_hourly" ||
               (mode === "template" && effectiveCatalog.find((c) => c.id === catalogId)?.unit_type === "hourly");
             return (
-          <div className={cn("grid gap-2", isHourlyForm ? "grid-cols-2" : "grid-cols-[80px_1fr]") }>
+          <div className={cn("grid gap-2", isHourlyForm ? "grid-cols-2" : "grid-cols-3") }>
             <div className="space-y-1">
               <Label htmlFor="mb-qty" className="text-xs">Ks</Label>
               <Input
@@ -507,19 +507,36 @@ export function MonthlyBonusesCard({ projectId }: Props) {
                 />
               </div>
             ) : (
-              <div className="space-y-1">
-                <Label htmlFor="mb-price" className="text-xs">Cena / ks</Label>
-                <Input
-                  id="mb-price"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  placeholder="€"
-                  value={unitPrice}
-                  onChange={(e) => setUnitPrice(e.target.value)}
-                />
-              </div>
+              <>
+                <div className="space-y-1">
+                  <Label htmlFor="mb-price" className="text-xs">Cena / ks</Label>
+                  <Input
+                    id="mb-price"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    placeholder="€"
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="mb-hours-info" className="text-xs">
+                    Hodiny / ks <span className="text-muted-foreground">(orientačne)</span>
+                  </Label>
+                  <Input
+                    id="mb-hours-info"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.25"
+                    placeholder="napr. 1"
+                    value={hours}
+                    onChange={(e) => setHours(e.target.value)}
+                  />
+                </div>
+              </>
             )}
           </div>
             );
