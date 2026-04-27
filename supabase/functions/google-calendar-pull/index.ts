@@ -11,6 +11,7 @@ import {
   getUserFromAuthHeader,
   getValidAccessToken,
   hasRequiredGoogleCalendarScope,
+  hasRequiredGoogleTasksScope,
 } from "../_shared/google.ts";
 
 interface GoogleEvent {
@@ -21,6 +22,18 @@ interface GoogleEvent {
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
   source?: { title?: string };
+  updated?: string;
+}
+
+interface GoogleTaskItem {
+  id: string;
+  title?: string;
+  notes?: string;
+  status?: "needsAction" | "completed";
+  due?: string;
+  completed?: string;
+  deleted?: boolean;
+  hidden?: boolean;
   updated?: string;
 }
 
