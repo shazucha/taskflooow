@@ -33,8 +33,32 @@ function fallbackResponse(body: Record<string, unknown>) {
   return jsonResponse({ ok: true, fallback: true, ...body });
 }
 
+const SPECIAL_EVENT_CONFLICT_RE = /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType|focus time event|out of office event|working location/i;
+
 function isSpecialTypeConflict(detail: string) {
-  return /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType/i.test(detail);
+  if (SPECIAL_EVENT_CONFLICT_RE.test(detail)) return true;
+  try {
+    const parsed = JSON.parse(detail);
+    const pieces = [
+      parsed?.error?.message,
+      ...(parsed?.error?.errors ?? []).flatMap((item: { reason?: string; message?: string }) => [
+        item.reason,
+        item.message,
+      ]),
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return SPECIAL_EVENT_CONFLICT_RE.test(pieces);
+  } catch {
+    return false;
+  }
+}
+
+async function clearGoogleMapping(admin: ReturnType<typeof adminClient>, taskId: string) {
+  await admin
+    .from("tasks")
+    .update({ google_event_id: null, google_calendar_owner: null })
+    .eq("id", taskId);
 }
 
 function hasTime(iso: string) {
