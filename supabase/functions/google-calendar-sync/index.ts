@@ -19,6 +19,7 @@ interface TaskRow {
   assignee_id: string | null;
   google_event_id: string | null;
   google_calendar_owner: string | null;
+  google_imported: boolean | null;
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -62,7 +63,7 @@ Deno.serve(async (req) => {
     const admin = adminClient();
     const { data: taskData, error: taskErr } = await admin
       .from("tasks")
-      .select("id, title, description, due_date, due_end, assignee_id, google_event_id, google_calendar_owner")
+      .select("id, title, description, due_date, due_end, assignee_id, google_event_id, google_calendar_owner, google_imported")
       .eq("id", task_id)
       .maybeSingle();
     if (taskErr || !taskData) return jsonResponse({ error: "task_not_found" }, 404);
@@ -104,6 +105,13 @@ Deno.serve(async (req) => {
     }
 
     // ---- UPSERT
+    // Google-imported rows mirror Google Calendar/Tasks and must not be pushed
+    // back as Calendar event PATCH requests. Special Google event types like
+    // Focus Time reject normal updates with malformedFocusTimeEvent.
+    if (task.google_imported) {
+      return jsonResponse({ ok: true, skipped: "google_imported_readonly" });
+    }
+
     // Synchronizujeme iba úlohy, ktoré majú definovaný interval:
     //   - musia mať due_date (začiatok)
     //   - a buď due_end (koniec) alebo non-zero čas v due_date.
