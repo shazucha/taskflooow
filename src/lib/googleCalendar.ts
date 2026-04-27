@@ -10,7 +10,7 @@ async function hasActiveSession(): Promise<boolean> {
   return !!data.session?.access_token;
 }
 
-async function callGoogleFunction<T>(functionName: string, payload: unknown): Promise<T> {
+async function callGoogleFunction<T>(functionName: string, payload: unknown, unauthorizedFallback: T): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
   if (!accessToken) throw new Error("No active session");
@@ -26,6 +26,7 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown): Pr
   });
 
   if (!response.ok) {
+    if (response.status === 401) return unauthorizedFallback;
     const body = await response.text();
     const error = new Error(`Edge function returned ${response.status}: ${body}`);
     (error as Error & { status?: number }).status = response.status;
@@ -139,7 +140,7 @@ export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<G
     const data = await callGoogleFunction<{ events: GoogleEvent[]; not_connected?: boolean }>("google-calendar-fetch", {
       time_min: timeMin.toISOString(),
       time_max: timeMax.toISOString(),
-    });
+    }, { events: [], not_connected: true });
     if (data?.not_connected) return [];
     return data?.events ?? [];
   } catch (error) {
@@ -192,7 +193,13 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
-      return await callGoogleFunction<PullResult>("google-calendar-pull", {});
+      return await callGoogleFunction<PullResult>("google-calendar-pull", {}, {
+        ok: true,
+        imported: 0,
+        updated: 0,
+        deleted: 0,
+        not_connected: true,
+      });
     } catch (error) {
     if (isReconnectRequired(error)) {
       throw new GoogleReconnectRequiredError();
