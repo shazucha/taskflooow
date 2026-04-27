@@ -290,14 +290,15 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
 
           <div className="space-y-1.5">
             <Label>Stav</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {(["todo", "in_progress", "done"] as TaskStatus[]).map((s) => {
-                const active = status === s;
-                const styles: Record<TaskStatus, string> = {
+            <div className="grid grid-cols-2 gap-2">
+              {(["todo", "done"] as TaskStatus[]).map((s) => {
+                // "in_progress" sa v UI správa ako "todo" (nedokončená)
+                const active = s === "done" ? status === "done" : status !== "done";
+                const styles: Record<"todo" | "done", string> = {
                   todo: "bg-surface-muted text-foreground ring-border",
-                  in_progress: "bg-primary/15 text-primary ring-primary/30",
                   done: "bg-success/15 text-success ring-success/30",
                 };
+                const label = s === "done" ? "Dokončená" : "Nedokončená";
                 return (
                   <button
                     key={s}
@@ -307,12 +308,12 @@ export function TaskDetailDialog({ task, open, onOpenChange }: Props) {
                     className={cn(
                       "rounded-xl border py-2 text-xs font-semibold transition-all",
                       active
-                        ? `${styles[s]} border-transparent ring-2`
+                        ? `${styles[s as "todo" | "done"]} border-transparent ring-2`
                         : "bg-surface-muted text-muted-foreground border-transparent hover:text-foreground",
                       statusDisabled && "opacity-60 cursor-not-allowed"
                     )}
                   >
-                    {STATUS_LABEL[s]}
+                    {label}
                   </button>
                 );
               })}

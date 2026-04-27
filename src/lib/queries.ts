@@ -476,7 +476,7 @@ export function useToggleTaskStatus() {
 export function useToggleTaskDone() {
   const update = useUpdateTask();
   return (task: Task) => {
-    const next: TaskStatus = task.status === "done" ? "in_progress" : "done";
+    const next: TaskStatus = task.status === "done" ? "todo" : "done";
     return update.mutateAsync({ id: task.id, patch: { status: next } });
   };
 }
