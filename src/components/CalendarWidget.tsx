@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks, useToggleTaskDone } from "@/lib/queries";
+import { useCurrentUserId, useDeleteTask, useProfiles, useProjects, useTaskWatchers, useTasks, useToggleTaskDone } from "@/lib/queries";
 import type { Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
@@ -359,6 +359,7 @@ export function CalendarWidget({ userId, readOnly = false }: CalendarWidgetProps
           myColor={myColor}
           projectsById={projectsById}
           onOpenTask={setOpenTask}
+          readOnly={isReadOnly}
         />
       )}
 
@@ -528,6 +529,17 @@ function DayView({
   onCreateRange: (startSlot: number, endSlot: number) => void;
 }) {
   const toggleStatus = useToggleTaskDone();
+  const del = useDeleteTask();
+  const handleDelete = async (task: Task) => {
+    if (!confirm("Naozaj zmazať túto úlohu?")) return;
+    try {
+      await del.mutateAsync(task.id);
+      toast.success("Úloha zmazaná");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Nepodarilo sa zmazať úlohu";
+      toast.error(msg);
+    }
+  };
   const allDay = tasks.filter((t) => !hasTime(t));
   const timed = tasks
     .filter((t) => hasTime(t))
@@ -564,7 +576,7 @@ function DayView({
         <div>
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Celý deň</p>
           <ul className="space-y-1">
-            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} onOpenTask={onOpenTask} />)}
+            {allDay.map((t) => <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />)}
             {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
           </ul>
         </div>
@@ -681,6 +693,16 @@ function DayView({
                   </div>
                   <div className={cn("truncate font-semibold", isDone && "line-through")}>{task.title}</div>
                 </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={(ev) => { ev.stopPropagation(); void handleDelete(task); }}
+                    title="Vymazať úlohu"
+                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             );
           })}
@@ -734,12 +756,24 @@ function DayView({
 
 /* ---------------- Helpers ---------------- */
 function SelectedDayList({
-  selected, tasks, googleEvents = [], myColor, projectsById, onOpenTask,
+  selected, tasks, googleEvents = [], myColor, projectsById, onOpenTask, readOnly,
 }: {
   selected: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
   onOpenTask: (t: Task) => void;
+  readOnly?: boolean;
 }) {
+  const del = useDeleteTask();
+  const handleDelete = async (task: Task) => {
+    if (!confirm("Naozaj zmazať túto úlohu?")) return;
+    try {
+      await del.mutateAsync(task.id);
+      toast.success("Úloha zmazaná");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Nepodarilo sa zmazať úlohu";
+      toast.error(msg);
+    }
+  };
   return (
     <div className="mt-3 border-t border-border/60 pt-3">
       <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -757,6 +791,7 @@ function SelectedDayList({
                 myColor={myColor}
                 project={t.project_id ? projectsById.get(t.project_id) ?? null : null}
                 onOpenTask={onOpenTask}
+                onDelete={readOnly ? undefined : handleDelete}
               />
             ))}
           </ul>
@@ -774,9 +809,10 @@ function SelectedDayList({
 }
 
 function TaskRow({
-  task, myColor, project, onOpenTask,
+  task, myColor, project, onOpenTask, onDelete,
 }: {
   task: Task; myColor: string; project: Project | null; onOpenTask: (t: Task) => void;
+  onDelete?: (task: Task) => void | Promise<void>;
 }) {
   const timed = hasTime(task);
   const d = task.due_date ? new Date(task.due_date) : null;
@@ -820,6 +856,16 @@ function TaskRow({
             <span className={cn("flex-1 truncate", isDone && "line-through text-muted-foreground")}>{task.title}</span>
           </span>
         </button>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); void onDelete(task); }}
+            title="Vymazať úlohu"
+            className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
     </li>
   );
