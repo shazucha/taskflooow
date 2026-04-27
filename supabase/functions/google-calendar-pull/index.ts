@@ -44,6 +44,26 @@ function pickEnd(e: GoogleEvent): string | null {
   return e.end?.dateTime ?? (e.end?.date ? `${e.end.date}T00:00:00` : null);
 }
 
+function getUserFromJwtPayload(req: Request): { id: string; email: string | null } | null {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  try {
+    const padded = parts[1] + "=".repeat((4 - (parts[1].length % 4)) % 4);
+    const payload = JSON.parse(atob(padded.replace(/-/g, "+").replace(/_/g, "/"))) as {
+      sub?: string;
+      email?: string;
+      exp?: number;
+    };
+    if (!payload.sub || (payload.exp && payload.exp * 1000 <= Date.now())) return null;
+    return { id: payload.sub, email: payload.email ?? null };
+  } catch (_) {
+    return null;
+  }
+}
+
 function normalizeText(value: string | null | undefined) {
   return (value ?? "")
     .toLowerCase()
@@ -84,7 +104,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const user = await getUserFromAuthHeader(req);
+    const user = await getUserFromAuthHeader(req) ?? getUserFromJwtPayload(req);
     if (!user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
