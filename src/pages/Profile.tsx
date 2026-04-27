@@ -241,6 +241,8 @@ export default function Profile() {
         </div>
       </section>
 
+      {isAdmin && <ServiceCatalogAdmin />}
+
       <Button
         variant="outline"
         className="mt-6 w-full gap-2 rounded-xl"
