@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, Clock, MoreHorizontal, Trash2, Check, Users, Repeat, Layers, RefreshCw } from "lucide-react";
+import { CalendarDays, Clock, MoreHorizontal, Trash2, Check, Users, Repeat, Layers, RefreshCw, CalendarPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 import { seriesIndex, seriesSize, getSeriesKey } from "@/lib/recurring";
@@ -9,6 +9,8 @@ import { PriorityBadge } from "./PriorityBadge";
 import { UserAvatar } from "./UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,6 +91,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [resyncing, setResyncing] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
 
   // Sync keď sa otvorí menu / zmenia sa dáta
   const openChange = (v: boolean) => {
@@ -105,6 +108,35 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
     const d = new Date(task.due_date);
     return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
   })();
+
+  const handleDateChange = async (newDate: Date | undefined) => {
+    if (!newDate) return;
+    try {
+      // Zachovaj pôvodný čas (ak bol nastavený)
+      let next = new Date(newDate);
+      if (task.due_date) {
+        const prev = new Date(task.due_date);
+        next.setHours(prev.getHours(), prev.getMinutes(), 0, 0);
+      } else {
+        next.setHours(0, 0, 0, 0);
+      }
+      await updateTask.mutateAsync({ id: task.id, patch: { due_date: next.toISOString() } });
+      toast.success("Termín upravený");
+      setDateOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Nepodarilo sa zmeniť termín");
+    }
+  };
+
+  const clearDate = async () => {
+    try {
+      await updateTask.mutateAsync({ id: task.id, patch: { due_date: null, due_end: null } });
+      toast.success("Termín odstránený");
+      setDateOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Nepodarilo sa odstrániť termín");
+    }
+  };
 
   const handleResync = async () => {
     setResyncing(true);
@@ -229,6 +261,43 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
                 </span>
               )
             )}
+            <span onClick={(e) => e.stopPropagation()} role="presentation">
+              <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    title={task.due_date ? "Upraviť termín" : "Pridať termín"}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+                  <Calendar
+                    mode="single"
+                    selected={task.due_date ? new Date(task.due_date) : undefined}
+                    onSelect={handleDateChange}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                  {task.due_date && (
+                    <div className="border-t p-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full gap-1.5 text-xs text-destructive hover:text-destructive"
+                        onClick={clearDate}
+                      >
+                        <X className="h-3.5 w-3.5" /> Odstrániť termín
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            </span>
             {(() => {
               const size = seriesSize(allTasks, task);
               if (size < 2) return null;
