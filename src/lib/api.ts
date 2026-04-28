@@ -477,12 +477,32 @@ export async function deleteProjectMaterial(id: string): Promise<void> {
 // ---- Company materials (zdieľané pre celý tím)
 const COMPANY_MATERIAL_COLS = "id, url, label, created_by, created_at";
 
+const COMPANY_MATERIALS_MISSING_MSG =
+  "Tabuľka 'company_materials' ešte neexistuje v databáze. Spusti prosím SQL migráciu (pozri inštrukcie v aplikácii) a skús to znova.";
+
+function isMissingCompanyMaterialsTable(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  if (!e) return false;
+  // PostgREST: PGRST205 = "Could not find the table ... in the schema cache"
+  // Postgres: 42P01 = undefined_table
+  if (e.code === "PGRST205" || e.code === "42P01") return true;
+  const msg = (e.message ?? "").toLowerCase();
+  return msg.includes("company_materials") && (msg.includes("schema cache") || msg.includes("does not exist"));
+}
+
 export async function fetchCompanyMaterials(): Promise<CompanyMaterial[]> {
   const { data, error } = await supabase
     .from("company_materials")
     .select(COMPANY_MATERIAL_COLS)
     .order("created_at", { ascending: true });
-  if (error) throw error;
+  if (error) {
+    if (isMissingCompanyMaterialsTable(error)) {
+      // Vrátime prázdny zoznam, aby stránka neostala v error state.
+      console.warn(COMPANY_MATERIALS_MISSING_MSG);
+      return [];
+    }
+    throw error;
+  }
   return (data ?? []) as CompanyMaterial[];
 }
 
@@ -500,7 +520,12 @@ export async function createCompanyMaterial(input: {
     })
     .select(COMPANY_MATERIAL_COLS)
     .single();
-  if (error) throw error;
+  if (error) {
+    if (isMissingCompanyMaterialsTable(error)) {
+      throw new Error(COMPANY_MATERIALS_MISSING_MSG);
+    }
+    throw error;
+  }
   return data as CompanyMaterial;
 }
 
