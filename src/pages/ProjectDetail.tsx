@@ -156,7 +156,7 @@ export default function ProjectDetail() {
                             return (
                               <Collapsible
                                 key={g.date.toISOString()}
-                                defaultOpen={false}
+                                defaultOpen={today}
                                 className="rounded-xl border border-border/60 bg-card/60"
                               >
                                 <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-surface-muted">
