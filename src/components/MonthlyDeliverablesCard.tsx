@@ -1,9 +1,15 @@
 import { useMemo, useState } from "react";
-import { CalendarCheck2, Check, ChevronLeft, ChevronRight, GripVertical, Plus, Trash2 } from "lucide-react";
+import { CalendarCheck2, Check, ChevronLeft, ChevronRight, GripVertical, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   useCreateRecurringWork,
   useCurrentUserId,
@@ -112,14 +118,27 @@ function SortableRow({
           <span className="block truncate text-[11px] text-muted-foreground">{work.note}</span>
         )}
       </button>
-      <button
-        type="button"
-        onClick={onDelete}
-        className="rounded-md p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-        aria-label="Odstrániť"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-surface-muted hover:text-foreground"
+            aria-label="Možnosti úlohy"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuItem
+            className="gap-2 text-destructive focus:text-destructive"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-4 w-4" /> Odstrániť
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </li>
   );
 }
