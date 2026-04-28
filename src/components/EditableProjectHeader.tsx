@@ -84,7 +84,7 @@ export function EditableProjectHeader({ project, canEdit }: Props) {
           </div>
         ) : (
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <h1 className="truncate text-2xl font-bold tracking-tight">{project.name}</h1>
+            <h1 className="truncate text-xl font-bold tracking-tight">{project.name}</h1>
             {canEdit && (
               <button
                 onClick={() => setEditingName(true)}
