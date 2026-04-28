@@ -14,6 +14,7 @@ import Messages from "./pages/Messages";
 import Auth from "./pages/Auth";
 import GoogleOAuthCallback from "./pages/GoogleOAuthCallback";
 import GoogleSyncDiag from "./pages/GoogleSyncDiag";
+import PresenceDiag from "./pages/PresenceDiag";
 import TeamCalendar from "./pages/TeamCalendar";
 import CompanyMaterials from "./pages/CompanyMaterials";
 import NotFound from "./pages/NotFound.tsx";
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/team-calendar" element={<TeamCalendar />} />
             <Route path="/company-materials" element={<CompanyMaterials />} />
             <Route path="/diag/google-sync" element={<GoogleSyncDiag />} />
+            <Route path="/diag/presence" element={<PresenceDiag />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
