@@ -137,30 +137,67 @@ export default function ProjectDetail() {
                   <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                  <div className="space-y-4 px-1 pb-2 pt-1">
+                  <div className="space-y-2 px-1 pb-2 pt-1">
                     {(() => {
                       const { groups, noDate } = groupByDate(list);
+                      const today = new Date();
+                      const isToday = (d: Date) =>
+                        d.getFullYear() === today.getFullYear() &&
+                        d.getMonth() === today.getMonth() &&
+                        d.getDate() === today.getDate();
+                      // Dnešok hore, zvyšok podľa dátumu
+                      const todayGroups = groups.filter((g) => isToday(g.date));
+                      const otherGroups = groups.filter((g) => !isToday(g.date));
+                      const ordered = [...todayGroups, ...otherGroups];
                       return (
                         <>
-                          {groups.map((g) => (
-                            <div key={g.date.toISOString()} className="space-y-2">
-                              <p className="px-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                {formatDayHeader(g.date)}
-                              </p>
-                              <div className="space-y-2.5">
-                                {g.tasks.map((t) => <TaskCard key={t.id} task={t} onOpen={setOpenTask} />)}
-                              </div>
-                            </div>
-                          ))}
+                          {ordered.map((g) => {
+                            const today = isToday(g.date);
+                            return (
+                              <Collapsible
+                                key={g.date.toISOString()}
+                                defaultOpen={false}
+                                className="rounded-xl border border-border/60 bg-card/60"
+                              >
+                                <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-surface-muted">
+                                  <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                    {formatDayHeader(g.date)}
+                                    <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal">
+                                      {g.tasks.length}
+                                    </span>
+                                    {today && (
+                                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold normal-case tracking-normal text-primary-foreground">
+                                        Dnes
+                                      </span>
+                                    )}
+                                  </span>
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                                  <div className="space-y-2.5 px-2 pb-2 pt-1">
+                                    {g.tasks.map((t) => <TaskCard key={t.id} task={t} onOpen={setOpenTask} />)}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            );
+                          })}
                           {noDate.length > 0 && (
-                            <div className="space-y-2">
-                              <p className="px-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                Bez dátumu
-                              </p>
-                              <div className="space-y-2.5">
+                            <Collapsible defaultOpen={false} className="rounded-xl border border-border/60 bg-card/60">
+                              <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-surface-muted">
+                                <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  Bez dátumu
+                                  <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal">
+                                    {noDate.length}
+                                  </span>
+                                </span>
+                                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                                <div className="space-y-2.5 px-2 pb-2 pt-1">
                                 {noDate.map((t) => <TaskCard key={t.id} task={t} onOpen={setOpenTask} />)}
-                              </div>
-                            </div>
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
                           )}
                         </>
                       );
