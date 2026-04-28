@@ -332,7 +332,38 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
                   }
                   onOpen={() => onWorkClick(w.title)}
                   onDelete={() => {
-                    if (confirm(`Odstrániť "${w.title}" zo zoznamu?`)) remove.mutate(w.id);
+                    debug3Dots("delete confirmation requested", {
+                      projectId,
+                      workId: w.id,
+                      title: w.title,
+                    });
+
+                    const confirmed = confirm(`Odstrániť "${w.title}" zo zoznamu?`);
+                    debug3Dots("delete confirmation resolved", {
+                      projectId,
+                      workId: w.id,
+                      title: w.title,
+                      confirmed,
+                    });
+
+                    if (!confirmed) return;
+
+                    remove.mutate(w.id, {
+                      onSuccess: () => {
+                        debug3Dots("delete mutation succeeded", {
+                          projectId,
+                          workId: w.id,
+                          title: w.title,
+                        });
+                      },
+                      onError: (error) => {
+                        debug3DotsError("delete mutation failed", error, {
+                          projectId,
+                          workId: w.id,
+                          title: w.title,
+                        });
+                      },
+                    });
                   }}
                   toggleDisabled={!userId || toggle.isPending}
                 />
