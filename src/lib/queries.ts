@@ -632,6 +632,49 @@ export function useDeleteProjectMaterial(projectId: string) {
   });
 }
 
+// ---- Company materials (zdieľané pre celý tím)
+export function useCompanyMaterials() {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+
+  useEffect(() => {
+    if (!isReady || !user) return;
+    const channel = supabase
+      .channel(`company-materials-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "company_materials" },
+        () => qc.invalidateQueries({ queryKey: ["company_materials"] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isReady, user, qc]);
+
+  return useQuery({
+    queryKey: ["company_materials"],
+    queryFn: fetchCompanyMaterials,
+    enabled: isReady && !!user,
+  });
+}
+
+export function useCreateCompanyMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createCompanyMaterial,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["company_materials"] }),
+  });
+}
+
+export function useDeleteCompanyMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteCompanyMaterial(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["company_materials"] }),
+  });
+}
+
 // ---- Service catalog (globálny cenník)
 export function useServiceCatalog(includeInactive = false) {
   const qc = useQueryClient();
