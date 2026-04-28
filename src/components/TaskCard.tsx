@@ -342,7 +342,6 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
             <DropdownMenuContent
               align="end"
               className="w-64"
-              onOpenAutoFocus={(e) => e.preventDefault()}
               onCloseAutoFocus={(e) => e.preventDefault()}
             >
               <DropdownMenuLabel className="flex items-center gap-1.5 text-xs">
