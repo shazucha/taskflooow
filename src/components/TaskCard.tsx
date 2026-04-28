@@ -232,7 +232,18 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
           {done && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
         </button>
 
-        <button onClick={() => onOpen?.(task)} className="min-w-0 flex-1 text-left">
+        <div
+          onClick={() => onOpen?.(task)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen?.(task);
+            }
+          }}
+          className="min-w-0 flex-1 cursor-pointer text-left"
+        >
           <h3
             className={cn(
               "text-[15px] font-semibold leading-snug text-foreground",
@@ -313,7 +324,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               );
             })()}
           </div>
-        </button>
+        </div>
 
         <div className="flex flex-col items-end gap-2">
           <DropdownMenu open={menuOpen} onOpenChange={openChange}>
