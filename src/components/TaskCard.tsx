@@ -11,6 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
   useCurrentUserId,
@@ -84,6 +92,12 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [resyncing, setResyncing] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
+
+  // Sync keď sa otvorí menu / zmenia sa dáta
+  const openChange = (v: boolean) => {
+    if (v) setSelected(initialSelected);
+    setMenuOpen(v);
+  };
 
   const toggleUser = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
