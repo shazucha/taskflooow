@@ -1,15 +1,9 @@
 import { useMemo, useState } from "react";
-import { CalendarCheck2, Check, ChevronLeft, ChevronRight, GripVertical, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { CalendarCheck2, Check, ChevronLeft, ChevronRight, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   useCreateRecurringWork,
   useCurrentUserId,
@@ -43,20 +37,6 @@ import type { ProjectRecurringWork } from "@/lib/types";
 
 interface Props {
   projectId: string;
-}
-
-const DEBUG_PREFIX = "[MonthlyDeliverablesCard:3dots]";
-
-function debug3Dots(message: string, payload?: Record<string, unknown>) {
-  console.debug(DEBUG_PREFIX, message, payload ?? {});
-}
-
-function debug3DotsError(message: string, error: unknown, payload?: Record<string, unknown>) {
-  const normalizedError = error instanceof Error
-    ? { name: error.name, message: error.message, stack: error.stack }
-    : error;
-
-  console.error(DEBUG_PREFIX, message, { ...payload, error: normalizedError });
 }
 
 function SortableRow({
@@ -132,69 +112,19 @@ function SortableRow({
           <span className="block truncate text-[11px] text-muted-foreground">{work.note}</span>
         )}
       </button>
-      <DropdownMenu
-        onOpenChange={(open) =>
-          debug3Dots(open ? "menu opened" : "menu closed", {
-            workId: work.id,
-            title: work.title,
-            done,
-          })
-        }
+      <button
+        type="button"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+        aria-label="Odstrániť"
+        title="Odstrániť"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
       >
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-surface-muted hover:text-foreground"
-            aria-label="Možnosti úlohy"
-            onPointerDown={(e) => {
-              debug3Dots("trigger pointerdown", {
-                workId: work.id,
-                title: work.title,
-                button: e.button,
-                pointerType: e.pointerType,
-                defaultPrevented: e.defaultPrevented,
-              });
-              e.stopPropagation();
-            }}
-            onClick={(e) => {
-              debug3Dots("trigger click", {
-                workId: work.id,
-                title: work.title,
-                defaultPrevented: e.defaultPrevented,
-              });
-              e.stopPropagation();
-            }}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="w-44"
-          onPointerDown={(e) => {
-            debug3Dots("menu content pointerdown", { workId: work.id, title: work.title });
-            e.stopPropagation();
-          }}
-          onClick={(e) => {
-            debug3Dots("menu content click", { workId: work.id, title: work.title });
-            e.stopPropagation();
-          }}
-        >
-          <DropdownMenuItem
-            className="gap-2 text-destructive focus:text-destructive"
-            onClick={(e) => {
-              debug3Dots("delete menu item clicked", {
-                workId: work.id,
-                title: work.title,
-                defaultPrevented: e.defaultPrevented,
-              });
-              onDelete();
-            }}
-          >
-            <Trash2 className="h-4 w-4" /> Odstrániť
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <Trash2 className="h-4 w-4" />
+      </button>
     </li>
   );
 }
@@ -332,38 +262,9 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
                   }
                   onOpen={() => onWorkClick(w.title)}
                   onDelete={() => {
-                    debug3Dots("delete confirmation requested", {
-                      projectId,
-                      workId: w.id,
-                      title: w.title,
-                    });
-
                     const confirmed = confirm(`Odstrániť "${w.title}" zo zoznamu?`);
-                    debug3Dots("delete confirmation resolved", {
-                      projectId,
-                      workId: w.id,
-                      title: w.title,
-                      confirmed,
-                    });
-
                     if (!confirmed) return;
-
-                    remove.mutate(w.id, {
-                      onSuccess: () => {
-                        debug3Dots("delete mutation succeeded", {
-                          projectId,
-                          workId: w.id,
-                          title: w.title,
-                        });
-                      },
-                      onError: (error) => {
-                        debug3DotsError("delete mutation failed", error, {
-                          projectId,
-                          workId: w.id,
-                          title: w.title,
-                        });
-                      },
-                    });
+                    remove.mutate(w.id);
                   }}
                   toggleDisabled={!userId || toggle.isPending}
                 />
