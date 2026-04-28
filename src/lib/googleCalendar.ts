@@ -300,6 +300,13 @@ export async function rollbackGoogleTaskStatuses(
 }
 
 export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delete" = "upsert"): Promise<GoogleSyncResult> {
+  // Ak používateľ ešte nie je prihlásený (auth race po reloade), edge funkcia
+  // vráti 401 a `supabase.functions.invoke` to propaguje ako error → biela
+  // obrazovka. Preskočíme sync, zaradíme retry po prihlásení.
+  if (!(await hasActiveSession())) {
+    queueRetryUntilAuthenticated(() => { void syncTaskToGoogle(taskId, action); });
+    return { ok: true, fallback: true, skipped: "no_session" };
+  }
   // Edge runtime občas vráti 503 (studený štart / dočasná nedostupnosť).
   // Skúsime až 3x s krátkym backoffom — ostatné chyby propagujeme hneď.
   let lastError: unknown = null;
@@ -326,6 +333,12 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
 
     if (isReconnectRequired(error)) {
       throw new GoogleReconnectRequiredError();
+    }
+    // 401 = auth race (token ešte nedorazil / dočasne neplatný). Neviešať
+    // celú akciu na tom — zaradíme retry a vrátime skip.
+    if (getFunctionErrorStatus(error) === 401) {
+      queueRetryUntilAuthenticated(() => { void syncTaskToGoogle(taskId, action); });
+      return { ok: true, fallback: true, skipped: "unauthorized" };
     }
     lastError = error;
     if (!isTransientFunctionError(error)) throw error;
