@@ -327,13 +327,24 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <DropdownMenu open={menuOpen} onOpenChange={openChange}>
+          <DropdownMenu open={menuOpen} onOpenChange={openChange} modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 -mr-1 -mt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 -mr-1 -mt-1"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent
+              align="end"
+              className="w-64"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
               <DropdownMenuLabel className="flex items-center gap-1.5 text-xs">
                 <Users className="h-3.5 w-3.5" /> Komu úloha patrí
               </DropdownMenuLabel>
