@@ -45,6 +45,20 @@ interface Props {
   projectId: string;
 }
 
+const DEBUG_PREFIX = "[MonthlyDeliverablesCard:3dots]";
+
+function debug3Dots(message: string, payload?: Record<string, unknown>) {
+  console.debug(DEBUG_PREFIX, message, payload ?? {});
+}
+
+function debug3DotsError(message: string, error: unknown, payload?: Record<string, unknown>) {
+  const normalizedError = error instanceof Error
+    ? { name: error.name, message: error.message, stack: error.stack }
+    : error;
+
+  console.error(DEBUG_PREFIX, message, { ...payload, error: normalizedError });
+}
+
 function SortableRow({
   work,
   done,
@@ -118,22 +132,64 @@ function SortableRow({
           <span className="block truncate text-[11px] text-muted-foreground">{work.note}</span>
         )}
       </button>
-      <DropdownMenu>
+      <DropdownMenu
+        onOpenChange={(open) =>
+          debug3Dots(open ? "menu opened" : "menu closed", {
+            workId: work.id,
+            title: work.title,
+            done,
+          })
+        }
+      >
         <DropdownMenuTrigger asChild>
           <button
             type="button"
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-surface-muted hover:text-foreground"
             aria-label="Možnosti úlohy"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => {
+              debug3Dots("trigger pointerdown", {
+                workId: work.id,
+                title: work.title,
+                button: e.button,
+                pointerType: e.pointerType,
+                defaultPrevented: e.defaultPrevented,
+              });
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              debug3Dots("trigger click", {
+                workId: work.id,
+                title: work.title,
+                defaultPrevented: e.defaultPrevented,
+              });
+              e.stopPropagation();
+            }}
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuContent
+          align="end"
+          className="w-44"
+          onPointerDown={(e) => {
+            debug3Dots("menu content pointerdown", { workId: work.id, title: work.title });
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            debug3Dots("menu content click", { workId: work.id, title: work.title });
+            e.stopPropagation();
+          }}
+        >
           <DropdownMenuItem
             className="gap-2 text-destructive focus:text-destructive"
-            onClick={onDelete}
+            onClick={(e) => {
+              debug3Dots("delete menu item clicked", {
+                workId: work.id,
+                title: work.title,
+                defaultPrevented: e.defaultPrevented,
+              });
+              onDelete();
+            }}
           >
             <Trash2 className="h-4 w-4" /> Odstrániť
           </DropdownMenuItem>
