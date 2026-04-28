@@ -105,7 +105,7 @@ export default function ProjectDetail() {
                   <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                  <div className="space-y-2.5 px-1 pb-2 pt-1 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
+                  <div className="space-y-2.5 px-1 pb-2 pt-1">
                     {list.map((t) => <TaskCard key={t.id} task={t} onOpen={setOpenTask} />)}
                   </div>
                 </CollapsibleContent>
@@ -120,8 +120,8 @@ export default function ProjectDetail() {
           )}
 
           <section className="pt-4">
-            <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
-              <NotebookPen className="h-4 w-4" /> Poznámky k projektu
+            <h2 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold">
+              <NotebookPen className="h-3.5 w-3.5" /> Poznámky k projektu
             </h2>
             <Chat scope="project" projectId={project.id} variant="notes" />
           </section>
