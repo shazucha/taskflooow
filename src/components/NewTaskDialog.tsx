@@ -180,8 +180,11 @@ export function NewTaskDialog({
       return;
     }
     try {
-      const assignee = selectedUserIds[0] ?? currentUserId;
-      const watchers = selectedUserIds.slice(1).filter((id) => id !== assignee);
+      // Každý zaškrtnutý dostane vlastnú kópiu úlohy (vlastný assignee_id).
+      // Ak nie je nikto vybratý (admin scenario), priradíme ju aktuálnemu užívateľovi.
+      const assignees = selectedUserIds.length > 0
+        ? Array.from(new Set(selectedUserIds))
+        : [currentUserId];
 
       if (recurring) {
         if (!projectId) {
@@ -199,23 +202,25 @@ export function NewTaskDialog({
             const y = y0 + Math.floor((m0 + i) / 12);
             const m = (m0 + i) % 12;
             const due_date = nthDayOfMonth(y, m, recDay);
-            await create.mutateAsync({
-              task: {
-                title: title.trim(),
-                description: description.trim() || null,
-                priority,
-                status: "todo",
-                project_id: projectId,
-                assignee_id: assignee,
-                created_by: currentUserId,
-                due_date,
-                due_end: null,
-                series_id: seriesId,
-              },
-              watcherIds: watchers,
-            });
+            for (const assigneeId of assignees) {
+              await create.mutateAsync({
+                task: {
+                  title: title.trim(),
+                  description: description.trim() || null,
+                  priority,
+                  status: "todo",
+                  project_id: projectId,
+                  assignee_id: assigneeId,
+                  created_by: currentUserId,
+                  due_date,
+                  due_end: null,
+                  series_id: seriesId,
+                },
+                watcherIds: [],
+              });
+            }
           }
-          toast.success(`Vytvorených ${recMonths} opakovaných úloh`);
+          toast.success(`Vytvorených ${recMonths * assignees.length} opakovaných úloh`);
         } else {
           if (!recWeekStart) {
             toast.error("Vyber dátum prvého týždňa");
@@ -239,23 +244,25 @@ export function NewTaskDialog({
                 due_end = new Date(start.getTime() + 30 * 60 * 1000).toISOString();
               }
             }
-            await create.mutateAsync({
-              task: {
-                title: title.trim(),
-                description: description.trim() || null,
-                priority,
-                status: "todo",
-                project_id: projectId,
-                assignee_id: assignee,
-                created_by: currentUserId,
-                due_date: start.toISOString(),
-                due_end,
-                series_id: seriesId,
-              },
-              watcherIds: watchers,
-            });
+            for (const assigneeId of assignees) {
+              await create.mutateAsync({
+                task: {
+                  title: title.trim(),
+                  description: description.trim() || null,
+                  priority,
+                  status: "todo",
+                  project_id: projectId,
+                  assignee_id: assigneeId,
+                  created_by: currentUserId,
+                  due_date: start.toISOString(),
+                  due_end,
+                  series_id: seriesId,
+                },
+                watcherIds: [],
+              });
+            }
           }
-          toast.success(`Vytvorených ${recWeeks} týždenných úloh`);
+          toast.success(`Vytvorených ${recWeeks * assignees.length} týždenných úloh`);
         }
       } else {
         let due_date: string | null = null;
@@ -272,22 +279,28 @@ export function NewTaskDialog({
             }
           }
         }
-        await create.mutateAsync({
-          task: {
-            title: title.trim(),
-            description: description.trim() || null,
-            priority,
-            status: "todo",
-            project_id: projectId || null,
-            assignee_id: assignee,
-            created_by: currentUserId,
-            due_date,
-            due_end,
-            series_id: null,
-          },
-          watcherIds: watchers,
-        });
-        toast.success("Úloha vytvorená");
+        for (const assigneeId of assignees) {
+          await create.mutateAsync({
+            task: {
+              title: title.trim(),
+              description: description.trim() || null,
+              priority,
+              status: "todo",
+              project_id: projectId || null,
+              assignee_id: assigneeId,
+              created_by: currentUserId,
+              due_date,
+              due_end,
+              series_id: null,
+            },
+            watcherIds: [],
+          });
+        }
+        toast.success(
+          assignees.length > 1
+            ? `Vytvorených ${assignees.length} úloh (po jednej pre každého)`
+            : "Úloha vytvorená"
+        );
       }
       setOpen(false);
       reset();

@@ -75,9 +75,6 @@ export function InlineTaskComposer({
       return;
     }
     try {
-      const assignee = selectedUserIds[0];
-      const watchers = selectedUserIds.slice(1).filter((id) => id !== assignee);
-
       let due_date: string | null = null;
       let due_end: string | null = null;
       if (dueDate) {
@@ -93,22 +90,30 @@ export function InlineTaskComposer({
         }
       }
 
-      await create.mutateAsync({
-        task: {
-          title: title.trim(),
-          description: description.trim() || null,
-          priority,
-          status: "todo",
-          project_id: projectId,
-          assignee_id: assignee,
-          created_by: currentUserId,
-          due_date,
-          due_end,
-          series_id: null,
-        },
-        watcherIds: watchers,
-      });
-      toast.success("Úloha vytvorená");
+      // Každý zaškrtnutý dostane vlastnú kópiu úlohy (vlastný assignee_id).
+      const uniqueAssignees = Array.from(new Set(selectedUserIds));
+      for (const assigneeId of uniqueAssignees) {
+        await create.mutateAsync({
+          task: {
+            title: title.trim(),
+            description: description.trim() || null,
+            priority,
+            status: "todo",
+            project_id: projectId,
+            assignee_id: assigneeId,
+            created_by: currentUserId,
+            due_date,
+            due_end,
+            series_id: null,
+          },
+          watcherIds: [],
+        });
+      }
+      toast.success(
+        uniqueAssignees.length > 1
+          ? `Vytvorených ${uniqueAssignees.length} úloh (po jednej pre každého riešiteľa)`
+          : "Úloha vytvorená"
+      );
       onCreated?.();
       onClose();
     } catch (e: unknown) {
