@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect";
 import { ServiceCatalogAdmin } from "@/components/ServiceCatalogAdmin";
 import { useTheme } from "@/lib/useTheme";
+import { useTeamPresence } from "@/lib/useTeamPresence";
 
 const COLOR_OPTIONS = [
   "#3b82f6", // blue
@@ -44,6 +45,7 @@ export default function Profile() {
   const updateProfile = useUpdateProfile();
   const { theme, toggle: toggleTheme } = useTheme();
   const isAdmin = useIsAppAdmin();
+  const onlineIds = useTeamPresence();
 
   const [name, setName] = useState("");
   const [savingName, setSavingName] = useState(false);
@@ -226,18 +228,36 @@ export default function Profile() {
           <Users className="h-4 w-4" /> Tím
         </h2>
         <div className="card-elevated divide-y divide-border/60">
-          {profiles.map((p) => (
+          {profiles.map((p) => {
+            const online = onlineIds.has(p.id);
+            return (
             <div key={p.id} className="flex items-center gap-3 p-3.5">
-              <UserAvatar profile={p} size="md" />
+              <span className="relative shrink-0">
+                <UserAvatar profile={p} size="md" />
+                <span
+                  className={cn(
+                    "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card",
+                    online ? "bg-success" : "bg-muted-foreground/40"
+                  )}
+                  title={online ? "Online" : "Offline"}
+                />
+              </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{p.full_name?.trim() || p.email}</p>
                 <p className="truncate text-xs text-muted-foreground">{p.email}</p>
               </div>
+              <span className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                online ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+              )}>
+                {online ? "ONLINE" : "OFFLINE"}
+              </span>
               {p.id === currentUserId && (
                 <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-bold text-primary">VY</span>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
