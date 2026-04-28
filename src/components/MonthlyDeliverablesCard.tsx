@@ -241,8 +241,8 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
       setTitle("");
       setNote("");
       setAdding(false);
-    } catch (e: any) {
-      toast.error(e.message ?? "Nepodarilo sa pridať");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Nepodarilo sa pridať");
     }
   };
 
