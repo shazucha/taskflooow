@@ -251,17 +251,11 @@ export function InlineTaskComposer({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="flex items-center justify-between text-xs">
-            <span>Riešiteľ</span>
-            <span className="text-[11px] font-normal text-muted-foreground">
-              1. zaškrtnutý = hlavný
-            </span>
-          </Label>
+          <Label className="text-xs">Riešitelia</Label>
           <div className="max-h-44 space-y-1 overflow-y-auto rounded-xl border border-border/60 bg-card p-1">
             {profiles.map((p) => {
               const idx = selectedUserIds.indexOf(p.id);
               const active = idx !== -1;
-              const isPrimary = idx === 0;
               return (
                 <label
                   key={p.id}
@@ -278,11 +272,6 @@ export function InlineTaskComposer({
                       <span className="ml-1 text-xs text-muted-foreground">(ja)</span>
                     )}
                   </span>
-                  {isPrimary && (
-                    <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
-                      Hlavný
-                    </span>
-                  )}
                 </label>
               );
             })}
