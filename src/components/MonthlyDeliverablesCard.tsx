@@ -112,69 +112,19 @@ function SortableRow({
           <span className="block truncate text-[11px] text-muted-foreground">{work.note}</span>
         )}
       </button>
-      <DropdownMenu
-        onOpenChange={(open) =>
-          debug3Dots(open ? "menu opened" : "menu closed", {
-            workId: work.id,
-            title: work.title,
-            done,
-          })
-        }
+      <button
+        type="button"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+        aria-label="Odstrániť"
+        title="Odstrániť"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
       >
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-surface-muted hover:text-foreground"
-            aria-label="Možnosti úlohy"
-            onPointerDown={(e) => {
-              debug3Dots("trigger pointerdown", {
-                workId: work.id,
-                title: work.title,
-                button: e.button,
-                pointerType: e.pointerType,
-                defaultPrevented: e.defaultPrevented,
-              });
-              e.stopPropagation();
-            }}
-            onClick={(e) => {
-              debug3Dots("trigger click", {
-                workId: work.id,
-                title: work.title,
-                defaultPrevented: e.defaultPrevented,
-              });
-              e.stopPropagation();
-            }}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="w-44"
-          onPointerDown={(e) => {
-            debug3Dots("menu content pointerdown", { workId: work.id, title: work.title });
-            e.stopPropagation();
-          }}
-          onClick={(e) => {
-            debug3Dots("menu content click", { workId: work.id, title: work.title });
-            e.stopPropagation();
-          }}
-        >
-          <DropdownMenuItem
-            className="gap-2 text-destructive focus:text-destructive"
-            onClick={(e) => {
-              debug3Dots("delete menu item clicked", {
-                workId: work.id,
-                title: work.title,
-                defaultPrevented: e.defaultPrevented,
-              });
-              onDelete();
-            }}
-          >
-            <Trash2 className="h-4 w-4" /> Odstrániť
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <Trash2 className="h-4 w-4" />
+      </button>
     </li>
   );
 }
