@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import GoogleOAuthCallback from "./pages/GoogleOAuthCallback";
 import GoogleSyncDiag from "./pages/GoogleSyncDiag";
 import TeamCalendar from "./pages/TeamCalendar";
+import CompanyMaterials from "./pages/CompanyMaterials";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/chat" element={<Messages />} />
             <Route path="/me" element={<Profile />} />
             <Route path="/team-calendar" element={<TeamCalendar />} />
+            <Route path="/company-materials" element={<CompanyMaterials />} />
             <Route path="/diag/google-sync" element={<GoogleSyncDiag />} />
           </Route>
           <Route path="*" element={<NotFound />} />

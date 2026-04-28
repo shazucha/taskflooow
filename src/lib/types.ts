@@ -131,6 +131,14 @@ export interface ProjectMaterial {
   created_at: string;
 }
 
+export interface CompanyMaterial {
+  id: string;
+  url: string;
+  label: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export type ChatScope = "team" | "project";
 
 export interface ChatMessage {

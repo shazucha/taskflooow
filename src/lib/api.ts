@@ -12,6 +12,7 @@ import type {
   Task,
   TaskActivity,
   TaskMaterial,
+  CompanyMaterial,
 } from "./types";
 
 const PROJECT_COLS =
@@ -470,6 +471,41 @@ export async function createProjectMaterial(input: {
 
 export async function deleteProjectMaterial(id: string): Promise<void> {
   const { error } = await supabase.from("project_materials").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---- Company materials (zdieľané pre celý tím)
+const COMPANY_MATERIAL_COLS = "id, url, label, created_by, created_at";
+
+export async function fetchCompanyMaterials(): Promise<CompanyMaterial[]> {
+  const { data, error } = await supabase
+    .from("company_materials")
+    .select(COMPANY_MATERIAL_COLS)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as CompanyMaterial[];
+}
+
+export async function createCompanyMaterial(input: {
+  url: string;
+  label: string | null;
+  created_by: string;
+}): Promise<CompanyMaterial> {
+  const { data, error } = await supabase
+    .from("company_materials")
+    .insert({
+      url: input.url,
+      label: input.label,
+      created_by: input.created_by,
+    })
+    .select(COMPANY_MATERIAL_COLS)
+    .single();
+  if (error) throw error;
+  return data as CompanyMaterial;
+}
+
+export async function deleteCompanyMaterial(id: string): Promise<void> {
+  const { error } = await supabase.from("company_materials").delete().eq("id", id);
   if (error) throw error;
 }
 
