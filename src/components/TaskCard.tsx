@@ -327,14 +327,8 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <Popover
-            open={menuOpen}
-            onOpenChange={(v) => {
-              if (v) setSelected(initialSelected);
-              setMenuOpen(v);
-            }}
-          >
-            <PopoverTrigger asChild>
+          <DropdownMenu open={menuOpen} onOpenChange={openChange}>
+            <DropdownMenuTrigger asChild>
               <Button
                 type="button"
                 variant="ghost"
@@ -344,17 +338,11 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              align="end"
-              className="w-64 p-1"
-              onClick={(e) => e.stopPropagation()}
-              onOpenAutoFocus={(e) => e.preventDefault()}
-              onCloseAutoFocus={(e) => e.preventDefault()}
-            >
-              <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold">
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64" onCloseAutoFocus={(e) => e.preventDefault()}>
+              <DropdownMenuLabel className="flex items-center gap-1.5 text-xs">
                 <Users className="h-3.5 w-3.5" /> Komu úloha patrí
-              </div>
+              </DropdownMenuLabel>
               <p className="px-2 pb-1 text-[10px] text-muted-foreground">
                 1. zaškrtnutý = hlavný zodpovedný
               </p>
@@ -397,56 +385,45 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
                   Uložiť priradenie
                 </Button>
               </div>
-              <div className="-mx-1 my-1 h-px bg-muted" />
+              <DropdownMenuSeparator />
               {hasTime && (
-                <Button
-                  type="button"
-                  variant="ghost"
+                <DropdownMenuItem
                   onClick={(e) => {
-                    e.stopPropagation();
+                    e.preventDefault();
                     handleResync();
                   }}
                   disabled={resyncing}
-                  className="h-auto w-full justify-start px-2 py-1.5 text-sm font-normal"
+                  className="gap-2"
                 >
                   <RefreshCw className={cn("h-4 w-4", resyncing && "animate-spin")} />
                   {resyncing ? "Synchronizujem…" : "Resync do Google"}
-                </Button>
+                </DropdownMenuItem>
               )}
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={async (e) => {
-                  e.stopPropagation();
+              <DropdownMenuItem
+                onClick={async () => {
                   if (!confirm("Naozaj zmazať túto úlohu?")) return;
                   try {
                     await del.mutateAsync(task.id);
-                    setMenuOpen(false);
                     toast.success("Úloha zmazaná");
                   } catch (e: any) {
                     toast.error(e?.message ?? "Nepodarilo sa zmazať úlohu");
                   }
                 }}
-                className="h-auto w-full justify-start px-2 py-1.5 text-sm font-normal text-destructive hover:text-destructive"
+                className="gap-2 text-destructive focus:text-destructive"
               >
                 <Trash2 className="h-4 w-4" /> Vymazať túto úlohu
-              </Button>
+              </DropdownMenuItem>
               {seriesTaskIds.length >= 2 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteSeries();
-                  }}
+                <DropdownMenuItem
+                  onClick={deleteSeries}
                   disabled={delMany.isPending}
-                  className="h-auto w-full justify-start px-2 py-1.5 text-sm font-normal text-destructive hover:text-destructive"
+                  className="gap-2 text-destructive focus:text-destructive"
                 >
                   <Layers className="h-4 w-4" /> Zmazať celú sériu ({seriesTaskIds.length})
-                </Button>
+                </DropdownMenuItem>
               )}
-            </PopoverContent>
-          </Popover>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {viewers.length > 0 && (
             <div
               className="flex -space-x-1.5"
