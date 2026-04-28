@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, MoreHorizontal, Trash2, Check, Users, Repeat, Layers, RefreshCw } from "lucide-react";
+import { CalendarDays, Clock, MoreHorizontal, Trash2, Check, Users, Repeat, Layers, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 import { seriesIndex, seriesSize, getSeriesKey } from "@/lib/recurring";
@@ -216,10 +216,18 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <PriorityBadge priority={task.priority} />
             {task.due_date && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                <CalendarDays className="h-3 w-3" />
-                {format(new Date(task.due_date), "d. MMM", { locale: sk })}
-              </span>
+              hasTime ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  {format(new Date(task.due_date), "HH:mm", { locale: sk })}
+                  {task.due_end && ` – ${format(new Date(task.due_end), "HH:mm", { locale: sk })}`}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                  <CalendarDays className="h-3 w-3" />
+                  {format(new Date(task.due_date), "d. MMM", { locale: sk })}
+                </span>
+              )
             )}
             {(() => {
               const size = seriesSize(allTasks, task);
