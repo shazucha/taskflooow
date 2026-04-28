@@ -30,17 +30,23 @@ export default function ProjectDetail() {
 
   const [monthKey, setMonthKey] = useState<string | null>(null);
 
-  // V detaile projektu zobrazujeme VŠETKY úlohy (vrátane všetkých výskytov sérií),
-  // aby bolo vidno celú históriu prác v rámci projektu.
+  // Bežný používateľ vidí v projekte iba svoje úlohy (kde je assignee_id).
+  // Admin alebo vlastník projektu vidí všetky úlohy projektu.
+  const visibleTasks = useMemo(() => {
+    if (isAdmin || isOwner) return projectTasks;
+    if (!currentUserId) return [];
+    return projectTasks.filter((t) => t.assignee_id === currentUserId);
+  }, [projectTasks, isAdmin, isOwner, currentUserId]);
+
   const monthFiltered = useMemo(() => {
-    if (!monthKey) return projectTasks;
-    return projectTasks.filter((t) => {
+    if (!monthKey) return visibleTasks;
+    return visibleTasks.filter((t) => {
       if (!t.due_date) return false;
       const d = new Date(t.due_date);
       const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       return k === monthKey;
     });
-  }, [projectTasks, monthKey]);
+  }, [visibleTasks, monthKey]);
 
   const grouped = useMemo(() => {
     return {
