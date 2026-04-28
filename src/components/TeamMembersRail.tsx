@@ -17,10 +17,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
  * with online status and unread DM badges. Clicking a member opens a sliding chat panel.
  */
 export function TeamMembersRail() {
-  // Always call hooks unconditionally — only the *visual* output is hidden on mobile.
-  // Returning null before hooks would change the hook order between renders and trigger
-  // React's "Should have a queue" error during HMR/viewport changes.
+  // Gate everything on mobile detection FIRST to avoid mounting heavy
+  // subscription hooks on mobile. We do this in a wrapper so the inner
+  // component's hook order is stable across renders.
   const isMobile = useIsMobile();
+  if (isMobile) return null;
+  return <TeamMembersRailInner />;
+}
+
+function TeamMembersRailInner() {
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
   const onlineIds = useTeamPresence();
@@ -29,7 +34,7 @@ export function TeamMembersRail() {
   const [openPeer, setOpenPeer] = useState<Profile | null>(null);
   const [teamOpen, setTeamOpen] = useState(false);
 
-  if (isMobile || !currentUserId) return null;
+  if (!currentUserId) return null;
 
   // Sort: unread first, then online, then alphabetic
   const others = profiles
