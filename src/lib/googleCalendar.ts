@@ -311,11 +311,15 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
   // Skúsime až 3x s krátkym backoffom — ostatné chyby propagujeme hneď.
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 3; attempt++) {
-    const { data, error } = await supabase.functions.invoke<GoogleSyncResult>("google-calendar-sync", {
-      body: { action, task_id: taskId },
-    });
-
-    if (!error) {
+    try {
+      // Použijeme priamy fetch (callGoogleFunction), ktorý spoľahlivo posiela
+      // user JWT v Authorization aj x-user-authorization aj v body. Pri 401
+      // vráti unauthorizedFallback namiesto throw → žiadna biela obrazovka.
+      const data = await callGoogleFunction<GoogleSyncResult>(
+        "google-calendar-sync",
+        { action, task_id: taskId },
+        { ok: true, fallback: true, skipped: "unauthorized" }
+      );
       if (data?.error) {
         if (isSpecialCalendarConflict(data.detail || data.error)) {
           return { ok: true, fallback: true, skipped: "special_event_conflict", detail: data.detail };
@@ -324,25 +328,22 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
         throw new Error(data.detail || data.error);
       }
       return data ?? { ok: true };
+    } catch (error) {
+      const errorBody = await getFunctionErrorBody(error);
+      if (isSpecialCalendarConflict(errorBody || error)) {
+        return { ok: true, fallback: true, skipped: "special_event_conflict", detail: errorBody || getErrorMessage(error) };
+      }
+      if (isReconnectRequired(error)) {
+        throw new GoogleReconnectRequiredError();
+      }
+      if (getFunctionErrorStatus(error) === 401) {
+        queueRetryUntilAuthenticated(() => { void syncTaskToGoogle(taskId, action); });
+        return { ok: true, fallback: true, skipped: "unauthorized" };
+      }
+      lastError = error;
+      if (!isTransientFunctionError(error)) throw error;
+      await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
     }
-
-    const errorBody = await getFunctionErrorBody(error);
-    if (isSpecialCalendarConflict(errorBody || error)) {
-      return { ok: true, fallback: true, skipped: "special_event_conflict", detail: errorBody || getErrorMessage(error) };
-    }
-
-    if (isReconnectRequired(error)) {
-      throw new GoogleReconnectRequiredError();
-    }
-    // 401 = auth race (token ešte nedorazil / dočasne neplatný). Neviešať
-    // celú akciu na tom — zaradíme retry a vrátime skip.
-    if (getFunctionErrorStatus(error) === 401) {
-      queueRetryUntilAuthenticated(() => { void syncTaskToGoogle(taskId, action); });
-      return { ok: true, fallback: true, skipped: "unauthorized" };
-    }
-    lastError = error;
-    if (!isTransientFunctionError(error)) throw error;
-    await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
   }
   throw lastError instanceof Error ? lastError : new Error("google-calendar-sync unavailable");
 }
