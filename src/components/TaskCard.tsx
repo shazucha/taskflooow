@@ -327,13 +327,34 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
+          <div className="-mr-1 -mt-1 flex items-center gap-0.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              title="Vymazať úlohu"
+              aria-label="Vymazať úlohu"
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (!confirm("Naozaj zmazať túto úlohu?")) return;
+                try {
+                  await del.mutateAsync(task.id);
+                  toast.success("Úloha zmazaná");
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Nepodarilo sa zmazať úlohu");
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           <DropdownMenu open={menuOpen} onOpenChange={openChange}>
             <DropdownMenuTrigger asChild>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 -mr-1 -mt-1"
+                className="h-7 w-7"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-4 w-4" />
@@ -343,14 +364,10 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               <DropdownMenuLabel className="flex items-center gap-1.5 text-xs">
                 <Users className="h-3.5 w-3.5" /> Komu úloha patrí
               </DropdownMenuLabel>
-              <p className="px-2 pb-1 text-[10px] text-muted-foreground">
-                1. zaškrtnutý = hlavný zodpovedný
-              </p>
               <div className="max-h-64 overflow-y-auto px-1">
                 {profiles.map((p) => {
                   const idx = selected.indexOf(p.id);
                   const active = idx !== -1;
-                  const isPrimary = idx === 0;
                   return (
                     <label
                       key={p.id}
@@ -366,11 +383,6 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
                       />
                       <UserAvatar profile={p} size="sm" />
                       <span className="flex-1 truncate">{p.full_name ?? p.email}</span>
-                      {isPrimary && (
-                        <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary-foreground">
-                          Hlavný
-                        </span>
-                      )}
                     </label>
                   );
                 })}
@@ -399,20 +411,6 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
                   {resyncing ? "Synchronizujem…" : "Resync do Google"}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                onClick={async () => {
-                  if (!confirm("Naozaj zmazať túto úlohu?")) return;
-                  try {
-                    await del.mutateAsync(task.id);
-                    toast.success("Úloha zmazaná");
-                  } catch (e: any) {
-                    toast.error(e?.message ?? "Nepodarilo sa zmazať úlohu");
-                  }
-                }}
-                className="gap-2 text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" /> Vymazať túto úlohu
-              </DropdownMenuItem>
               {seriesTaskIds.length >= 2 && (
                 <DropdownMenuItem
                   onClick={deleteSeries}
@@ -424,6 +422,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
           {viewers.length > 0 && (
             <div
               className="flex -space-x-1.5"
