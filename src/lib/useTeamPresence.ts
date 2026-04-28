@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { useCurrentUserId } from "./queries";
 
@@ -11,16 +11,25 @@ const TEAM_PRESENCE_CHANNEL = "presence-team-global";
 export function useTeamPresence(): Set<string> {
   const userId = useCurrentUserId();
   const [online, setOnline] = useState<Set<string>>(new Set());
-  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
 
   useEffect(() => {
     if (!userId) return;
-    // Unique channel per hook instance; shared channel names cannot register callbacks after subscribe.
-    const channel = supabase.channel(`${TEAM_PRESENCE_CHANNEL}-${instanceId.current}`, {
+    // Shared channel name across ALL clients so everyone sees each other.
+    // Each hook instance creates its own channel object (not reused), which is
+    // fine — Supabase merges presence state across clients on the same channel name.
+    const channel = supabase.channel(TEAM_PRESENCE_CHANNEL, {
       config: { presence: { key: userId } },
     });
     channel
       .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState() as Record<string, unknown[]>;
+        setOnline(new Set(Object.keys(state)));
+      })
+      .on("presence", { event: "join" }, () => {
+        const state = channel.presenceState() as Record<string, unknown[]>;
+        setOnline(new Set(Object.keys(state)));
+      })
+      .on("presence", { event: "leave" }, () => {
         const state = channel.presenceState() as Record<string, unknown[]>;
         setOnline(new Set(Object.keys(state)));
       })
@@ -30,6 +39,7 @@ export function useTeamPresence(): Set<string> {
         }
       });
     return () => {
+      channel.untrack().catch(() => {});
       supabase.removeChannel(channel);
     };
   }, [userId]);
