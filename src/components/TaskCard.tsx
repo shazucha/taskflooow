@@ -11,14 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
   useCurrentUserId,
@@ -92,12 +84,6 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [resyncing, setResyncing] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
-
-  // Sync keď sa otvorí menu / zmenia sa dáta
-  const openChange = (v: boolean) => {
-    if (v) setSelected(initialSelected);
-    setMenuOpen(v);
-  };
 
   const toggleUser = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -327,16 +313,34 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <DropdownMenu open={menuOpen} onOpenChange={openChange}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 -mr-1 -mt-1">
+          <Popover
+            open={menuOpen}
+            onOpenChange={(v) => {
+              if (v) setSelected(initialSelected);
+              setMenuOpen(v);
+            }}
+          >
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 -mr-1 -mt-1"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel className="flex items-center gap-1.5 text-xs">
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              className="w-64 p-1"
+              onClick={(e) => e.stopPropagation()}
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
+              <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold">
                 <Users className="h-3.5 w-3.5" /> Komu úloha patrí
-              </DropdownMenuLabel>
+              </div>
               <p className="px-2 pb-1 text-[10px] text-muted-foreground">
                 1. zaškrtnutý = hlavný zodpovedný
               </p>
@@ -379,45 +383,56 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
                   Uložiť priradenie
                 </Button>
               </div>
-              <DropdownMenuSeparator />
+              <div className="-mx-1 my-1 h-px bg-muted" />
               {hasTime && (
-                <DropdownMenuItem
+                <Button
+                  type="button"
+                  variant="ghost"
                   onClick={(e) => {
-                    e.preventDefault();
+                    e.stopPropagation();
                     handleResync();
                   }}
                   disabled={resyncing}
-                  className="gap-2"
+                  className="h-auto w-full justify-start px-2 py-1.5 text-sm font-normal"
                 >
                   <RefreshCw className={cn("h-4 w-4", resyncing && "animate-spin")} />
                   {resyncing ? "Synchronizujem…" : "Resync do Google"}
-                </DropdownMenuItem>
+                </Button>
               )}
-              <DropdownMenuItem
-                onClick={async () => {
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={async (e) => {
+                  e.stopPropagation();
                   if (!confirm("Naozaj zmazať túto úlohu?")) return;
                   try {
                     await del.mutateAsync(task.id);
+                    setMenuOpen(false);
                     toast.success("Úloha zmazaná");
                   } catch (e: any) {
                     toast.error(e?.message ?? "Nepodarilo sa zmazať úlohu");
                   }
                 }}
-                className="gap-2 text-destructive focus:text-destructive"
+                className="h-auto w-full justify-start px-2 py-1.5 text-sm font-normal text-destructive hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4" /> Vymazať túto úlohu
-              </DropdownMenuItem>
+              </Button>
               {seriesTaskIds.length >= 2 && (
-                <DropdownMenuItem
-                  onClick={deleteSeries}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteSeries();
+                  }}
                   disabled={delMany.isPending}
-                  className="gap-2 text-destructive focus:text-destructive"
+                  className="h-auto w-full justify-start px-2 py-1.5 text-sm font-normal text-destructive hover:text-destructive"
                 >
                   <Layers className="h-4 w-4" /> Zmazať celú sériu ({seriesTaskIds.length})
-                </DropdownMenuItem>
+                </Button>
               )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverContent>
+          </Popover>
           {viewers.length > 0 && (
             <div
               className="flex -space-x-1.5"
