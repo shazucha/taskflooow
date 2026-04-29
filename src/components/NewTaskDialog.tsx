@@ -111,7 +111,7 @@ export function NewTaskDialog({
 
   // Opakovanie
   const [recurring, setRecurring] = useState(false);
-  const [recMode, setRecMode] = useState<"monthly" | "weekly">("monthly");
+  const [recMode, setRecMode] = useState<"monthly" | "weekly" | "daily">("monthly");
   const today = new Date();
   const [recDay, setRecDay] = useState<number>(today.getDate());
   const [recMonths, setRecMonths] = useState<number>(12);
@@ -127,6 +127,15 @@ export function NewTaskDialog({
   const [recWeeks, setRecWeeks] = useState<number>(12);
   const [recWeekTime, setRecWeekTime] = useState<string>("");
   const [recWeekEnd, setRecWeekEnd] = useState<string>("");
+  // Konkrétne dni v týždni (0=Po ... 6=Ne) pre weekly aj daily režim
+  // Default: deň v týždni daného "dnes"
+  const todayWeekdayMonFirst = (today.getDay() + 6) % 7; // 0=Po..6=Ne
+  const [recWeekdays, setRecWeekdays] = useState<number[]>([todayWeekdayMonFirst]);
+  // Denné opakovanie
+  const [recDailyStart, setRecDailyStart] = useState<string>(isoToday);
+  const [recDailyDays, setRecDailyDays] = useState<number>(14);
+  const [recDailyTime, setRecDailyTime] = useState<string>("");
+  const [recDailyEnd, setRecDailyEnd] = useState<string>("");
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
@@ -139,6 +148,8 @@ export function NewTaskDialog({
     setRecDay(today.getDate()); setRecMonths(12);
     setRecStartMonth(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
     setRecWeekStart(isoToday); setRecWeeks(12); setRecWeekTime(""); setRecWeekEnd("");
+    setRecWeekdays([todayWeekdayMonFirst]);
+    setRecDailyStart(isoToday); setRecDailyDays(14); setRecDailyTime(""); setRecDailyEnd("");
   };
 
   const toggleUser = (id: string) =>
@@ -161,16 +172,39 @@ export function NewTaskDialog({
       }
       return dates;
     }
+    if (recMode === "weekly") {
+      const dates: string[] = [];
+      if (!recWeekStart || recWeekdays.length === 0) return dates;
+      const base = new Date(`${recWeekStart}T00:00:00`);
+      const baseWeekdayMonFirst = (base.getDay() + 6) % 7;
+      // Začni na pondelok týždňa základného dátumu
+      const weekStart = new Date(base);
+      weekStart.setDate(base.getDate() - baseWeekdayMonFirst);
+      const sortedDays = [...recWeekdays].sort((a, b) => a - b);
+      for (let w = 0; w < recWeeks; w++) {
+        for (const wd of sortedDays) {
+          const d = new Date(weekStart);
+          d.setDate(weekStart.getDate() + w * 7 + wd);
+          if (d < base) continue; // preskoč dni pred prvým dátumom v prvom týždni
+          dates.push(`${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`);
+        }
+      }
+      return dates;
+    }
+    // daily
     const dates: string[] = [];
-    if (!recWeekStart) return dates;
-    const base = new Date(`${recWeekStart}T00:00:00`);
-    for (let i = 0; i < recWeeks; i++) {
+    if (!recDailyStart) return dates;
+    const base = new Date(`${recDailyStart}T00:00:00`);
+    for (let i = 0; i < recDailyDays; i++) {
       const d = new Date(base);
-      d.setDate(base.getDate() + i * 7);
+      d.setDate(base.getDate() + i);
+      const wd = (d.getDay() + 6) % 7;
+      // Ak sú vybrané konkrétne dni v týždni, filtruj
+      if (recWeekdays.length > 0 && !recWeekdays.includes(wd)) continue;
       dates.push(`${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`);
     }
     return dates;
-  }, [recurring, recMode, recStartMonth, recMonths, recDay, recWeekStart, recWeeks]);
+  }, [recurring, recMode, recStartMonth, recMonths, recDay, recWeekStart, recWeeks, recWeekdays, recDailyStart, recDailyDays]);
 
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
@@ -221,23 +255,82 @@ export function NewTaskDialog({
             }
           }
           toast.success(`Vytvorených ${recMonths * assignees.length} opakovaných úloh`);
-        } else {
+        } else if (recMode === "weekly") {
           if (!recWeekStart) {
             toast.error("Vyber dátum prvého týždňa");
             return;
           }
+          if (recWeekdays.length === 0) {
+            toast.error("Vyber aspoň jeden deň v týždni");
+            return;
+          }
           const base = new Date(`${recWeekStart}T00:00:00`);
+          const baseWeekdayMonFirst = (base.getDay() + 6) % 7;
+          const weekStart = new Date(base);
+          weekStart.setDate(base.getDate() - baseWeekdayMonFirst);
           const [hStr, minStr] = (recWeekTime || "09:00").split(":");
           const h = Number(hStr); const min = Number(minStr);
-          for (let i = 0; i < recWeeks; i++) {
+          const sortedDays = [...recWeekdays].sort((a, b) => a - b);
+          let count = 0;
+          for (let w = 0; w < recWeeks; w++) {
+            for (const wd of sortedDays) {
+              const d = new Date(weekStart);
+              d.setDate(weekStart.getDate() + w * 7 + wd);
+              if (d < base) continue;
+              d.setHours(h, min, 0, 0);
+              const start = new Date(d);
+              let due_end: string | null = null;
+              if (recWeekTime) {
+                if (recWeekEnd && recWeekEnd > recWeekTime) {
+                  const [eh, em] = recWeekEnd.split(":").map(Number);
+                  const end = new Date(d); end.setHours(eh, em, 0, 0);
+                  due_end = end.toISOString();
+                } else {
+                  due_end = new Date(start.getTime() + 30 * 60 * 1000).toISOString();
+                }
+              }
+              for (const assigneeId of assignees) {
+                await create.mutateAsync({
+                  task: {
+                    title: title.trim(),
+                    description: description.trim() || null,
+                    priority,
+                    status: "todo",
+                    project_id: projectId,
+                    assignee_id: assigneeId,
+                    created_by: currentUserId,
+                    due_date: start.toISOString(),
+                    due_end,
+                    series_id: seriesId,
+                  },
+                  watcherIds: [],
+                });
+              }
+              count++;
+            }
+          }
+          toast.success(`Vytvorených ${count * assignees.length} týždenných úloh`);
+        } else {
+          // daily
+          if (!recDailyStart) {
+            toast.error("Vyber prvý dátum");
+            return;
+          }
+          const base = new Date(`${recDailyStart}T00:00:00`);
+          const [hStr, minStr] = (recDailyTime || "09:00").split(":");
+          const h = Number(hStr); const min = Number(minStr);
+          let count = 0;
+          for (let i = 0; i < recDailyDays; i++) {
             const d = new Date(base);
-            d.setDate(base.getDate() + i * 7);
+            d.setDate(base.getDate() + i);
+            const wd = (d.getDay() + 6) % 7;
+            if (recWeekdays.length > 0 && !recWeekdays.includes(wd)) continue;
             d.setHours(h, min, 0, 0);
             const start = new Date(d);
             let due_end: string | null = null;
-            if (recWeekTime) {
-              if (recWeekEnd && recWeekEnd > recWeekTime) {
-                const [eh, em] = recWeekEnd.split(":").map(Number);
+            if (recDailyTime) {
+              if (recDailyEnd && recDailyEnd > recDailyTime) {
+                const [eh, em] = recDailyEnd.split(":").map(Number);
                 const end = new Date(d); end.setHours(eh, em, 0, 0);
                 due_end = end.toISOString();
               } else {
@@ -261,8 +354,9 @@ export function NewTaskDialog({
                 watcherIds: [],
               });
             }
+            count++;
           }
-          toast.success(`Vytvorených ${recWeeks * assignees.length} týždenných úloh`);
+          toast.success(`Vytvorených ${count * assignees.length} denných úloh`);
         }
       } else {
         let due_date: string | null = null;
@@ -382,30 +476,42 @@ export function NewTaskDialog({
 
           {recurring ? (
             <div className="space-y-3 rounded-xl bg-surface-muted/60 p-3">
-              <div className="flex gap-1.5">
+              <div className="grid grid-cols-3 gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setRecMode("monthly")}
+                  onClick={() => setRecMode("daily")}
                   className={cn(
-                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
-                    recMode === "monthly"
+                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    recMode === "daily"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  Mesačne
+                  Denne
                 </button>
                 <button
                   type="button"
                   onClick={() => setRecMode("weekly")}
                   className={cn(
-                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
                     recMode === "weekly"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
                   )}
                 >
                   Týždenne
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecMode("monthly")}
+                  className={cn(
+                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    recMode === "monthly"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Mesačne
                 </button>
               </div>
 
@@ -433,8 +539,33 @@ export function NewTaskDialog({
                     />
                   </div>
                 </div>
-              ) : (
+              ) : recMode === "weekly" ? (
                 <div className="space-y-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Dni v týždni</Label>
+                    <div className="grid grid-cols-7 gap-1">
+                      {["Po","Ut","St","Št","Pi","So","Ne"].map((label, idx) => {
+                        const active = recWeekdays.includes(idx);
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setRecWeekdays((prev) =>
+                              prev.includes(idx) ? prev.filter((x) => x !== idx) : [...prev, idx]
+                            )}
+                            className={cn(
+                              "rounded-lg border py-1.5 text-[11px] font-semibold transition",
+                              active
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1.5">
                       <Label htmlFor="rwstart" className="text-xs">Prvý dátum</Label>
@@ -482,6 +613,104 @@ export function NewTaskDialog({
                         <SelectContent className="max-h-64">
                           <SelectItem value="none">— bez konca —</SelectItem>
                           {HALF_HOUR_SLOTS.filter((s) => !recWeekTime || s > recWeekTime).map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Iba v dňoch (prázdne = každý deň)</Label>
+                    <div className="grid grid-cols-7 gap-1">
+                      {["Po","Ut","St","Št","Pi","So","Ne"].map((label, idx) => {
+                        const active = recWeekdays.includes(idx);
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setRecWeekdays((prev) =>
+                              prev.includes(idx) ? prev.filter((x) => x !== idx) : [...prev, idx]
+                            )}
+                            className={cn(
+                              "rounded-lg border py-1.5 text-[11px] font-semibold transition",
+                              active
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setRecWeekdays([0,1,2,3,4])}
+                        className="rounded-md border border-border bg-surface-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                      >Po–Pi</button>
+                      <button
+                        type="button"
+                        onClick={() => setRecWeekdays([0,1,2,3,4,5,6])}
+                        className="rounded-md border border-border bg-surface-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                      >Každý deň</button>
+                      <button
+                        type="button"
+                        onClick={() => setRecWeekdays([])}
+                        className="rounded-md border border-border bg-surface-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                      >Vymazať</button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rdstart" className="text-xs">Prvý dátum</Label>
+                      <Input
+                        id="rdstart" type="date" value={recDailyStart}
+                        onChange={(e) => setRecDailyStart(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rdays" className="text-xs">Počet dní</Label>
+                      <Input
+                        id="rdays" type="number" min={1} max={365} value={recDailyDays}
+                        onChange={(e) => setRecDailyDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Začiatok (voliteľné)</Label>
+                      <Select
+                        value={recDailyTime || "none"}
+                        onValueChange={(v) => {
+                          const nv = v === "none" ? "" : v;
+                          setRecDailyTime(nv);
+                          if (recDailyEnd && nv && recDailyEnd <= nv) setRecDailyEnd("");
+                          if (!nv) setRecDailyEnd("");
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Celý deň" /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          <SelectItem value="none">— celý deň —</SelectItem>
+                          {HALF_HOUR_SLOTS.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Koniec</Label>
+                      <Select
+                        value={recDailyEnd || "none"}
+                        onValueChange={(v) => setRecDailyEnd(v === "none" ? "" : v)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          <SelectItem value="none">— bez konca —</SelectItem>
+                          {HALF_HOUR_SLOTS.filter((s) => !recDailyTime || s > recDailyTime).map((s) => (
                             <SelectItem key={s} value={s}>{s}</SelectItem>
                           ))}
                         </SelectContent>
@@ -624,7 +853,7 @@ export function NewTaskDialog({
             {create.isPending
               ? "Vytváram..."
               : recurring
-                ? `Vytvoriť ${recMode === "monthly" ? recMonths : recWeeks}×`
+                ? `Vytvoriť ${recPreview.length}×`
                 : "Vytvoriť"}
           </Button>
         </DialogFooter>
