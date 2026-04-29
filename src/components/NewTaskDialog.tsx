@@ -476,30 +476,42 @@ export function NewTaskDialog({
 
           {recurring ? (
             <div className="space-y-3 rounded-xl bg-surface-muted/60 p-3">
-              <div className="flex gap-1.5">
+              <div className="grid grid-cols-3 gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setRecMode("monthly")}
+                  onClick={() => setRecMode("daily")}
                   className={cn(
-                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
-                    recMode === "monthly"
+                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    recMode === "daily"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  Mesačne
+                  Denne
                 </button>
                 <button
                   type="button"
                   onClick={() => setRecMode("weekly")}
                   className={cn(
-                    "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
                     recMode === "weekly"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
                   )}
                 >
                   Týždenne
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecMode("monthly")}
+                  className={cn(
+                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    recMode === "monthly"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Mesačne
                 </button>
               </div>
 
@@ -527,8 +539,33 @@ export function NewTaskDialog({
                     />
                   </div>
                 </div>
-              ) : (
+              ) : recMode === "weekly" ? (
                 <div className="space-y-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Dni v týždni</Label>
+                    <div className="grid grid-cols-7 gap-1">
+                      {["Po","Ut","St","Št","Pi","So","Ne"].map((label, idx) => {
+                        const active = recWeekdays.includes(idx);
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setRecWeekdays((prev) =>
+                              prev.includes(idx) ? prev.filter((x) => x !== idx) : [...prev, idx]
+                            )}
+                            className={cn(
+                              "rounded-lg border py-1.5 text-[11px] font-semibold transition",
+                              active
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1.5">
                       <Label htmlFor="rwstart" className="text-xs">Prvý dátum</Label>
@@ -576,6 +613,104 @@ export function NewTaskDialog({
                         <SelectContent className="max-h-64">
                           <SelectItem value="none">— bez konca —</SelectItem>
                           {HALF_HOUR_SLOTS.filter((s) => !recWeekTime || s > recWeekTime).map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Iba v dňoch (prázdne = každý deň)</Label>
+                    <div className="grid grid-cols-7 gap-1">
+                      {["Po","Ut","St","Št","Pi","So","Ne"].map((label, idx) => {
+                        const active = recWeekdays.includes(idx);
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setRecWeekdays((prev) =>
+                              prev.includes(idx) ? prev.filter((x) => x !== idx) : [...prev, idx]
+                            )}
+                            className={cn(
+                              "rounded-lg border py-1.5 text-[11px] font-semibold transition",
+                              active
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setRecWeekdays([0,1,2,3,4])}
+                        className="rounded-md border border-border bg-surface-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                      >Po–Pi</button>
+                      <button
+                        type="button"
+                        onClick={() => setRecWeekdays([0,1,2,3,4,5,6])}
+                        className="rounded-md border border-border bg-surface-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                      >Každý deň</button>
+                      <button
+                        type="button"
+                        onClick={() => setRecWeekdays([])}
+                        className="rounded-md border border-border bg-surface-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                      >Vymazať</button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rdstart" className="text-xs">Prvý dátum</Label>
+                      <Input
+                        id="rdstart" type="date" value={recDailyStart}
+                        onChange={(e) => setRecDailyStart(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rdays" className="text-xs">Počet dní</Label>
+                      <Input
+                        id="rdays" type="number" min={1} max={365} value={recDailyDays}
+                        onChange={(e) => setRecDailyDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Začiatok (voliteľné)</Label>
+                      <Select
+                        value={recDailyTime || "none"}
+                        onValueChange={(v) => {
+                          const nv = v === "none" ? "" : v;
+                          setRecDailyTime(nv);
+                          if (recDailyEnd && nv && recDailyEnd <= nv) setRecDailyEnd("");
+                          if (!nv) setRecDailyEnd("");
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Celý deň" /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          <SelectItem value="none">— celý deň —</SelectItem>
+                          {HALF_HOUR_SLOTS.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">Koniec</Label>
+                      <Select
+                        value={recDailyEnd || "none"}
+                        onValueChange={(v) => setRecDailyEnd(v === "none" ? "" : v)}
+                      >
+                        <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent className="max-h-64">
+                          <SelectItem value="none">— bez konca —</SelectItem>
+                          {HALF_HOUR_SLOTS.filter((s) => !recDailyTime || s > recDailyTime).map((s) => (
                             <SelectItem key={s} value={s}>{s}</SelectItem>
                           ))}
                         </SelectContent>
