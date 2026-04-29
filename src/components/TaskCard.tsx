@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, Clock, MoreHorizontal, Trash2, Check, Users, Repeat, Layers, RefreshCw, CalendarPlus, X } from "lucide-react";
+import { CalendarDays, Clock, Trash2, Check, Repeat, CalendarPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 import { seriesIndex, seriesSize, getSeriesKey } from "@/lib/recurring";
@@ -11,14 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
   useCurrentUserId,
