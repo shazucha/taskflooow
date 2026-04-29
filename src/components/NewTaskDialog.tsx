@@ -255,23 +255,82 @@ export function NewTaskDialog({
             }
           }
           toast.success(`Vytvorených ${recMonths * assignees.length} opakovaných úloh`);
-        } else {
+        } else if (recMode === "weekly") {
           if (!recWeekStart) {
             toast.error("Vyber dátum prvého týždňa");
             return;
           }
+          if (recWeekdays.length === 0) {
+            toast.error("Vyber aspoň jeden deň v týždni");
+            return;
+          }
           const base = new Date(`${recWeekStart}T00:00:00`);
+          const baseWeekdayMonFirst = (base.getDay() + 6) % 7;
+          const weekStart = new Date(base);
+          weekStart.setDate(base.getDate() - baseWeekdayMonFirst);
           const [hStr, minStr] = (recWeekTime || "09:00").split(":");
           const h = Number(hStr); const min = Number(minStr);
-          for (let i = 0; i < recWeeks; i++) {
+          const sortedDays = [...recWeekdays].sort((a, b) => a - b);
+          let count = 0;
+          for (let w = 0; w < recWeeks; w++) {
+            for (const wd of sortedDays) {
+              const d = new Date(weekStart);
+              d.setDate(weekStart.getDate() + w * 7 + wd);
+              if (d < base) continue;
+              d.setHours(h, min, 0, 0);
+              const start = new Date(d);
+              let due_end: string | null = null;
+              if (recWeekTime) {
+                if (recWeekEnd && recWeekEnd > recWeekTime) {
+                  const [eh, em] = recWeekEnd.split(":").map(Number);
+                  const end = new Date(d); end.setHours(eh, em, 0, 0);
+                  due_end = end.toISOString();
+                } else {
+                  due_end = new Date(start.getTime() + 30 * 60 * 1000).toISOString();
+                }
+              }
+              for (const assigneeId of assignees) {
+                await create.mutateAsync({
+                  task: {
+                    title: title.trim(),
+                    description: description.trim() || null,
+                    priority,
+                    status: "todo",
+                    project_id: projectId,
+                    assignee_id: assigneeId,
+                    created_by: currentUserId,
+                    due_date: start.toISOString(),
+                    due_end,
+                    series_id: seriesId,
+                  },
+                  watcherIds: [],
+                });
+              }
+              count++;
+            }
+          }
+          toast.success(`Vytvorených ${count * assignees.length} týždenných úloh`);
+        } else {
+          // daily
+          if (!recDailyStart) {
+            toast.error("Vyber prvý dátum");
+            return;
+          }
+          const base = new Date(`${recDailyStart}T00:00:00`);
+          const [hStr, minStr] = (recDailyTime || "09:00").split(":");
+          const h = Number(hStr); const min = Number(minStr);
+          let count = 0;
+          for (let i = 0; i < recDailyDays; i++) {
             const d = new Date(base);
-            d.setDate(base.getDate() + i * 7);
+            d.setDate(base.getDate() + i);
+            const wd = (d.getDay() + 6) % 7;
+            if (recWeekdays.length > 0 && !recWeekdays.includes(wd)) continue;
             d.setHours(h, min, 0, 0);
             const start = new Date(d);
             let due_end: string | null = null;
-            if (recWeekTime) {
-              if (recWeekEnd && recWeekEnd > recWeekTime) {
-                const [eh, em] = recWeekEnd.split(":").map(Number);
+            if (recDailyTime) {
+              if (recDailyEnd && recDailyEnd > recDailyTime) {
+                const [eh, em] = recDailyEnd.split(":").map(Number);
                 const end = new Date(d); end.setHours(eh, em, 0, 0);
                 due_end = end.toISOString();
               } else {
@@ -295,8 +354,9 @@ export function NewTaskDialog({
                 watcherIds: [],
               });
             }
+            count++;
           }
-          toast.success(`Vytvorených ${recWeeks * assignees.length} týždenných úloh`);
+          toast.success(`Vytvorených ${count * assignees.length} denných úloh`);
         }
       } else {
         let due_date: string | null = null;
