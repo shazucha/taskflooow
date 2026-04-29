@@ -449,12 +449,13 @@ export function CalendarWidget({
 
 /* ---------------- Month ---------------- */
 function MonthView({
-  cursor, selected, today, tasksByDay, googleByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt,
+  cursor, selected, today, tasksByDay, googleByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt, quickCreateOnTap = false,
 }: {
   cursor: Date; selected: Date; today: Date;
   tasksByDay: Map<string, Task[]>; googleByDay: Map<string, GoogleEvent[]>; myColor: string; readOnly?: boolean;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
   onCreateAt: (d: Date) => void;
+  quickCreateOnTap?: boolean;
 }) {
   const monthStart = startOfMonth(cursor);
   const monthDays = daysInMonth(cursor);
@@ -485,7 +486,10 @@ function MonthView({
                 isSelected ? "ring-2 ring-primary" : "hover:bg-surface-muted",
                 isToday && !isSelected && "bg-surface-muted"
               )}
-              onClick={() => onSelect(d)}
+              onClick={() => {
+                onSelect(d);
+                if (quickCreateOnTap && !readOnly) onCreateAt(d);
+              }}
               onDoubleClick={() => onDrillDay(d)}
             >
               <span className={cn(isToday && "font-bold text-primary")}>{d.getDate()}</span>
