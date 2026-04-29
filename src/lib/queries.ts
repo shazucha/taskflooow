@@ -464,8 +464,14 @@ export function useDeleteTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      // Delete Google event BEFORE removing the task row (we need its mapping).
-      await syncTaskToGoogle(id, "delete");
+      // Best-effort: delete Google event BEFORE removing the task row (we need its mapping).
+      // Network/CORS errors ("Failed to fetch"), missing Google connection or temporary
+      // edge-function outages must NOT block the user from deleting the task in the DB.
+      try {
+        await syncTaskToGoogle(id, "delete");
+      } catch (err) {
+        console.warn("Google delete sync failed (continuing with DB delete):", err);
+      }
       return deleteTask(id);
     },
     onSuccess: () => {
@@ -479,7 +485,14 @@ export function useDeleteTasks() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map((id) => syncTaskToGoogle(id, "delete")));
+      // Best-effort Google sync — never block the bulk DB delete.
+      await Promise.all(
+        ids.map((id) =>
+          syncTaskToGoogle(id, "delete").catch((err) => {
+            console.warn("Google delete sync failed for", id, err);
+          })
+        )
+      );
       return deleteTasks(ids);
     },
     onSuccess: () => {
