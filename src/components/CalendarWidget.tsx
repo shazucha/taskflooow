@@ -523,12 +523,13 @@ function MonthView({
 
 /* ---------------- Week ---------------- */
 function WeekView({
-  cursor, selected, today, tasksByDay, googleByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt,
+  cursor, selected, today, tasksByDay, googleByDay, myColor, readOnly, onSelect, onDrillDay, onCreateAt, quickCreateOnTap = false,
 }: {
   cursor: Date; selected: Date; today: Date;
   tasksByDay: Map<string, Task[]>; googleByDay: Map<string, GoogleEvent[]>; myColor: string; readOnly?: boolean;
   onSelect: (d: Date) => void; onDrillDay: (d: Date) => void;
   onCreateAt: (d: Date) => void;
+  quickCreateOnTap?: boolean;
 }) {
   const start = startOfWeek(cursor);
   const days = Array.from({ length: 7 }, (_, i) =>
@@ -551,7 +552,10 @@ function WeekView({
               isSelected ? "ring-2 ring-primary" : "hover:bg-surface-muted",
               isToday && !isSelected && "bg-surface-muted"
             )}
-            onClick={() => onSelect(d)}
+            onClick={() => {
+              onSelect(d);
+              if (quickCreateOnTap && !readOnly) onCreateAt(d);
+            }}
             onDoubleClick={() => onDrillDay(d)}
           >
             <span className="text-[10px] font-bold uppercase text-muted-foreground">{WEEKDAYS[i]}</span>
