@@ -172,16 +172,39 @@ export function NewTaskDialog({
       }
       return dates;
     }
+    if (recMode === "weekly") {
+      const dates: string[] = [];
+      if (!recWeekStart || recWeekdays.length === 0) return dates;
+      const base = new Date(`${recWeekStart}T00:00:00`);
+      const baseWeekdayMonFirst = (base.getDay() + 6) % 7;
+      // Začni na pondelok týždňa základného dátumu
+      const weekStart = new Date(base);
+      weekStart.setDate(base.getDate() - baseWeekdayMonFirst);
+      const sortedDays = [...recWeekdays].sort((a, b) => a - b);
+      for (let w = 0; w < recWeeks; w++) {
+        for (const wd of sortedDays) {
+          const d = new Date(weekStart);
+          d.setDate(weekStart.getDate() + w * 7 + wd);
+          if (d < base) continue; // preskoč dni pred prvým dátumom v prvom týždni
+          dates.push(`${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`);
+        }
+      }
+      return dates;
+    }
+    // daily
     const dates: string[] = [];
-    if (!recWeekStart) return dates;
-    const base = new Date(`${recWeekStart}T00:00:00`);
-    for (let i = 0; i < recWeeks; i++) {
+    if (!recDailyStart) return dates;
+    const base = new Date(`${recDailyStart}T00:00:00`);
+    for (let i = 0; i < recDailyDays; i++) {
       const d = new Date(base);
-      d.setDate(base.getDate() + i * 7);
+      d.setDate(base.getDate() + i);
+      const wd = (d.getDay() + 6) % 7;
+      // Ak sú vybrané konkrétne dni v týždni, filtruj
+      if (recWeekdays.length > 0 && !recWeekdays.includes(wd)) continue;
       dates.push(`${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`);
     }
     return dates;
-  }, [recurring, recMode, recStartMonth, recMonths, recDay, recWeekStart, recWeeks]);
+  }, [recurring, recMode, recStartMonth, recMonths, recDay, recWeekStart, recWeeks, recWeekdays, recDailyStart, recDailyDays]);
 
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
