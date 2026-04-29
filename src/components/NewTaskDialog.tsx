@@ -853,7 +853,7 @@ export function NewTaskDialog({
             {create.isPending
               ? "Vytváram..."
               : recurring
-                ? `Vytvoriť ${recMode === "monthly" ? recMonths : recWeeks}×`
+                ? `Vytvoriť ${recPreview.length}×`
                 : "Vytvoriť"}
           </Button>
         </DialogFooter>
