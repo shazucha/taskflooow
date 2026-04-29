@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
-import { CalendarDays, Clock, MoreHorizontal, Trash2, Check, Users, Repeat, Layers, RefreshCw, CalendarPlus, X } from "lucide-react";
+import { CalendarDays, Clock, Trash2, Check, Repeat, CalendarPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 import { seriesIndex, seriesSize, getSeriesKey } from "@/lib/recurring";
@@ -11,14 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
   useCurrentUserId,
@@ -348,80 +340,6 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
             >
               <Trash2 className="h-4 w-4" />
             </Button>
-          <DropdownMenu open={menuOpen} onOpenChange={openChange}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64" onCloseAutoFocus={(e) => e.preventDefault()}>
-              <DropdownMenuLabel className="flex items-center gap-1.5 text-xs">
-                <Users className="h-3.5 w-3.5" /> Komu úloha patrí
-              </DropdownMenuLabel>
-              <div className="max-h-64 overflow-y-auto px-1">
-                {profiles.map((p) => {
-                  const idx = selected.indexOf(p.id);
-                  const active = idx !== -1;
-                  return (
-                    <label
-                      key={p.id}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition",
-                        active ? "bg-primary/10" : "hover:bg-surface-muted"
-                      )}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Checkbox
-                        checked={active}
-                        onCheckedChange={() => toggleUser(p.id)}
-                      />
-                      <UserAvatar profile={p} size="sm" />
-                      <span className="flex-1 truncate">{p.full_name ?? p.email}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              <div className="px-2 py-1.5">
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={saveAssignment}
-                  disabled={updateTask.isPending || setWatchersM.isPending || syncProjectMembers.isPending}
-                >
-                  Uložiť priradenie
-                </Button>
-              </div>
-              <DropdownMenuSeparator />
-              {hasTime && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleResync();
-                  }}
-                  disabled={resyncing}
-                  className="gap-2"
-                >
-                  <RefreshCw className={cn("h-4 w-4", resyncing && "animate-spin")} />
-                  {resyncing ? "Synchronizujem…" : "Resync do Google"}
-                </DropdownMenuItem>
-              )}
-              {seriesTaskIds.length >= 2 && (
-                <DropdownMenuItem
-                  onClick={deleteSeries}
-                  disabled={delMany.isPending}
-                  className="gap-2 text-destructive focus:text-destructive"
-                >
-                  <Layers className="h-4 w-4" /> Zmazať celú sériu ({seriesTaskIds.length})
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
           </div>
           {viewers.length > 0 && (
             <div
