@@ -111,7 +111,7 @@ export function NewTaskDialog({
 
   // Opakovanie
   const [recurring, setRecurring] = useState(false);
-  const [recMode, setRecMode] = useState<"monthly" | "weekly">("monthly");
+  const [recMode, setRecMode] = useState<"monthly" | "weekly" | "daily">("monthly");
   const today = new Date();
   const [recDay, setRecDay] = useState<number>(today.getDate());
   const [recMonths, setRecMonths] = useState<number>(12);
@@ -127,6 +127,15 @@ export function NewTaskDialog({
   const [recWeeks, setRecWeeks] = useState<number>(12);
   const [recWeekTime, setRecWeekTime] = useState<string>("");
   const [recWeekEnd, setRecWeekEnd] = useState<string>("");
+  // Konkrétne dni v týždni (0=Po ... 6=Ne) pre weekly aj daily režim
+  // Default: deň v týždni daného "dnes"
+  const todayWeekdayMonFirst = (today.getDay() + 6) % 7; // 0=Po..6=Ne
+  const [recWeekdays, setRecWeekdays] = useState<number[]>([todayWeekdayMonFirst]);
+  // Denné opakovanie
+  const [recDailyStart, setRecDailyStart] = useState<string>(isoToday);
+  const [recDailyDays, setRecDailyDays] = useState<number>(14);
+  const [recDailyTime, setRecDailyTime] = useState<string>("");
+  const [recDailyEnd, setRecDailyEnd] = useState<string>("");
 
   const reset = () => {
     setTitle(""); setDescription(""); setPriority("medium");
@@ -139,6 +148,8 @@ export function NewTaskDialog({
     setRecDay(today.getDate()); setRecMonths(12);
     setRecStartMonth(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
     setRecWeekStart(isoToday); setRecWeeks(12); setRecWeekTime(""); setRecWeekEnd("");
+    setRecWeekdays([todayWeekdayMonFirst]);
+    setRecDailyStart(isoToday); setRecDailyDays(14); setRecDailyTime(""); setRecDailyEnd("");
   };
 
   const toggleUser = (id: string) =>
