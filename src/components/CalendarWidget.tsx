@@ -334,6 +334,7 @@ export function CalendarWidget({
             if (isReadOnly) return;
             openCreate({ date: fmtDate(d) });
           }}
+          quickCreateOnTap={useInlineComposer}
         />
       )}
 
@@ -356,6 +357,7 @@ export function CalendarWidget({
             if (isReadOnly) return;
             openCreate({ date: fmtDate(d) });
           }}
+          quickCreateOnTap={useInlineComposer}
         />
       )}
 
