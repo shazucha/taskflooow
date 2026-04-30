@@ -34,6 +34,12 @@ function fallbackResponse(body: Record<string, unknown>) {
 }
 
 const SPECIAL_EVENT_CONFLICT_RE = /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType|focus time event|out of office event|working location/i;
+const GOOGLE_ERROR_STATUS_RE = /"code"\s*:\s*(\d{3})/;
+
+function effectiveGoogleStatus(responseStatus: number, detail: string) {
+  const match = detail.match(GOOGLE_ERROR_STATUS_RE);
+  return match?.[1] ? Number(match[1]) : responseStatus;
+}
 
 // Google Calendar event IDs musia byť base32hex (a-v + 0-9), 5–1024 znakov.
 // Vytvoríme deterministické ID z task_id, aby bol POST idempotentný:
@@ -68,7 +74,7 @@ async function fetchWithRetry(
     } catch (e) {
       if (attempt === retries) throw e;
     }
-    await sleep(400 * Math.pow(2, attempt) + Math.floor(Math.random() * 200));
+    if (attempt < retries) await sleep(400 * Math.pow(2, attempt) + Math.floor(Math.random() * 200));
   }
   return lastRes!;
 }
@@ -250,7 +256,8 @@ Deno.serve(async (req) => {
 
     // If we have an existing event, check its eventType. Special types
     // (focusTime, outOfOffice, workingLocation, fromGmail) cannot be PATCH-ed
-    // as a normal event — delete it and create a fresh default event instead.
+    // or deleted as normal events. Leave the Google-owned event untouched,
+    // clear our stale mapping, then create a fresh default TaskFlow event.
     if (task.google_event_id) {
       try {
         const getRes = await fetchWithRetry(`${base}/${task.google_event_id}`, {
@@ -259,10 +266,7 @@ Deno.serve(async (req) => {
         if (getRes.ok) {
           const existing = await getRes.json();
           if (existing?.eventType && existing.eventType !== "default") {
-            await fetch(`${base}/${task.google_event_id}`, {
-              method: "DELETE",
-              headers: { Authorization: `Bearer ${tok.token}` },
-            });
+            await clearGoogleMapping(admin, task.id);
             task.google_event_id = null;
             url = base;
             method = "POST";
@@ -309,14 +313,24 @@ Deno.serve(async (req) => {
 
     if (!evRes.ok) {
       const t = await evRes.text();
+      const googleStatus = effectiveGoogleStatus(evRes.status, t);
       console.error("Calendar API failed", evRes.status, t);
+      if (isSpecialTypeConflict(t)) {
+        await clearGoogleMapping(admin, task.id);
+        return jsonResponse({
+          ok: true,
+          fallback: true,
+          skipped: "special_event_conflict",
+          detail: t,
+        });
+      }
       // If event was deleted on Google side, retry once as POST
       if (evRes.status === 404 && task.google_event_id) {
-        const retry = await fetch(base, {
+        const retry = await fetchWithRetry(base, {
           method: "POST",
           headers: { Authorization: `Bearer ${tok.token}`, "Content-Type": "application/json" },
-          body: JSON.stringify(eventBody),
-        });
+          body: JSON.stringify(eventBodyForCreate),
+        }, { retries: 2 });
         if (retry.ok) {
           const ev = await retry.json();
           await admin.from("tasks").update({
@@ -326,42 +340,17 @@ Deno.serve(async (req) => {
           return jsonResponse({ ok: true, event_id: ev.id });
         }
       }
-      // If PATCH failed because the existing event is a special type
-      // (focus time, OOO, working location, fromGmail), delete + recreate.
-      if (isSpecialTypeConflict(t)) {
-        // Don't try to delete or recreate — focus time / OOO / working location
-        // events are owned by Google and modifying them is not allowed. Just
-        // clear our mapping so we stop trying to PATCH this event again.
-        await clearGoogleMapping(admin, task.id);
-        return jsonResponse({
-          ok: true,
-          fallback: true,
-          skipped: "special_event_conflict",
-          detail: t,
-        });
-      }
-
-      try {
-        const parsed = JSON.parse(t);
-        const reasons = parsed?.error?.errors?.map((item: { reason?: string }) => item.reason).filter(Boolean) ?? [];
-        if (reasons.some((reason: string) => isSpecialTypeConflict(reason))) {
-          await clearGoogleMapping(admin, task.id);
-          return jsonResponse({ ok: true, skipped: "special_event_conflict", detail: t });
-        }
-      } catch {
-        // Ignore JSON parse issues and fall back to generic error response.
-      }
 
       // Never propagate as a hard error — return 200 with fallback signal so
       // the client doesn't crash. Also clear stale event mapping for 4xx.
-      if (evRes.status >= 400 && evRes.status < 500 && task.google_event_id) {
+      if (googleStatus >= 400 && googleStatus < 500 && task.google_event_id) {
         await clearGoogleMapping(admin, task.id);
       }
       return fallbackResponse({
         error: "calendar_api_failed",
         detail: t,
         skipped: "calendar_api_failed",
-        status: evRes.status,
+        status: googleStatus,
       });
     }
 
