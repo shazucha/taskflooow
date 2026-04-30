@@ -66,17 +66,27 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
     const body = await response.text();
     // Some edge runtime/cold-start paths return 5xx even though the function
     // body indicates a soft failure (calendar_api_failed / special_event_conflict
-    // for focusTime/OOO/working location events). Treat those as fallback
-    // success so the UI doesn't crash with a white screen.
-    if (isSpecialCalendarConflict(body) || /calendar_api_failed/.test(body)) {
+    // for focusTime/OOO/working location events). The Supabase edge runtime
+    // sometimes prefixes the body with "Error, " when wrapping a thrown
+    // response, so strip that before inspecting/parsing.
+    const cleanedBody = body.replace(/^\s*Error[,:]\s*/i, "");
+    if (isSpecialCalendarConflict(cleanedBody) || /calendar_api_failed/.test(cleanedBody)) {
+      let detail: unknown = cleanedBody;
       try {
-        const parsed = JSON.parse(body);
-        if (isSpecialCalendarConflict(parsed?.detail || parsed?.error || body)) {
-          return ({ ok: true, fallback: true, skipped: "special_event_conflict", detail: parsed?.detail ?? body }) as unknown as T;
-        }
+        const parsed = JSON.parse(cleanedBody);
+        detail = parsed?.detail ?? parsed?.error ?? cleanedBody;
       } catch {
-        // fall through to throw below
+        // Non-JSON body — keep raw string as detail.
       }
+      // If the detail mentions a focus-time / OOO / working-location conflict,
+      // OR it is a generic calendar_api_failed, treat as a soft fallback so
+      // the UI doesn't crash with a white screen.
+      return ({
+        ok: true,
+        fallback: true,
+        skipped: isSpecialCalendarConflict(detail) ? "special_event_conflict" : "calendar_api_failed",
+        detail: typeof detail === "string" ? detail : JSON.stringify(detail),
+      }) as unknown as T;
     }
     const error = new Error(`Edge function returned ${response.status}: ${body}`);
     (error as Error & { status?: number }).status = response.status;
