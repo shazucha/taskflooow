@@ -37,6 +37,8 @@ const SPECIAL_EVENT_CONFLICT_RE = /malformedFocusTimeEvent|malformedOutOfOfficeE
 
 function isSpecialTypeConflict(detail: string) {
   if (SPECIAL_EVENT_CONFLICT_RE.test(detail)) return true;
+  // Some Google error payloads nest the reason inside error.errors[].reason
+  // — also try to extract those before falling through.
   try {
     const parsed = JSON.parse(detail);
     const pieces = [
