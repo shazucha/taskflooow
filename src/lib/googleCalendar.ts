@@ -130,7 +130,11 @@ function isTransientFunctionError(error: unknown): boolean {
   const status = getFunctionErrorStatus(error);
   return (
     status === 503 ||
+    status === 500 ||
+    status === 502 ||
+    status === 504 ||
     message.includes("503") ||
+    message.includes("500") ||
     message.includes("temporarily unavailable") ||
     message.includes("SUPABASE_EDGE_RUNTIME_ERROR")
   );

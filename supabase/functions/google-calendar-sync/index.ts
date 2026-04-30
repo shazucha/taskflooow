@@ -35,6 +35,44 @@ function fallbackResponse(body: Record<string, unknown>) {
 
 const SPECIAL_EVENT_CONFLICT_RE = /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType|focus time event|out of office event|working location/i;
 
+// Google Calendar event IDs musia byť base32hex (a-v + 0-9), 5–1024 znakov.
+// Vytvoríme deterministické ID z task_id, aby bol POST idempotentný:
+// pri retry po 5xx Google vráti 409 "duplicate" namiesto vytvorenia
+// druhého eventu. Tým sa eliminujú duplikáty v kalendári.
+function deterministicEventId(taskId: string): string {
+  // taskId je UUID (hex + pomlčky). Odstránime pomlčky a namapujeme hex
+  // znaky 'w'-'z' (nedovolené v base32hex) preč. UUID hex obsahuje len 0-9a-f,
+  // čo je validná podmnožina base32hex, takže stačí odstrániť pomlčky.
+  const cleaned = taskId.toLowerCase().replace(/-/g, "").replace(/[^a-v0-9]/g, "0");
+  // Prefix musí začínať písmenom (nepovinné, ale bezpečné) — pridáme "tf".
+  return `tf${cleaned}`;
+}
+
+async function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  opts: { retries?: number; retryOn?: number[] } = {}
+): Promise<Response> {
+  const retries = opts.retries ?? 3;
+  const retryOn = opts.retryOn ?? [500, 502, 503, 504];
+  let lastRes: Response | null = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if (!retryOn.includes(res.status)) return res;
+      lastRes = res;
+    } catch (e) {
+      if (attempt === retries) throw e;
+    }
+    await sleep(400 * Math.pow(2, attempt) + Math.floor(Math.random() * 200));
+  }
+  return lastRes!;
+}
+
 function isSpecialTypeConflict(detail: string) {
   if (SPECIAL_EVENT_CONFLICT_RE.test(detail)) return true;
   // Some Google error payloads nest the reason inside error.errors[].reason
@@ -204,14 +242,20 @@ Deno.serve(async (req) => {
     let url = task.google_event_id ? `${base}/${task.google_event_id}` : base;
     let method: "PATCH" | "POST" = task.google_event_id ? "PATCH" : "POST";
 
+    // Pre POST (nový event) použijeme deterministické ID — robí operáciu
+    // idempotentnou: opakovaný POST s rovnakým ID vráti 409 "duplicate"
+    // namiesto vytvorenia druhého eventu.
+    const desiredEventId = deterministicEventId(task.id);
+    const eventBodyForCreate = { ...eventBody, id: desiredEventId };
+
     // If we have an existing event, check its eventType. Special types
     // (focusTime, outOfOffice, workingLocation, fromGmail) cannot be PATCH-ed
     // as a normal event — delete it and create a fresh default event instead.
     if (task.google_event_id) {
       try {
-        const getRes = await fetch(`${base}/${task.google_event_id}`, {
+        const getRes = await fetchWithRetry(`${base}/${task.google_event_id}`, {
           headers: { Authorization: `Bearer ${tok.token}` },
-        });
+        }, { retries: 2 });
         if (getRes.ok) {
           const existing = await getRes.json();
           if (existing?.eventType && existing.eventType !== "default") {
@@ -235,11 +279,33 @@ Deno.serve(async (req) => {
       }
     }
 
-    const evRes = await fetch(url, {
+    const bodyToSend = method === "POST" ? eventBodyForCreate : eventBody;
+    let evRes = await fetchWithRetry(url, {
       method,
       headers: { Authorization: `Bearer ${tok.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(eventBody),
-    });
+      body: JSON.stringify(bodyToSend),
+    }, { retries: 3 });
+
+    // Idempotency: ak POST narazí na 409 (event s naším deterministickým ID
+    // už existuje — typicky kvôli predošlému retry), namapujeme ho a pre
+    // istotu spravíme PATCH na aktualizáciu polí.
+    if (method === "POST" && evRes.status === 409) {
+      const patchUrl = `${base}/${desiredEventId}`;
+      const patchRes = await fetchWithRetry(patchUrl, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${tok.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(eventBody),
+      }, { retries: 2 });
+      if (patchRes.ok) {
+        const ev = await patchRes.json();
+        await admin.from("tasks").update({
+          google_event_id: ev.id ?? desiredEventId,
+          google_calendar_owner: targetUserId,
+        }).eq("id", task.id);
+        return jsonResponse({ ok: true, event_id: ev.id ?? desiredEventId, deduped: true });
+      }
+      evRes = patchRes;
+    }
 
     if (!evRes.ok) {
       const t = await evRes.text();
