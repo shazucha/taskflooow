@@ -12,31 +12,16 @@ import {
   useTasks,
 } from "@/lib/queries";
 import type { Task } from "@/lib/types";
+import { formatLocalDayHeader, localDayKey } from "@/lib/dayLabels";
 
 type Layout = "merged" | "columns";
 
-const MONTHS_SHORT = ["jan", "feb", "mar", "apr", "máj", "jún", "júl", "aug", "sep", "okt", "nov", "dec"];
-const WEEKDAYS_SHORT = ["Ne", "Po", "Ut", "St", "Št", "Pi", "So"];
-
 function dayLabel(d: Date) {
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
-  const isToday =
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate();
-  const isTomorrow =
-    d.getFullYear() === tomorrow.getFullYear() &&
-    d.getMonth() === tomorrow.getMonth() &&
-    d.getDate() === tomorrow.getDate();
-  if (isToday) return "Dnes";
-  if (isTomorrow) return "Zajtra";
-  return `${WEEKDAYS_SHORT[d.getDay()]} ${d.getDate()}. ${MONTHS_SHORT[d.getMonth()]}`;
+  return formatLocalDayHeader(d);
 }
 
 function dayKey(d: Date) {
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  return localDayKey(d);
 }
 
 function fmtTaskTime(t: Task) {

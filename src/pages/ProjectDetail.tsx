@@ -17,6 +17,7 @@ import { MonthFilter } from "@/components/MonthFilter";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import type { Task } from "@/lib/types";
 import { useCurrentUserId, useIsAppAdmin, useProjects, useProjectTasks } from "@/lib/queries";
+import { formatLocalDayHeader, isSameLocalDay, localDayKey, startOfLocalDay } from "@/lib/dayLabels";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -66,26 +67,15 @@ export default function ProjectDetail() {
     const map = new Map<string, { date: Date; tasks: Task[] }>();
     for (const t of withDate) {
       const d = new Date(t.due_date!);
-      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const key = localDayKey(d);
       const existing = map.get(key);
       if (existing) existing.tasks.push(t);
-      else map.set(key, { date: new Date(d.getFullYear(), d.getMonth(), d.getDate()), tasks: [t] });
+      else map.set(key, { date: startOfLocalDay(d), tasks: [t] });
     }
     return { groups: Array.from(map.values()), noDate };
   };
 
-  const formatDayHeader = (d: Date) => {
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1);
-    const sameDay = (a: Date, b: Date) =>
-      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-    if (sameDay(d, today)) return "Dnes";
-    if (sameDay(d, tomorrow)) return "Zajtra";
-    const WD = ["Ne", "Po", "Ut", "St", "Št", "Pi", "So"];
-    const M = ["jan", "feb", "mar", "apr", "máj", "jún", "júl", "aug", "sep", "okt", "nov", "dec"];
-    return `${WD[d.getDay()]} ${d.getDate()}. ${M[d.getMonth()]}`;
-  };
+  const formatDayHeader = (d: Date) => formatLocalDayHeader(d);
 
   if (!project) {
     return (
@@ -147,10 +137,7 @@ export default function ProjectDetail() {
                     {(() => {
                       const { groups, noDate } = groupByDate(list);
                       const today = new Date();
-                      const isToday = (d: Date) =>
-                        d.getFullYear() === today.getFullYear() &&
-                        d.getMonth() === today.getMonth() &&
-                        d.getDate() === today.getDate();
+                      const isToday = (d: Date) => isSameLocalDay(d, today);
                       // Dnešok hore, zvyšok podľa dátumu
                       const todayGroups = groups.filter((g) => isToday(g.date));
                       const otherGroups = groups.filter((g) => !isToday(g.date));
