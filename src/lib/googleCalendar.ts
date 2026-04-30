@@ -64,6 +64,20 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
   if (!response.ok) {
     if (response.status === 401) return unauthorizedFallback;
     const body = await response.text();
+    // Some edge runtime/cold-start paths return 5xx even though the function
+    // body indicates a soft failure (calendar_api_failed / special_event_conflict
+    // for focusTime/OOO/working location events). Treat those as fallback
+    // success so the UI doesn't crash with a white screen.
+    if (isSpecialCalendarConflict(body) || /calendar_api_failed/.test(body)) {
+      try {
+        const parsed = JSON.parse(body);
+        if (isSpecialCalendarConflict(parsed?.detail || parsed?.error || body)) {
+          return ({ ok: true, fallback: true, skipped: "special_event_conflict", detail: parsed?.detail ?? body }) as unknown as T;
+        }
+      } catch {
+        // fall through to throw below
+      }
+    }
     const error = new Error(`Edge function returned ${response.status}: ${body}`);
     (error as Error & { status?: number }).status = response.status;
     throw error;
