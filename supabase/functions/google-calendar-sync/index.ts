@@ -256,7 +256,8 @@ Deno.serve(async (req) => {
 
     // If we have an existing event, check its eventType. Special types
     // (focusTime, outOfOffice, workingLocation, fromGmail) cannot be PATCH-ed
-    // as a normal event — delete it and create a fresh default event instead.
+    // or deleted as normal events. Leave the Google-owned event untouched,
+    // clear our stale mapping, then create a fresh default TaskFlow event.
     if (task.google_event_id) {
       try {
         const getRes = await fetchWithRetry(`${base}/${task.google_event_id}`, {
@@ -265,10 +266,7 @@ Deno.serve(async (req) => {
         if (getRes.ok) {
           const existing = await getRes.json();
           if (existing?.eventType && existing.eventType !== "default") {
-            await fetch(`${base}/${task.google_event_id}`, {
-              method: "DELETE",
-              headers: { Authorization: `Bearer ${tok.token}` },
-            });
+            await clearGoogleMapping(admin, task.id);
             task.google_event_id = null;
             url = base;
             method = "POST";
