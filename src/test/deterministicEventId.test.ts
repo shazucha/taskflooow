@@ -17,7 +17,7 @@ const SAMPLE_TASK_IDS = [
   // uppercased UUID
   "AB12CDEF-3456-7890-ABCD-EF0123456789",
   // contains chars outside base32hex (w,x,y,z) — must be sanitized
-  "wxyzwxyz-wxyz-wxyz-wxyz-wxyzwxyzwxyz",
+  "wxyzwxyz-wxyz-wxyz-wxyz-wxyz1wxyzwxy",
   // short non-uuid id
   "task-1",
   // long opaque id (e.g. nanoid-like)
@@ -60,10 +60,10 @@ describe("deterministicEventId — format & length", () => {
     }
   });
 
-  it("preserves length: tf + (taskId without dashes)", () => {
+  it("preserves length: tf + (taskId without dashes), padded to min 5", () => {
     for (const taskId of SAMPLE_TASK_IDS) {
-      const expectedLen = 2 + taskId.replace(/-/g, "").length;
-      expect(deterministicEventId(taskId).length).toBe(expectedLen);
+      const bodyLen = Math.max(taskId.replace(/-/g, "").length, 3);
+      expect(deterministicEventId(taskId).length).toBe(2 + bodyLen);
     }
   });
 
@@ -84,6 +84,12 @@ describe("deterministicEventId — format & length", () => {
     expect(deterministicEventId("wxyz")).toBe("tf0000");
     expect(deterministicEventId("W-X-Y-Z")).toBe("tf0000");
     expect(deterministicEventId("a!b@c#")).toBe("tfa0b0c0");
+  });
+
+  it("pads inputs shorter than 3 chars so the final id meets Google's 5-char minimum", () => {
+    expect(deterministicEventId("a").length).toBeGreaterThanOrEqual(5);
+    expect(deterministicEventId("a")).toBe("tfa00");
+    expect(deterministicEventId("ab")).toBe("tfab0");
   });
 
   it("respects Google's hard upper bound (1024) for very long inputs", () => {

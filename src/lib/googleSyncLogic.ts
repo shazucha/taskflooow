@@ -16,7 +16,10 @@ export function deterministicEventId(taskId: string): string {
     .toLowerCase()
     .replace(/-/g, "")
     .replace(/[^a-v0-9]/g, "0");
-  return `tf${cleaned}`;
+  // Google requires id length >= 5. Pad short inputs so the helper is safe
+  // for any task_id format (uuid, nanoid, numeric, single char, ...).
+  const padded = cleaned.length < 3 ? cleaned.padEnd(3, "0") : cleaned;
+  return `tf${padded}`;
 }
 
 export function isSpecialTypeConflict(detail: string): boolean {
