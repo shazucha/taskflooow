@@ -34,6 +34,12 @@ function fallbackResponse(body: Record<string, unknown>) {
 }
 
 const SPECIAL_EVENT_CONFLICT_RE = /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType|focus time event|out of office event|working location/i;
+const GOOGLE_ERROR_STATUS_RE = /"code"\s*:\s*(\d{3})/;
+
+function effectiveGoogleStatus(responseStatus: number, detail: string) {
+  const match = detail.match(GOOGLE_ERROR_STATUS_RE);
+  return match?.[1] ? Number(match[1]) : responseStatus;
+}
 
 // Google Calendar event IDs musia byť base32hex (a-v + 0-9), 5–1024 znakov.
 // Vytvoríme deterministické ID z task_id, aby bol POST idempotentný:
