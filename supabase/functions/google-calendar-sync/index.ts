@@ -74,7 +74,7 @@ async function fetchWithRetry(
     } catch (e) {
       if (attempt === retries) throw e;
     }
-    await sleep(400 * Math.pow(2, attempt) + Math.floor(Math.random() * 200));
+    if (attempt < retries) await sleep(400 * Math.pow(2, attempt) + Math.floor(Math.random() * 200));
   }
   return lastRes!;
 }
