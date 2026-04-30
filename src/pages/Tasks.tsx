@@ -10,6 +10,7 @@ import type { Priority, Task } from "@/lib/types";
 import { PRIORITY_META } from "@/lib/types";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
 import { useCurrentUserId, useTasks } from "@/lib/queries";
+import { formatLocalDayHeader, isSameLocalDay, localDayKey, localTodayTomorrow, startOfLocalDay } from "@/lib/dayLabels";
 
 type Filter = "all" | Priority | "mine";
 
@@ -44,34 +45,20 @@ export default function Tasks() {
     const map = new Map<string, { date: Date; tasks: Task[] }>();
     for (const t of withDate) {
       const d = new Date(t.due_date!);
-      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const key = localDayKey(d);
       const existing = map.get(key);
       if (existing) existing.tasks.push(t);
-      else map.set(key, { date: new Date(d.getFullYear(), d.getMonth(), d.getDate()), tasks: [t] });
+      else map.set(key, { date: startOfLocalDay(d), tasks: [t] });
     }
     return { groups: Array.from(map.values()), noDate };
   };
 
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-
-  const formatDayHeader = (d: Date) => {
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1);
-    if (isSameDay(d, today)) return "Dnes";
-    if (isSameDay(d, tomorrow)) return "Zajtra";
-    const WD = ["Ne", "Po", "Ut", "St", "Št", "Pi", "So"];
-    const M = ["jan", "feb", "mar", "apr", "máj", "jún", "júl", "aug", "sep", "okt", "nov", "dec"];
-    return `${WD[d.getDay()]} ${d.getDate()}. ${M[d.getMonth()]}`;
-  };
-
-  const today = new Date();
+  const { today } = localTodayTomorrow();
   const { groups, noDate } = useMemo(() => groupByDate(filtered), [filtered]);
-  const todayGroups = groups.filter((g) => isSameDay(g.date, today));
-  const otherGroups = groups.filter((g) => !isSameDay(g.date, today));
+  const todayGroups = groups.filter((g) => isSameLocalDay(g.date, today));
+  const otherGroups = groups.filter((g) => !isSameLocalDay(g.date, today));
   // najbližší budúci deň otvoríme automaticky, ak dnes nič nie je
-  const upcoming = otherGroups.find((g) => g.date.getTime() >= new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime());
+  const upcoming = otherGroups.find((g) => g.date.getTime() >= today.getTime());
   const orderedGroups = [...todayGroups, ...otherGroups];
 
   const chips: { id: Filter; label: string; cls?: string }[] = [
@@ -118,7 +105,7 @@ export default function Tasks() {
         ) : (
           <>
             {orderedGroups.map((g) => {
-              const isToday = isSameDay(g.date, today);
+              const isToday = isSameLocalDay(g.date, today);
               const defaultOpen = isToday || (todayGroups.length === 0 && upcoming === g);
               return (
                 <Collapsible
@@ -128,7 +115,7 @@ export default function Tasks() {
                 >
                   <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-surface-muted">
                     <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      {formatDayHeader(g.date)}
+                      {formatLocalDayHeader(g.date)}
                       <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal">
                         {g.tasks.length}
                       </span>
