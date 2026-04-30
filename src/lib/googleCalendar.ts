@@ -56,7 +56,6 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
       // validation accept the request. We also mirror it in the body and a
       // custom header for redundancy.
       Authorization: `Bearer ${accessToken}`,
-      "x-user-authorization": `Bearer ${accessToken}`,
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify(bodyPayload),
