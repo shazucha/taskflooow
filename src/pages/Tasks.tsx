@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { AlertTriangle, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
@@ -103,7 +103,20 @@ export default function Tasks() {
             Žiadne úlohy v tomto filtri.
           </p>
         ) : (
-          <>
+          <Collapsible
+            defaultOpen
+            className="rounded-2xl border-2 border-priority-high/50 bg-priority-high-soft/40 shadow-[0_0_0_3px_hsl(var(--priority-high)/0.08)]"
+          >
+            <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-2xl px-3 py-2.5 transition-colors hover:bg-priority-high-soft/60">
+              <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-priority-high">
+                <AlertTriangle className="h-4 w-4" strokeWidth={2.5} />
+                Nedokončené · {filtered.length}
+                <span aria-hidden className="font-extrabold">!</span>
+              </span>
+              <ChevronDown className="h-4 w-4 text-priority-high transition-transform group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+              <div className="space-y-2 px-1 pb-2 pt-1">
             {orderedGroups.map((g) => {
               const isToday = isSameLocalDay(g.date, today);
               const defaultOpen = isToday || (todayGroups.length === 0 && upcoming === g);
@@ -157,7 +170,9 @@ export default function Tasks() {
                 </CollapsibleContent>
               </Collapsible>
             )}
-          </>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
       </div>
       <TaskDetailDialog task={openTask} open={!!openTask} onOpenChange={(v) => !v && setOpenTask(null)} />
