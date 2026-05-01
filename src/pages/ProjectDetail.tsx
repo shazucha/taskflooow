@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays, ChevronDown, NotebookPen } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarDays, ChevronDown, NotebookPen } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
@@ -18,6 +18,7 @@ import { CalendarWidget } from "@/components/CalendarWidget";
 import type { Task } from "@/lib/types";
 import { useCurrentUserId, useIsAppAdmin, useProjects, useProjectTasks } from "@/lib/queries";
 import { formatLocalDayHeader, isSameLocalDay, localDayKey, startOfLocalDay } from "@/lib/dayLabels";
+import { cn } from "@/lib/utils";
 
 export default function ProjectDetail() {
   const { id } = useParams();
