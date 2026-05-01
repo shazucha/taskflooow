@@ -124,13 +124,40 @@ export default function ProjectDetail() {
             if (list.length === 0) return null;
             const labels = { todo: "Nedokončené", done: "Dokončené" };
             const defaultOpen = s === "todo";
+            const isTodo = s === "todo";
             return (
-              <Collapsible key={s} defaultOpen={defaultOpen} className="rounded-2xl bg-surface-muted/40">
-                <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-2xl px-3 py-2.5 hover:bg-surface-muted">
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Collapsible
+                key={s}
+                defaultOpen={defaultOpen}
+                className={cn(
+                  "rounded-2xl",
+                  isTodo
+                    ? "border-2 border-priority-high/50 bg-priority-high-soft/40 shadow-[0_0_0_3px_hsl(var(--priority-high)/0.08)]"
+                    : "bg-surface-muted/40"
+                )}
+              >
+                <CollapsibleTrigger
+                  className={cn(
+                    "group flex w-full items-center justify-between rounded-2xl px-3 py-2.5 transition-colors",
+                    isTodo ? "hover:bg-priority-high-soft/60" : "hover:bg-surface-muted"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider",
+                      isTodo ? "text-priority-high" : "text-muted-foreground"
+                    )}
+                  >
+                    {isTodo && <AlertTriangle className="h-4 w-4" strokeWidth={2.5} />}
                     {labels[s]} · {list.length}
+                    {isTodo && <span aria-hidden className="font-extrabold">!</span>}
                   </span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform group-data-[state=open]:rotate-180",
+                      isTodo ? "text-priority-high" : "text-muted-foreground"
+                    )}
+                  />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                   <div className="space-y-2 px-1 pb-2 pt-1">
