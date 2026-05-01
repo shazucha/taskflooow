@@ -125,40 +125,13 @@ export default function ProjectDetail() {
             if (list.length === 0) return null;
             const labels = { todo: "Nedokončené", done: "Dokončené" };
             const defaultOpen = s === "todo";
-            const isTodo = s === "todo";
             return (
-              <Collapsible
-                key={s}
-                defaultOpen={defaultOpen}
-                className={cn(
-                  "rounded-2xl",
-                  isTodo
-                    ? "border-2 border-priority-high/50 bg-priority-high-soft/40 shadow-[0_0_0_3px_hsl(var(--priority-high)/0.08)]"
-                    : "bg-surface-muted/40"
-                )}
-              >
-                <CollapsibleTrigger
-                  className={cn(
-                    "group flex w-full items-center justify-between rounded-2xl px-3 py-2.5 transition-colors",
-                    isTodo ? "hover:bg-priority-high-soft/60" : "hover:bg-surface-muted"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider",
-                      isTodo ? "text-priority-high" : "text-muted-foreground"
-                    )}
-                  >
-                    {isTodo && <AlertTriangle className="h-4 w-4" strokeWidth={2.5} />}
+              <Collapsible key={s} defaultOpen={defaultOpen} className="rounded-2xl bg-surface-muted/40">
+                <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-2xl px-3 py-2.5 hover:bg-surface-muted">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     {labels[s]} · {list.length}
-                    {isTodo && <span aria-hidden className="font-extrabold">!</span>}
                   </span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 transition-transform group-data-[state=open]:rotate-180",
-                      isTodo ? "text-priority-high" : "text-muted-foreground"
-                    )}
-                  />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                   <div className="space-y-2 px-1 pb-2 pt-1">
@@ -166,6 +139,8 @@ export default function ProjectDetail() {
                       const { groups, noDate } = groupByDate(list);
                       const today = new Date();
                       const isToday = (d: Date) => isSameLocalDay(d, today);
+                      const todayStart = startOfLocalDay(today);
+                      const isOverdue = (d: Date) => s === "todo" && d.getTime() < todayStart.getTime();
                       // Dnešok hore, zvyšok podľa dátumu
                       const todayGroups = groups.filter((g) => isToday(g.date));
                       const otherGroups = groups.filter((g) => !isToday(g.date));
@@ -174,25 +149,55 @@ export default function ProjectDetail() {
                         <>
                           {ordered.map((g) => {
                             const today = isToday(g.date);
+                            const overdue = isOverdue(g.date);
                             return (
                               <Collapsible
                                 key={g.date.toISOString()}
-                                defaultOpen={today}
-                                className="rounded-xl border border-border/60 bg-card/60"
+                                defaultOpen={today || overdue}
+                                className={cn(
+                                  "rounded-xl border bg-card/60",
+                                  overdue
+                                    ? "border-2 border-priority-high/60 bg-priority-high-soft/40 shadow-[0_0_0_3px_hsl(var(--priority-high)/0.08)]"
+                                    : "border-border/60"
+                                )}
                               >
-                                <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-surface-muted">
-                                  <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                <CollapsibleTrigger
+                                  className={cn(
+                                    "group flex w-full items-center justify-between rounded-xl px-3 py-2 transition-colors",
+                                    overdue ? "hover:bg-priority-high-soft/60" : "hover:bg-surface-muted"
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider",
+                                      overdue ? "text-priority-high" : "text-muted-foreground"
+                                    )}
+                                  >
+                                    {overdue && <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.5} />}
                                     {formatDayHeader(g.date)}
-                                    <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal">
+                                    <span
+                                      className={cn(
+                                        "rounded-full px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal",
+                                        overdue
+                                          ? "bg-priority-high text-white"
+                                          : "bg-surface-muted"
+                                      )}
+                                    >
                                       {g.tasks.length}
                                     </span>
+                                    {overdue && <span aria-hidden className="font-extrabold">!</span>}
                                     {today && (
                                       <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold normal-case tracking-normal text-primary-foreground">
                                         Dnes
                                       </span>
                                     )}
                                   </span>
-                                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                                  <ChevronDown
+                                    className={cn(
+                                      "h-4 w-4 transition-transform group-data-[state=open]:rotate-180",
+                                      overdue ? "text-priority-high" : "text-muted-foreground"
+                                    )}
+                                  />
                                 </CollapsibleTrigger>
                                 <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                                   <div className="space-y-2.5 px-2 pb-2 pt-1">
