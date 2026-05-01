@@ -179,7 +179,7 @@ export default function ProjectDetail() {
                                       className={cn(
                                         "rounded-full px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal",
                                         overdue
-                                          ? "bg-priority-high text-priority-high-foreground"
+                                          ? "bg-priority-high text-white"
                                           : "bg-surface-muted"
                                       )}
                                     >
