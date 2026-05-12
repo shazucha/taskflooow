@@ -72,7 +72,6 @@ export function NewTaskDialog({
 }: Props) {
   const { data: projects = [] } = useProjects();
   const { data: profiles = [] } = useProfiles();
-  const { data: projectTasksAll = [] } = useProjectTasks(defaultProjectId);
   const currentUserId = useCurrentUserId();
   const isAdmin = useIsAppAdmin();
   const create = useCreateTask();
@@ -89,6 +88,7 @@ export function NewTaskDialog({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
+  const { data: projectTasksAll = [] } = useProjectTasks(projectId || undefined);
   // Spolupracovník (ne-admin) má sám seba prednastaveného ako riešiteľa.
   // Admin (Stanley) zvyčajne prideľuje úlohy iným, takže preňho nič nepredvyplňujeme.
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
