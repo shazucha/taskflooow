@@ -24,9 +24,11 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { useCreateTask, useCurrentUserId, useIsAppAdmin, useProfiles, useProjects } from "@/lib/queries";
+import { useCreateTask, useCurrentUserId, useIsAppAdmin, useProfiles, useProjectTasks, useProjects } from "@/lib/queries";
 import { toast } from "sonner";
 import { UserAvatar } from "./UserAvatar";
+import { CalendarClock } from "lucide-react";
+import { formatLocalDayHeader, startOfLocalDay } from "@/lib/dayLabels";
 
 const HALF_HOUR_SLOTS = Array.from({ length: 48 }, (_, i) => {
   const h = Math.floor(i / 2);
@@ -70,6 +72,7 @@ export function NewTaskDialog({
 }: Props) {
   const { data: projects = [] } = useProjects();
   const { data: profiles = [] } = useProfiles();
+  const { data: projectTasksAll = [] } = useProjectTasks(defaultProjectId);
   const currentUserId = useCurrentUserId();
   const isAdmin = useIsAppAdmin();
   const create = useCreateTask();
