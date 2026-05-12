@@ -125,7 +125,7 @@
     @apply border-border;
   }
   html, body, #root {
-    @apply h-full;
+    @apply min-h-full;
   }
   html, body {
     /* Lock the page horizontally and disable pull-to-refresh / rubber-band */
