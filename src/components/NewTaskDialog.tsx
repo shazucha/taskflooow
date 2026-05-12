@@ -452,7 +452,7 @@ export function NewTaskDialog({
           )}
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-7">
+      <DialogContent className="max-w-full sm:max-w-xl rounded-2xl p-4 sm:p-6">
         <DialogHeader className="pr-8">
           <DialogTitle>Nová úloha</DialogTitle>
         </DialogHeader>
