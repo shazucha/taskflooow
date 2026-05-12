@@ -549,8 +549,8 @@ export function NewTaskDialog({
           {/* Prepínač opakovania */}
           <div className="flex items-center justify-between rounded-lg border border-border/60 px-2.5 py-2">
             <div className="min-w-0">
-              <Label htmlFor="rec-switch" className="text-sm font-semibold">Opakovať</Label>
-              <p className="text-[11px] text-muted-foreground">Vytvorí sériu úloh. Popis každej môžeš neskôr meniť samostatne.</p>
+              <Label htmlFor="rec-switch" className="text-xs font-semibold">Opakovať</Label>
+              <p className="text-[10px] text-muted-foreground leading-tight">Vytvorí sériu úloh. Popis každej môžeš neskôr meniť samostatne.</p>
             </div>
             <Switch id="rec-switch" checked={recurring} onCheckedChange={setRecurring} />
           </div>
