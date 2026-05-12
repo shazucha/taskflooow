@@ -24,9 +24,11 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { useCreateTask, useCurrentUserId, useIsAppAdmin, useProfiles, useProjects } from "@/lib/queries";
+import { useCreateTask, useCurrentUserId, useIsAppAdmin, useProfiles, useProjectTasks, useProjects } from "@/lib/queries";
 import { toast } from "sonner";
 import { UserAvatar } from "./UserAvatar";
+import { CalendarClock } from "lucide-react";
+import { formatLocalDayHeader, startOfLocalDay } from "@/lib/dayLabels";
 
 const HALF_HOUR_SLOTS = Array.from({ length: 48 }, (_, i) => {
   const h = Math.floor(i / 2);
@@ -86,6 +88,7 @@ export function NewTaskDialog({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
+  const { data: projectTasksAll = [] } = useProjectTasks(projectId || undefined);
   // Spolupracovník (ne-admin) má sám seba prednastaveného ako riešiteľa.
   // Admin (Stanley) zvyčajne prideľuje úlohy iným, takže preňho nič nepredvyplňujeme.
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
@@ -205,6 +208,23 @@ export function NewTaskDialog({
     }
     return dates;
   }, [recurring, recMode, recStartMonth, recMonths, recDay, recWeekStart, recWeeks, recWeekdays, recDailyStart, recDailyDays]);
+
+  // Najbližšie nedokončené úlohy v aktuálne vybranom projekte (prehľad pre používateľa).
+  const upcomingProjectTasks = useMemo(() => {
+    if (!projectId) return [] as { date: Date; title: string; iso: string }[];
+    const todayStart = startOfLocalDay(new Date());
+    return projectTasksAll
+      .filter((t) => t.status !== "done" && !!t.due_date)
+      .map((t) => ({ date: new Date(t.due_date!), title: t.title, iso: t.due_date! }))
+      .filter((t) => t.date.getTime() >= todayStart.getTime())
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .slice(0, 6);
+  }, [projectTasksAll, projectId]);
+
+  const pickProjectDate = (d: Date) => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setDueDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+  };
 
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
@@ -464,6 +484,44 @@ export function NewTaskDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {projectId && upcomingProjectTasks.length > 0 && !recurring && (
+            <div className="space-y-1.5 rounded-xl border border-border/60 bg-surface-muted/40 p-3">
+              <Label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <CalendarClock className="h-3.5 w-3.5" />
+                Najbližšie úlohy v projekte
+              </Label>
+              <p className="text-[11px] text-muted-foreground">
+                Klikni na dátum a predvyplní sa termín — nech vidíš, kedy už máš v projekte naplánované úlohy.
+              </p>
+              <ul className="space-y-1 pt-1">
+                {upcomingProjectTasks.map((t, i) => {
+                  const pad = (n: number) => String(n).padStart(2, "0");
+                  const iso = `${t.date.getFullYear()}-${pad(t.date.getMonth() + 1)}-${pad(t.date.getDate())}`;
+                  const isPicked = dueDate === iso;
+                  return (
+                    <li key={`${t.iso}-${i}`}>
+                      <button
+                        type="button"
+                        onClick={() => pickProjectDate(t.date)}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs transition",
+                          isPicked
+                            ? "border-primary bg-primary/10 text-foreground"
+                            : "border-transparent bg-card hover:border-border hover:bg-surface-muted"
+                        )}
+                      >
+                        <span className="min-w-0 flex-1 truncate font-medium">{t.title}</span>
+                        <span className="shrink-0 rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {formatLocalDayHeader(t.date)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           {/* Prepínač opakovania */}
           <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
