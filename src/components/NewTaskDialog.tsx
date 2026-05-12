@@ -532,6 +532,11 @@ export function NewTaskDialog({
                         <span className="min-w-0 flex-1 truncate font-medium">{t.title}</span>
                         <span className="shrink-0 rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {formatLocalDayHeader(t.date)}
+                          {t.timeLabel && (
+                            <span className="ml-1 text-[10px] normal-case tracking-normal text-foreground">
+                              {t.timeLabel}
+                            </span>
+                          )}
                         </span>
                       </button>
                     </li>
