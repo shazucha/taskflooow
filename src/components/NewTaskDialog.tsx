@@ -784,8 +784,8 @@ export function NewTaskDialog({
               </div>
             </div>
           ) : (
-            <div className="space-y-1">
-              <Label className="text-xs">Termín</Label>
+            <div className="space-y-0.5">
+              <Label className="text-[10px]">Termín</Label>
               <Input type="date" value={dueDate} className="h-8 text-xs"
                 onChange={(e) => {
                   setDueDate(e.target.value);
@@ -797,7 +797,7 @@ export function NewTaskDialog({
                   <div className="flex gap-1 pt-0.5">
                     <button type="button" onClick={() => { setDueTime(""); setEndTime(""); }}
                       className={cn(
-                        "flex-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition",
+                        "flex-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold transition",
                         !dueTime
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -805,7 +805,7 @@ export function NewTaskDialog({
                     >Celý deň</button>
                     <button type="button" onClick={() => { if (!dueTime) setDueTime("09:00"); }}
                       className={cn(
-                        "flex-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition",
+                        "flex-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold transition",
                         dueTime
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -814,7 +814,7 @@ export function NewTaskDialog({
                   </div>
                   {dueTime && (
                     <div className="grid grid-cols-2 gap-1.5 pt-0.5">
-                      <div className="space-y-0.5">
+                      <div className="space-y-0">
                         <Label className="text-[10px] text-muted-foreground">Začiatok</Label>
                         <Select value={dueTime}
                           onValueChange={(v) => { setDueTime(v); if (endTime && endTime <= v) setEndTime(""); }}
