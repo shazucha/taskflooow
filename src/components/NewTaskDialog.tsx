@@ -504,7 +504,7 @@ export function NewTaskDialog({
           </div>
 
           {projectId && upcomingProjectTasks.length > 0 && !recurring && (
-            <div className="space-y-0.5 rounded-lg border border-border/60 bg-surface-muted/40 p-2">
+            <div className="hidden sm:block space-y-0.5 rounded-lg border border-border/60 bg-surface-muted/40 p-2">
               <Label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 <CalendarClock className="h-3 w-3" />
                 Najbližšie úlohy
