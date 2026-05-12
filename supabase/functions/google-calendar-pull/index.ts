@@ -6,6 +6,7 @@
 // overwrite tasks that belong to other people.
 // NOTE: verify_jwt = false (see supabase/config.toml). Auth validated in code
 // via getUserFromAuthHeader to avoid gateway 401 from stale deployed flag.
+// Redeploy nudge: ensure verify_jwt=false flag is applied on next deploy.
 
 import { corsHeaders } from "../_shared/cors.ts";
 import {
