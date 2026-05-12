@@ -787,59 +787,42 @@ export function NewTaskDialog({
               </div>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              <Label>Termín</Label>
-              <Input
-                type="date"
-                value={dueDate}
+            <div className="space-y-1">
+              <Label className="text-xs">Termín</Label>
+              <Input type="date" value={dueDate} className="h-8 text-xs"
                 onChange={(e) => {
                   setDueDate(e.target.value);
-                  if (!e.target.value) {
-                    setDueTime("");
-                    setEndTime("");
-                  }
+                  if (!e.target.value) { setDueTime(""); setEndTime(""); }
                 }}
               />
               {dueDate && (
                 <>
-                  <div className="flex gap-1.5 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => { setDueTime(""); setEndTime(""); }}
+                  <div className="flex gap-1 pt-0.5">
+                    <button type="button" onClick={() => { setDueTime(""); setEndTime(""); }}
                       className={cn(
-                        "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                        "flex-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition",
                         !dueTime
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
                       )}
-                    >
-                      Celý deň
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { if (!dueTime) setDueTime("09:00"); }}
+                    >Celý deň</button>
+                    <button type="button" onClick={() => { if (!dueTime) setDueTime("09:00"); }}
                       className={cn(
-                        "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                        "flex-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition",
                         dueTime
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
                       )}
-                    >
-                      Konkrétny čas
-                    </button>
+                    >Konkrétny čas</button>
                   </div>
                   {dueTime && (
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Začiatok</Label>
-                        <Select
-                          value={dueTime}
-                          onValueChange={(v) => {
-                            setDueTime(v);
-                            if (endTime && endTime <= v) setEndTime("");
-                          }}
+                    <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px] text-muted-foreground">Začiatok</Label>
+                        <Select value={dueTime}
+                          onValueChange={(v) => { setDueTime(v); if (endTime && endTime <= v) setEndTime(""); }}
                         >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent className="max-h-64">
                             {HALF_HOUR_SLOTS.map((s) => (
                               <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -847,10 +830,10 @@ export function NewTaskDialog({
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Koniec</Label>
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px] text-muted-foreground">Koniec</Label>
                         <Select value={endTime || "none"} onValueChange={(v) => setEndTime(v === "none" ? "" : v)}>
-                          <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
                           <SelectContent className="max-h-64">
                             <SelectItem value="none">— bez konca —</SelectItem>
                             {HALF_HOUR_SLOTS.filter((s) => s > dueTime).map((s) => (
@@ -866,39 +849,31 @@ export function NewTaskDialog({
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label className="flex items-center justify-between">
+          <div className="space-y-1">
+            <Label className="flex items-center justify-between text-xs">
               <span>Komu úloha patrí</span>
-              <span className="text-[11px] font-normal text-muted-foreground">
-                1. zaškrtnutý = hlavný
-              </span>
+              <span className="text-[10px] font-normal text-muted-foreground">1. zaškrtnutý = hlavný</span>
             </Label>
-            <div className="space-y-1 rounded-xl border border-border/60 p-1">
+            <div className="space-y-0.5 rounded-lg border border-border/60 p-1">
               {profiles.map((p) => {
                 const idx = selectedUserIds.indexOf(p.id);
                 const active = idx !== -1;
                 const isPrimary = idx === 0;
                 return (
-                  <label
-                    key={p.id}
+                  <label key={p.id}
                     className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition",
+                      "flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 transition",
                       active ? "bg-primary/10" : "hover:bg-surface-muted"
                     )}
                   >
-                    <Checkbox
-                      checked={active}
-                      onCheckedChange={() => toggleUser(p.id)}
-                    />
+                    <Checkbox checked={active} onCheckedChange={() => toggleUser(p.id)} />
                     <UserAvatar profile={p} size="sm" />
-                    <span className="flex-1 truncate text-sm">
+                    <span className="flex-1 truncate text-xs">
                       {p.full_name ?? p.email}
-                      {p.id === currentUserId && (
-                        <span className="ml-1 text-xs text-muted-foreground">(ja)</span>
-                      )}
+                      {p.id === currentUserId && <span className="ml-1 text-[10px] text-muted-foreground">(ja)</span>}
                     </span>
                     {isPrimary && (
-                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
+                      <span className="rounded-full bg-primary px-1.5 py-0 text-[9px] font-bold uppercase text-primary-foreground">
                         Hlavný
                       </span>
                     )}
@@ -909,13 +884,9 @@ export function NewTaskDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Zrušiť</Button>
-          <Button onClick={submit} disabled={!title.trim() || create.isPending}>
-            {create.isPending
-              ? "Vytváram..."
-              : recurring
-                ? `Vytvoriť ${recPreview.length}×`
-                : "Vytvoriť"}
+          <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Zrušiť</Button>
+          <Button size="sm" onClick={submit} disabled={!title.trim() || create.isPending}>
+            {create.isPending ? "Vytváram..." : recurring ? `Vytvoriť ${recPreview.length}×` : "Vytvoriť"}
           </Button>
         </DialogFooter>
       </DialogContent>
