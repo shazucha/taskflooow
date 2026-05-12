@@ -434,8 +434,8 @@ export function NewTaskDialog({
           )}
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-7">
+        <DialogHeader className="pr-8">
           <DialogTitle>Nová úloha</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
