@@ -452,22 +452,22 @@ export function NewTaskDialog({
           )}
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-7">
-        <DialogHeader className="pr-8">
-          <DialogTitle>Nová úloha</DialogTitle>
+      <DialogContent className="max-w-full sm:max-w-xl rounded-2xl p-3 sm:p-6 overflow-y-auto max-h-[85vh] sm:max-h-none sm:overflow-visible">
+        <DialogHeader className="pr-6">
+          <DialogTitle className="text-base sm:text-lg">Nová úloha</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="title">Názov</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Čo treba spraviť?" autoFocus />
+        <div className="space-y-1.5 text-sm">
+          <div className="space-y-0.5">
+            <Label htmlFor="title" className="text-[10px]">Názov</Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Čo treba spraviť?" autoFocus className="h-8 text-sm" />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="desc">Popis</Label>
-            <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Voliteľné" />
+          <div className="hidden sm:block space-y-0.5">
+            <Label htmlFor="desc" className="text-[10px]">Popis</Label>
+            <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={1} placeholder="Voliteľné" className="text-sm min-h-[2rem]" />
           </div>
-          <div className="space-y-1.5">
-            <Label>Priorita</Label>
-            <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-0.5">
+            <Label className="text-[10px]">Priorita</Label>
+            <div className="grid grid-cols-3 gap-1">
               {(Object.keys(PRIORITY_META) as Priority[]).map((p) => {
                 const meta = PRIORITY_META[p];
                 const active = priority === p;
@@ -477,9 +477,9 @@ export function NewTaskDialog({
                     type="button"
                     onClick={() => setPriority(p)}
                     className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-semibold transition-all",
+                      "flex items-center justify-center gap-1 rounded-md border py-1 text-[11px] font-semibold transition-all",
                       active
-                        ? `${meta.soft} ${meta.text} border-transparent ring-2 ${meta.ring}`
+                        ? `${meta.soft} ${meta.text} border-transparent ring-1 ${meta.ring}`
                         : "bg-surface-muted text-muted-foreground border-transparent hover:text-foreground"
                     )}
                   >
@@ -490,10 +490,10 @@ export function NewTaskDialog({
               })}
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Projekt</Label>
+          <div className="space-y-0.5">
+            <Label className="text-[10px]">Projekt</Label>
             <Select value={projectId || "none"} onValueChange={(v) => setProjectId(v === "none" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="Bez projektu" /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Bez projektu" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Bez projektu</SelectItem>
                 {projects.map((p) => (
@@ -504,15 +504,12 @@ export function NewTaskDialog({
           </div>
 
           {projectId && upcomingProjectTasks.length > 0 && !recurring && (
-            <div className="space-y-1.5 rounded-xl border border-border/60 bg-surface-muted/40 p-3">
-              <Label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <CalendarClock className="h-3.5 w-3.5" />
-                Najbližšie úlohy v projekte
+            <div className="hidden sm:block space-y-0.5 rounded-lg border border-border/60 bg-surface-muted/40 p-2">
+              <Label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <CalendarClock className="h-3 w-3" />
+                Najbližšie úlohy
               </Label>
-              <p className="text-[11px] text-muted-foreground">
-                Klikni na dátum a predvyplní sa termín — nech vidíš, kedy už máš v projekte naplánované úlohy.
-              </p>
-              <ul className="space-y-1 pt-1">
+              <ul className="space-y-0.5">
                 {upcomingProjectTasks.map((t, i) => {
                   const pad = (n: number) => String(n).padStart(2, "0");
                   const iso = `${t.date.getFullYear()}-${pad(t.date.getMonth() + 1)}-${pad(t.date.getDate())}`;
@@ -523,14 +520,14 @@ export function NewTaskDialog({
                         type="button"
                         onClick={() => pickProjectDate(t.date)}
                         className={cn(
-                          "flex w-full items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs transition",
+                          "flex w-full items-center justify-between gap-2 rounded-md border px-2 py-0.5 text-left text-[11px] transition",
                           isPicked
                             ? "border-primary bg-primary/10 text-foreground"
                             : "border-transparent bg-card hover:border-border hover:bg-surface-muted"
                         )}
                       >
                         <span className="min-w-0 flex-1 truncate font-medium">{t.title}</span>
-                        <span className="shrink-0 rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="shrink-0 rounded bg-surface-muted px-1 py-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {formatLocalDayHeader(t.date)}
                           {t.timeLabel && (
                             <span className="ml-1 text-[10px] normal-case tracking-normal text-foreground">
@@ -547,22 +544,22 @@ export function NewTaskDialog({
           )}
 
           {/* Prepínač opakovania */}
-          <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
+          <div className="flex items-center justify-between rounded-lg border border-border/60 px-2.5 py-2">
             <div className="min-w-0">
-              <Label htmlFor="rec-switch" className="text-sm font-semibold">Opakovať</Label>
-              <p className="text-[11px] text-muted-foreground">Vytvorí sériu úloh. Popis každej môžeš neskôr meniť samostatne.</p>
+              <Label htmlFor="rec-switch" className="text-xs font-semibold">Opakovať</Label>
+              <p className="text-[10px] text-muted-foreground leading-tight">Vytvorí sériu úloh. Popis každej môžeš neskôr meniť samostatne.</p>
             </div>
             <Switch id="rec-switch" checked={recurring} onCheckedChange={setRecurring} />
           </div>
 
           {recurring ? (
-            <div className="space-y-3 rounded-xl bg-surface-muted/60 p-3">
-              <div className="grid grid-cols-3 gap-1.5">
+            <div className="space-y-1.5 rounded-lg bg-surface-muted/60 p-2">
+              <div className="grid grid-cols-3 gap-1">
                 <button
                   type="button"
                   onClick={() => setRecMode("daily")}
                   className={cn(
-                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    "rounded-md border px-2 py-1 text-[11px] font-semibold transition",
                     recMode === "daily"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -574,7 +571,7 @@ export function NewTaskDialog({
                   type="button"
                   onClick={() => setRecMode("weekly")}
                   className={cn(
-                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    "rounded-md border px-2 py-1 text-[11px] font-semibold transition",
                     recMode === "weekly"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -586,7 +583,7 @@ export function NewTaskDialog({
                   type="button"
                   onClick={() => setRecMode("monthly")}
                   className={cn(
-                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    "rounded-md border px-2 py-1 text-[11px] font-semibold transition",
                     recMode === "monthly"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -597,34 +594,31 @@ export function NewTaskDialog({
               </div>
 
               {recMode === "monthly" ? (
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="rday" className="text-xs">Deň v mesiaci</Label>
-                    <Input
-                      id="rday" type="number" min={1} max={31} value={recDay}
+                <div className="grid grid-cols-3 gap-1.5">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="rday" className="text-[10px]">Deň v mes.</Label>
+                    <Input id="rday" type="number" min={1} max={31} value={recDay} className="h-8 text-xs"
                       onChange={(e) => setRecDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))}
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="rstart" className="text-xs">Od mesiaca</Label>
-                    <Input
-                      id="rstart" type="month" value={recStartMonth}
+                  <div className="space-y-0.5">
+                    <Label htmlFor="rstart" className="text-[10px]">Od mesiaca</Label>
+                    <Input id="rstart" type="month" value={recStartMonth} className="h-8 text-xs"
                       onChange={(e) => setRecStartMonth(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="rmonths" className="text-xs">Počet mesiacov</Label>
-                    <Input
-                      id="rmonths" type="number" min={1} max={36} value={recMonths}
+                  <div className="space-y-0.5">
+                    <Label htmlFor="rmonths" className="text-[10px]">Počet mes.</Label>
+                    <Input id="rmonths" type="number" min={1} max={36} value={recMonths} className="h-8 text-xs"
                       onChange={(e) => setRecMonths(Math.max(1, Math.min(36, Number(e.target.value) || 1)))}
                     />
                   </div>
                 </div>
               ) : recMode === "weekly" ? (
-                <div className="space-y-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Dni v týždni</Label>
-                    <div className="grid grid-cols-7 gap-1">
+                <div className="space-y-1.5">
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px]">Dni v týždni</Label>
+                    <div className="grid grid-cols-7 gap-0.5">
                       {["Po","Ut","St","Št","Pi","So","Ne"].map((label, idx) => {
                         const active = recWeekdays.includes(idx);
                         return (
@@ -635,7 +629,7 @@ export function NewTaskDialog({
                               prev.includes(idx) ? prev.filter((x) => x !== idx) : [...prev, idx]
                             )}
                             className={cn(
-                              "rounded-lg border py-1.5 text-[11px] font-semibold transition",
+                              "rounded-md border py-1 text-[10px] font-semibold transition",
                               active
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -647,27 +641,24 @@ export function NewTaskDialog({
                       })}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="rwstart" className="text-xs">Prvý dátum</Label>
-                      <Input
-                        id="rwstart" type="date" value={recWeekStart}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="rwstart" className="text-[10px]">Prvý dátum</Label>
+                      <Input id="rwstart" type="date" value={recWeekStart} className="h-8 text-xs"
                         onChange={(e) => setRecWeekStart(e.target.value)}
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="rweeks" className="text-xs">Počet týždňov</Label>
-                      <Input
-                        id="rweeks" type="number" min={1} max={52} value={recWeeks}
+                    <div className="space-y-0.5">
+                      <Label htmlFor="rweeks" className="text-[10px]">Počet týž.</Label>
+                      <Input id="rweeks" type="number" min={1} max={52} value={recWeeks} className="h-8 text-xs"
                         onChange={(e) => setRecWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Začiatok (voliteľné)</Label>
-                      <Select
-                        value={recWeekTime || "none"}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Začiatok</Label>
+                      <Select value={recWeekTime || "none"}
                         onValueChange={(v) => {
                           const nv = v === "none" ? "" : v;
                           setRecWeekTime(nv);
@@ -675,7 +666,7 @@ export function NewTaskDialog({
                           if (!nv) setRecWeekEnd("");
                         }}
                       >
-                        <SelectTrigger><SelectValue placeholder="Celý deň" /></SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Celý deň" /></SelectTrigger>
                         <SelectContent className="max-h-64">
                           <SelectItem value="none">— celý deň —</SelectItem>
                           {HALF_HOUR_SLOTS.map((s) => (
@@ -684,13 +675,12 @@ export function NewTaskDialog({
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Koniec</Label>
-                      <Select
-                        value={recWeekEnd || "none"}
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Koniec</Label>
+                      <Select value={recWeekEnd || "none"}
                         onValueChange={(v) => setRecWeekEnd(v === "none" ? "" : v)}
                       >
-                        <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
                         <SelectContent className="max-h-64">
                           <SelectItem value="none">— bez konca —</SelectItem>
                           {HALF_HOUR_SLOTS.filter((s) => !recWeekTime || s > recWeekTime).map((s) => (
@@ -702,10 +692,10 @@ export function NewTaskDialog({
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Iba v dňoch (prázdne = každý deň)</Label>
-                    <div className="grid grid-cols-7 gap-1">
+                <div className="space-y-1.5">
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px]">Iba v dňoch (prázdne = každý deň)</Label>
+                    <div className="grid grid-cols-7 gap-0.5">
                       {["Po","Ut","St","Št","Pi","So","Ne"].map((label, idx) => {
                         const active = recWeekdays.includes(idx);
                         return (
@@ -716,7 +706,7 @@ export function NewTaskDialog({
                               prev.includes(idx) ? prev.filter((x) => x !== idx) : [...prev, idx]
                             )}
                             className={cn(
-                              "rounded-lg border py-1.5 text-[11px] font-semibold transition",
+                              "rounded-md border py-1 text-[10px] font-semibold transition",
                               active
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -727,45 +717,33 @@ export function NewTaskDialog({
                         );
                       })}
                     </div>
-                    <div className="flex gap-1.5 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setRecWeekdays([0,1,2,3,4])}
-                        className="rounded-md border border-border bg-surface-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
-                      >Po–Pi</button>
-                      <button
-                        type="button"
-                        onClick={() => setRecWeekdays([0,1,2,3,4,5,6])}
-                        className="rounded-md border border-border bg-surface-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
-                      >Každý deň</button>
-                      <button
-                        type="button"
-                        onClick={() => setRecWeekdays([])}
-                        className="rounded-md border border-border bg-surface-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
-                      >Vymazať</button>
+                    <div className="flex gap-1 pt-0.5">
+                      <button type="button" onClick={() => setRecWeekdays([0,1,2,3,4])}
+                        className="rounded border border-border bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">Po–Pi</button>
+                      <button type="button" onClick={() => setRecWeekdays([0,1,2,3,4,5,6])}
+                        className="rounded border border-border bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">Každý deň</button>
+                      <button type="button" onClick={() => setRecWeekdays([])}
+                        className="rounded border border-border bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">Vymazať</button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="rdstart" className="text-xs">Prvý dátum</Label>
-                      <Input
-                        id="rdstart" type="date" value={recDailyStart}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="rdstart" className="text-[10px]">Prvý dátum</Label>
+                      <Input id="rdstart" type="date" value={recDailyStart} className="h-8 text-xs"
                         onChange={(e) => setRecDailyStart(e.target.value)}
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="rdays" className="text-xs">Počet dní</Label>
-                      <Input
-                        id="rdays" type="number" min={1} max={365} value={recDailyDays}
+                    <div className="space-y-0.5">
+                      <Label htmlFor="rdays" className="text-[10px]">Počet dní</Label>
+                      <Input id="rdays" type="number" min={1} max={365} value={recDailyDays} className="h-8 text-xs"
                         onChange={(e) => setRecDailyDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Začiatok (voliteľné)</Label>
-                      <Select
-                        value={recDailyTime || "none"}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Začiatok</Label>
+                      <Select value={recDailyTime || "none"}
                         onValueChange={(v) => {
                           const nv = v === "none" ? "" : v;
                           setRecDailyTime(nv);
@@ -773,7 +751,7 @@ export function NewTaskDialog({
                           if (!nv) setRecDailyEnd("");
                         }}
                       >
-                        <SelectTrigger><SelectValue placeholder="Celý deň" /></SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Celý deň" /></SelectTrigger>
                         <SelectContent className="max-h-64">
                           <SelectItem value="none">— celý deň —</SelectItem>
                           {HALF_HOUR_SLOTS.map((s) => (
@@ -782,13 +760,12 @@ export function NewTaskDialog({
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Koniec</Label>
-                      <Select
-                        value={recDailyEnd || "none"}
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Koniec</Label>
+                      <Select value={recDailyEnd || "none"}
                         onValueChange={(v) => setRecDailyEnd(v === "none" ? "" : v)}
                       >
-                        <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
                         <SelectContent className="max-h-64">
                           <SelectItem value="none">— bez konca —</SelectItem>
                           {HALF_HOUR_SLOTS.filter((s) => !recDailyTime || s > recDailyTime).map((s) => (
@@ -807,59 +784,42 @@ export function NewTaskDialog({
               </div>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              <Label>Termín</Label>
-              <Input
-                type="date"
-                value={dueDate}
+            <div className="space-y-0.5">
+              <Label className="text-[10px]">Termín</Label>
+              <Input type="date" value={dueDate} className="h-8 text-xs"
                 onChange={(e) => {
                   setDueDate(e.target.value);
-                  if (!e.target.value) {
-                    setDueTime("");
-                    setEndTime("");
-                  }
+                  if (!e.target.value) { setDueTime(""); setEndTime(""); }
                 }}
               />
               {dueDate && (
                 <>
-                  <div className="flex gap-1.5 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => { setDueTime(""); setEndTime(""); }}
+                  <div className="flex gap-1 pt-0.5">
+                    <button type="button" onClick={() => { setDueTime(""); setEndTime(""); }}
                       className={cn(
-                        "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                        "flex-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold transition",
                         !dueTime
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
                       )}
-                    >
-                      Celý deň
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { if (!dueTime) setDueTime("09:00"); }}
+                    >Celý deň</button>
+                    <button type="button" onClick={() => { if (!dueTime) setDueTime("09:00"); }}
                       className={cn(
-                        "flex-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                        "flex-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold transition",
                         dueTime
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
                       )}
-                    >
-                      Konkrétny čas
-                    </button>
+                    >Konkrétny čas</button>
                   </div>
                   {dueTime && (
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Začiatok</Label>
-                        <Select
-                          value={dueTime}
-                          onValueChange={(v) => {
-                            setDueTime(v);
-                            if (endTime && endTime <= v) setEndTime("");
-                          }}
+                    <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                      <div className="space-y-0">
+                        <Label className="text-[10px] text-muted-foreground">Začiatok</Label>
+                        <Select value={dueTime}
+                          onValueChange={(v) => { setDueTime(v); if (endTime && endTime <= v) setEndTime(""); }}
                         >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent className="max-h-64">
                             {HALF_HOUR_SLOTS.map((s) => (
                               <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -867,10 +827,10 @@ export function NewTaskDialog({
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Koniec</Label>
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px] text-muted-foreground">Koniec</Label>
                         <Select value={endTime || "none"} onValueChange={(v) => setEndTime(v === "none" ? "" : v)}>
-                          <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
                           <SelectContent className="max-h-64">
                             <SelectItem value="none">— bez konca —</SelectItem>
                             {HALF_HOUR_SLOTS.filter((s) => s > dueTime).map((s) => (
@@ -886,39 +846,31 @@ export function NewTaskDialog({
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="flex items-center justify-between text-[10px]">
               <span>Komu úloha patrí</span>
-              <span className="text-[11px] font-normal text-muted-foreground">
-                1. zaškrtnutý = hlavný
-              </span>
+              <span className="text-[10px] font-normal text-muted-foreground">1. zaškrtnutý = hlavný</span>
             </Label>
-            <div className="space-y-1 rounded-xl border border-border/60 p-1">
+            <div className="space-y-0 rounded-lg border border-border/60 p-1">
               {profiles.map((p) => {
                 const idx = selectedUserIds.indexOf(p.id);
                 const active = idx !== -1;
                 const isPrimary = idx === 0;
                 return (
-                  <label
-                    key={p.id}
+                  <label key={p.id}
                     className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition",
+                      "flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-0.5 transition",
                       active ? "bg-primary/10" : "hover:bg-surface-muted"
                     )}
                   >
-                    <Checkbox
-                      checked={active}
-                      onCheckedChange={() => toggleUser(p.id)}
-                    />
+                    <Checkbox checked={active} onCheckedChange={() => toggleUser(p.id)} />
                     <UserAvatar profile={p} size="sm" />
-                    <span className="flex-1 truncate text-sm">
+                    <span className="flex-1 truncate text-[11px]">
                       {p.full_name ?? p.email}
-                      {p.id === currentUserId && (
-                        <span className="ml-1 text-xs text-muted-foreground">(ja)</span>
-                      )}
+                      {p.id === currentUserId && <span className="ml-1 text-[10px] text-muted-foreground">(ja)</span>}
                     </span>
                     {isPrimary && (
-                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
+                      <span className="rounded-full bg-primary px-1.5 py-0 text-[9px] font-bold uppercase text-primary-foreground">
                         Hlavný
                       </span>
                     )}
@@ -929,13 +881,9 @@ export function NewTaskDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Zrušiť</Button>
-          <Button onClick={submit} disabled={!title.trim() || create.isPending}>
-            {create.isPending
-              ? "Vytváram..."
-              : recurring
-                ? `Vytvoriť ${recPreview.length}×`
-                : "Vytvoriť"}
+          <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Zrušiť</Button>
+          <Button size="sm" onClick={submit} disabled={!title.trim() || create.isPending}>
+            {create.isPending ? "Vytváram..." : recurring ? `Vytvoriť ${recPreview.length}×` : "Vytvoriť"}
           </Button>
         </DialogFooter>
       </DialogContent>
