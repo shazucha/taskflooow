@@ -553,7 +553,7 @@ export function NewTaskDialog({
           </div>
 
           {recurring ? (
-            <div className="space-y-2 rounded-lg bg-surface-muted/60 p-2">
+            <div className="space-y-1.5 rounded-lg bg-surface-muted/60 p-2">
               <div className="grid grid-cols-3 gap-1">
                 <button
                   type="button"
