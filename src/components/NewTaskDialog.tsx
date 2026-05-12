@@ -209,6 +209,23 @@ export function NewTaskDialog({
     return dates;
   }, [recurring, recMode, recStartMonth, recMonths, recDay, recWeekStart, recWeeks, recWeekdays, recDailyStart, recDailyDays]);
 
+  // Najbližšie nedokončené úlohy v aktuálne vybranom projekte (prehľad pre používateľa).
+  const upcomingProjectTasks = useMemo(() => {
+    if (!projectId) return [] as { date: Date; title: string; iso: string }[];
+    const todayStart = startOfLocalDay(new Date());
+    return projectTasksAll
+      .filter((t) => t.status !== "done" && !!t.due_date)
+      .map((t) => ({ date: new Date(t.due_date!), title: t.title, iso: t.due_date! }))
+      .filter((t) => t.date.getTime() >= todayStart.getTime())
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .slice(0, 6);
+  }, [projectTasksAll, projectId]);
+
+  const pickProjectDate = (d: Date) => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setDueDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+  };
+
   const submit = async () => {
     if (!title.trim() || !currentUserId) return;
     // Ne-admin musí mať aspoň jedného riešiteľa (predvolene seba).
