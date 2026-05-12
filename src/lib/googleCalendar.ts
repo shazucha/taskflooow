@@ -64,6 +64,9 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
   if (!response.ok) {
     if (response.status === 401) return unauthorizedFallback;
     const body = await response.text();
+    // Niektoré nasadenia gatewayu vracajú 401 s netypickým statusom
+    // (napr. 500/403 + body "Unauthorized") — tiež považujeme za auth race.
+    if (/"?Unauthorized"?/i.test(body)) return unauthorizedFallback;
     // Some edge runtime/cold-start paths return 5xx even though the function
     // body indicates a soft failure (calendar_api_failed / special_event_conflict
     // for focusTime/OOO/working location events). The Supabase edge runtime
