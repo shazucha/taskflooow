@@ -211,11 +211,29 @@ export function NewTaskDialog({
 
   // Najbližšie nedokončené úlohy v aktuálne vybranom projekte (prehľad pre používateľa).
   const upcomingProjectTasks = useMemo(() => {
-    if (!projectId) return [] as { date: Date; title: string; iso: string }[];
+    if (!projectId) return [] as { date: Date; title: string; iso: string; timeLabel?: string }[];
     const todayStart = startOfLocalDay(new Date());
     return projectTasksAll
       .filter((t) => t.status !== "done" && !!t.due_date)
-      .map((t) => ({ date: new Date(t.due_date!), title: t.title, iso: t.due_date! }))
+      .map((t) => {
+        const d = new Date(t.due_date!);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        // Čas zobrazíme len ak nie je explicitne polnoc UTC (značí dátum bez času).
+        const isMidnightUtc = t.due_date!.match(/T00:00:00(\.\d+)?Z?$/);
+        let timeLabel: string | undefined;
+        if (!isMidnightUtc) {
+          const startTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          if (t.due_end) {
+            const end = new Date(t.due_end);
+            const endTime = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+            timeLabel = `${startTime}–${endTime}`;
+          } else {
+            timeLabel = startTime;
+          }
+        }
+        return { date: d, title: t.title, iso, timeLabel };
+      })
       .filter((t) => t.date.getTime() >= todayStart.getTime())
       .sort((a, b) => a.date.getTime() - b.date.getTime())
       .slice(0, 6);
