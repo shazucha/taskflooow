@@ -504,15 +504,15 @@ export function NewTaskDialog({
           </div>
 
           {projectId && upcomingProjectTasks.length > 0 && !recurring && (
-            <div className="space-y-1.5 rounded-xl border border-border/60 bg-surface-muted/40 p-3">
-              <Label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <CalendarClock className="h-3.5 w-3.5" />
+            <div className="space-y-1 rounded-lg border border-border/60 bg-surface-muted/40 p-2">
+              <Label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <CalendarClock className="h-3 w-3" />
                 Najbližšie úlohy v projekte
               </Label>
-              <p className="text-[11px] text-muted-foreground">
-                Klikni na dátum a predvyplní sa termín — nech vidíš, kedy už máš v projekte naplánované úlohy.
+              <p className="text-[10px] text-muted-foreground leading-tight">
+                Klikni na dátum a predvyplní sa termín.
               </p>
-              <ul className="space-y-1 pt-1">
+              <ul className="space-y-0.5 pt-0.5">
                 {upcomingProjectTasks.map((t, i) => {
                   const pad = (n: number) => String(n).padStart(2, "0");
                   const iso = `${t.date.getFullYear()}-${pad(t.date.getMonth() + 1)}-${pad(t.date.getDate())}`;
@@ -523,14 +523,14 @@ export function NewTaskDialog({
                         type="button"
                         onClick={() => pickProjectDate(t.date)}
                         className={cn(
-                          "flex w-full items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs transition",
+                          "flex w-full items-center justify-between gap-2 rounded-md border px-2 py-1 text-left text-[11px] transition",
                           isPicked
                             ? "border-primary bg-primary/10 text-foreground"
                             : "border-transparent bg-card hover:border-border hover:bg-surface-muted"
                         )}
                       >
                         <span className="min-w-0 flex-1 truncate font-medium">{t.title}</span>
-                        <span className="shrink-0 rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="shrink-0 rounded bg-surface-muted px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                           {formatLocalDayHeader(t.date)}
                           {t.timeLabel && (
                             <span className="ml-1 text-[10px] normal-case tracking-normal text-foreground">
