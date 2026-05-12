@@ -465,9 +465,9 @@ export function NewTaskDialog({
             <Label htmlFor="desc" className="text-xs">Popis</Label>
             <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Voliteľné" className="text-sm" />
           </div>
-          <div className="space-y-1.5">
-            <Label>Priorita</Label>
-            <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-1">
+            <Label className="text-xs">Priorita</Label>
+            <div className="grid grid-cols-3 gap-1.5">
               {(Object.keys(PRIORITY_META) as Priority[]).map((p) => {
                 const meta = PRIORITY_META[p];
                 const active = priority === p;
@@ -477,9 +477,9 @@ export function NewTaskDialog({
                     type="button"
                     onClick={() => setPriority(p)}
                     className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-semibold transition-all",
+                      "flex items-center justify-center gap-1 rounded-lg border py-1.5 text-[11px] font-semibold transition-all",
                       active
-                        ? `${meta.soft} ${meta.text} border-transparent ring-2 ${meta.ring}`
+                        ? `${meta.soft} ${meta.text} border-transparent ring-1 ${meta.ring}`
                         : "bg-surface-muted text-muted-foreground border-transparent hover:text-foreground"
                     )}
                   >
@@ -490,10 +490,10 @@ export function NewTaskDialog({
               })}
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Projekt</Label>
+          <div className="space-y-1">
+            <Label className="text-xs">Projekt</Label>
             <Select value={projectId || "none"} onValueChange={(v) => setProjectId(v === "none" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="Bez projektu" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Bez projektu" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Bez projektu</SelectItem>
                 {projects.map((p) => (
