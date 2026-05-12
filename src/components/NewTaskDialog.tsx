@@ -453,17 +453,17 @@ export function NewTaskDialog({
         </DialogTrigger>
       )}
       <DialogContent className="max-w-full sm:max-w-xl rounded-2xl p-4 sm:p-6">
-        <DialogHeader className="pr-8">
-          <DialogTitle>Nová úloha</DialogTitle>
+        <DialogHeader className="pr-6">
+          <DialogTitle className="text-base sm:text-lg">Nová úloha</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="title">Názov</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Čo treba spraviť?" autoFocus />
+        <div className="space-y-3 text-sm">
+          <div className="space-y-1">
+            <Label htmlFor="title" className="text-xs">Názov</Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Čo treba spraviť?" autoFocus className="h-9 text-sm" />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="desc">Popis</Label>
-            <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Voliteľné" />
+          <div className="space-y-1">
+            <Label htmlFor="desc" className="text-xs">Popis</Label>
+            <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Voliteľné" className="text-sm" />
           </div>
           <div className="space-y-1.5">
             <Label>Priorita</Label>
