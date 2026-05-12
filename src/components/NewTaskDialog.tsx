@@ -556,13 +556,13 @@ export function NewTaskDialog({
           </div>
 
           {recurring ? (
-            <div className="space-y-3 rounded-xl bg-surface-muted/60 p-3">
-              <div className="grid grid-cols-3 gap-1.5">
+            <div className="space-y-2 rounded-lg bg-surface-muted/60 p-2">
+              <div className="grid grid-cols-3 gap-1">
                 <button
                   type="button"
                   onClick={() => setRecMode("daily")}
                   className={cn(
-                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    "rounded-md border px-2 py-1 text-[11px] font-semibold transition",
                     recMode === "daily"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -574,7 +574,7 @@ export function NewTaskDialog({
                   type="button"
                   onClick={() => setRecMode("weekly")}
                   className={cn(
-                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    "rounded-md border px-2 py-1 text-[11px] font-semibold transition",
                     recMode === "weekly"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -586,7 +586,7 @@ export function NewTaskDialog({
                   type="button"
                   onClick={() => setRecMode("monthly")}
                   className={cn(
-                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition",
+                    "rounded-md border px-2 py-1 text-[11px] font-semibold transition",
                     recMode === "monthly"
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -597,25 +597,22 @@ export function NewTaskDialog({
               </div>
 
               {recMode === "monthly" ? (
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="rday" className="text-xs">Deň v mesiaci</Label>
-                    <Input
-                      id="rday" type="number" min={1} max={31} value={recDay}
+                <div className="grid grid-cols-3 gap-1.5">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="rday" className="text-[10px]">Deň v mes.</Label>
+                    <Input id="rday" type="number" min={1} max={31} value={recDay} className="h-8 text-xs"
                       onChange={(e) => setRecDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))}
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="rstart" className="text-xs">Od mesiaca</Label>
-                    <Input
-                      id="rstart" type="month" value={recStartMonth}
+                  <div className="space-y-0.5">
+                    <Label htmlFor="rstart" className="text-[10px]">Od mesiaca</Label>
+                    <Input id="rstart" type="month" value={recStartMonth} className="h-8 text-xs"
                       onChange={(e) => setRecStartMonth(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="rmonths" className="text-xs">Počet mesiacov</Label>
-                    <Input
-                      id="rmonths" type="number" min={1} max={36} value={recMonths}
+                  <div className="space-y-0.5">
+                    <Label htmlFor="rmonths" className="text-[10px]">Počet mes.</Label>
+                    <Input id="rmonths" type="number" min={1} max={36} value={recMonths} className="h-8 text-xs"
                       onChange={(e) => setRecMonths(Math.max(1, Math.min(36, Number(e.target.value) || 1)))}
                     />
                   </div>
