@@ -846,12 +846,12 @@ export function NewTaskDialog({
             </div>
           )}
 
-          <div className="space-y-1">
-            <Label className="flex items-center justify-between text-xs">
+          <div className="space-y-0.5">
+            <Label className="flex items-center justify-between text-[10px]">
               <span>Komu úloha patrí</span>
               <span className="text-[10px] font-normal text-muted-foreground">1. zaškrtnutý = hlavný</span>
             </Label>
-            <div className="space-y-0.5 rounded-lg border border-border/60 p-1">
+            <div className="space-y-0 rounded-lg border border-border/60 p-1">
               {profiles.map((p) => {
                 const idx = selectedUserIds.indexOf(p.id);
                 const active = idx !== -1;
@@ -859,13 +859,13 @@ export function NewTaskDialog({
                 return (
                   <label key={p.id}
                     className={cn(
-                      "flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 transition",
+                      "flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-0.5 transition",
                       active ? "bg-primary/10" : "hover:bg-surface-muted"
                     )}
                   >
                     <Checkbox checked={active} onCheckedChange={() => toggleUser(p.id)} />
                     <UserAvatar profile={p} size="sm" />
-                    <span className="flex-1 truncate text-xs">
+                    <span className="flex-1 truncate text-[11px]">
                       {p.full_name ?? p.email}
                       {p.id === currentUserId && <span className="ml-1 text-[10px] text-muted-foreground">(ja)</span>}
                     </span>
