@@ -618,10 +618,10 @@ export function NewTaskDialog({
                   </div>
                 </div>
               ) : recMode === "weekly" ? (
-                <div className="space-y-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Dni v týždni</Label>
-                    <div className="grid grid-cols-7 gap-1">
+                <div className="space-y-1.5">
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px]">Dni v týždni</Label>
+                    <div className="grid grid-cols-7 gap-0.5">
                       {["Po","Ut","St","Št","Pi","So","Ne"].map((label, idx) => {
                         const active = recWeekdays.includes(idx);
                         return (
@@ -632,7 +632,7 @@ export function NewTaskDialog({
                               prev.includes(idx) ? prev.filter((x) => x !== idx) : [...prev, idx]
                             )}
                             className={cn(
-                              "rounded-lg border py-1.5 text-[11px] font-semibold transition",
+                              "rounded-md border py-1 text-[10px] font-semibold transition",
                               active
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border bg-surface-muted text-muted-foreground hover:text-foreground"
@@ -644,27 +644,24 @@ export function NewTaskDialog({
                       })}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="rwstart" className="text-xs">Prvý dátum</Label>
-                      <Input
-                        id="rwstart" type="date" value={recWeekStart}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="rwstart" className="text-[10px]">Prvý dátum</Label>
+                      <Input id="rwstart" type="date" value={recWeekStart} className="h-8 text-xs"
                         onChange={(e) => setRecWeekStart(e.target.value)}
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="rweeks" className="text-xs">Počet týždňov</Label>
-                      <Input
-                        id="rweeks" type="number" min={1} max={52} value={recWeeks}
+                    <div className="space-y-0.5">
+                      <Label htmlFor="rweeks" className="text-[10px]">Počet týž.</Label>
+                      <Input id="rweeks" type="number" min={1} max={52} value={recWeeks} className="h-8 text-xs"
                         onChange={(e) => setRecWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Začiatok (voliteľné)</Label>
-                      <Select
-                        value={recWeekTime || "none"}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Začiatok</Label>
+                      <Select value={recWeekTime || "none"}
                         onValueChange={(v) => {
                           const nv = v === "none" ? "" : v;
                           setRecWeekTime(nv);
@@ -672,7 +669,7 @@ export function NewTaskDialog({
                           if (!nv) setRecWeekEnd("");
                         }}
                       >
-                        <SelectTrigger><SelectValue placeholder="Celý deň" /></SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Celý deň" /></SelectTrigger>
                         <SelectContent className="max-h-64">
                           <SelectItem value="none">— celý deň —</SelectItem>
                           {HALF_HOUR_SLOTS.map((s) => (
@@ -681,13 +678,12 @@ export function NewTaskDialog({
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Koniec</Label>
-                      <Select
-                        value={recWeekEnd || "none"}
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] text-muted-foreground">Koniec</Label>
+                      <Select value={recWeekEnd || "none"}
                         onValueChange={(v) => setRecWeekEnd(v === "none" ? "" : v)}
                       >
-                        <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
                         <SelectContent className="max-h-64">
                           <SelectItem value="none">— bez konca —</SelectItem>
                           {HALF_HOUR_SLOTS.filter((s) => !recWeekTime || s > recWeekTime).map((s) => (
