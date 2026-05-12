@@ -547,7 +547,7 @@ export function NewTaskDialog({
           )}
 
           {/* Prepínač opakovania */}
-          <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
+          <div className="flex items-center justify-between rounded-lg border border-border/60 px-2.5 py-2">
             <div className="min-w-0">
               <Label htmlFor="rec-switch" className="text-sm font-semibold">Opakovať</Label>
               <p className="text-[11px] text-muted-foreground">Vytvorí sériu úloh. Popis každej môžeš neskôr meniť samostatne.</p>
