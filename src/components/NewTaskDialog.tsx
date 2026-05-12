@@ -456,12 +456,12 @@ export function NewTaskDialog({
         <DialogHeader className="pr-6">
           <DialogTitle className="text-base sm:text-lg">Nová úloha</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2 text-sm">
+        <div className="space-y-1.5 text-sm">
           <div className="space-y-0.5">
             <Label htmlFor="title" className="text-[10px]">Názov</Label>
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Čo treba spraviť?" autoFocus className="h-8 text-sm" />
           </div>
-          <div className="space-y-0.5">
+          <div className="hidden sm:block space-y-0.5">
             <Label htmlFor="desc" className="text-[10px]">Popis</Label>
             <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={1} placeholder="Voliteľné" className="text-sm min-h-[2rem]" />
           </div>
