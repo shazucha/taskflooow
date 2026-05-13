@@ -211,7 +211,7 @@ export function NewTaskDialog({
 
   // Najbližšie nedokončené úlohy v aktuálne vybranom projekte (prehľad pre používateľa).
   const upcomingProjectTasks = useMemo(() => {
-    if (!projectId) return [] as { date: Date; title: string; iso: string; timeLabel?: string }[];
+    if (!projectId) return [] as { date: Date; title: string; iso: string; timeLabel?: string; startTime?: string; endTime?: string }[];
     const todayStart = startOfLocalDay(new Date());
     return projectTasksAll
       .filter((t) => t.status !== "done" && !!t.due_date)
@@ -222,26 +222,31 @@ export function NewTaskDialog({
         // Čas zobrazíme len ak nie je explicitne polnoc UTC (značí dátum bez času).
         const isMidnightUtc = t.due_date!.match(/T00:00:00(\.\d+)?Z?$/);
         let timeLabel: string | undefined;
+        let startTime: string | undefined;
+        let endTime: string | undefined;
         if (!isMidnightUtc) {
-          const startTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          startTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
           if (t.due_end) {
             const end = new Date(t.due_end);
-            const endTime = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
-            timeLabel = `${startTime}–${endTime}`;
+            const endTimeStr = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+            timeLabel = `${startTime}–${endTimeStr}`;
+            endTime = endTimeStr;
           } else {
             timeLabel = startTime;
           }
         }
-        return { date: d, title: t.title, iso, timeLabel };
+        return { date: d, title: t.title, iso, timeLabel, startTime, endTime };
       })
       .filter((t) => t.date.getTime() >= todayStart.getTime())
       .sort((a, b) => a.date.getTime() - b.date.getTime())
       .slice(0, 6);
   }, [projectTasksAll, projectId]);
 
-  const pickProjectDate = (d: Date) => {
+  const pickProjectTask = (date: Date, startTime?: string, endTime?: string) => {
     const pad = (n: number) => String(n).padStart(2, "0");
-    setDueDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+    setDueDate(`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`);
+    setDueTime(startTime ?? "");
+    setEndTime(endTime ?? "");
   };
 
   const submit = async () => {
