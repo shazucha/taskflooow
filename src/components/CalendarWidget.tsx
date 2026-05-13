@@ -344,7 +344,8 @@ export function CalendarWidget({
           }}
           onCreateAt={(d) => {
             if (isReadOnly) return;
-            openCreate({ date: fmtDate(d) });
+            const { time, end } = nowHalfHourSlot();
+            openCreate({ date: fmtDate(d), time, end });
           }}
           quickCreateOnTap={useInlineComposer}
         />
@@ -367,7 +368,8 @@ export function CalendarWidget({
           }}
           onCreateAt={(d) => {
             if (isReadOnly) return;
-            openCreate({ date: fmtDate(d) });
+            const { time, end } = nowHalfHourSlot();
+            openCreate({ date: fmtDate(d), time, end });
           }}
           quickCreateOnTap={useInlineComposer}
         />
