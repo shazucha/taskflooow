@@ -523,7 +523,7 @@ export function NewTaskDialog({
                     <li key={`${t.iso}-${i}`}>
                       <button
                         type="button"
-                        onClick={() => pickProjectDate(t.date)}
+                        onClick={() => pickProjectTask(t.date, t.startTime, t.endTime)}
                         className={cn(
                           "flex w-full items-center justify-between gap-2 rounded-md border px-2 py-0.5 text-left text-[11px] transition",
                           isPicked
