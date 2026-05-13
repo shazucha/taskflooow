@@ -50,6 +50,18 @@ function fmtTime(h: number, m: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/** Najbližší pol-hodinový slot od aktuálneho času (zaokrúhlené nadol). */
+function nowHalfHourSlot(): { time: string; end: string } {
+  const n = new Date();
+  const h = n.getHours();
+  const m = n.getMinutes() < 30 ? 0 : 30;
+  const startSlot = h * 2 + (m === 30 ? 1 : 0);
+  const endSlot = Math.min(startSlot + 1, 47);
+  const eh = Math.floor(endSlot / 2);
+  const em = endSlot % 2 === 0 ? 0 : 30;
+  return { time: fmtTime(h, m), end: fmtTime(eh, em) };
+}
+
 type Prefill = { date: string; time?: string; end?: string } | null;
 
 interface CalendarWidgetProps {
