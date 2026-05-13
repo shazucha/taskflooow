@@ -656,6 +656,21 @@ function DayView({
   const gridRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ startSlot: number; currSlot: number } | null>(null);
 
+  // Po otvorení Day view scrollni kontajner na aktuálny čas (nie na 00:00).
+  const scrollWrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const wrap = scrollWrapRef.current;
+    if (!wrap) return;
+    const today = new Date();
+    const isToday = sameDay(today, date);
+    const targetSlot = isToday
+      ? today.getHours() * 2 + (today.getMinutes() >= 30 ? 1 : 0)
+      : 8 * 2; // 08:00 pre iné dni
+    // Posuň o ~2 sloty vyššie pre kontext nad aktuálnym časom.
+    const top = Math.max(0, (targetSlot - 2) * SLOT_PX);
+    wrap.scrollTo({ top, behavior: "auto" });
+  }, [date]);
+
   const slotFromEvent = (clientY: number): number => {
     const rect = gridRef.current?.getBoundingClientRect();
     if (!rect) return 0;
