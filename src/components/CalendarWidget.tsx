@@ -730,7 +730,7 @@ function DayView({
         </div>
       )}
 
-      <div className="max-h-[420px] overflow-y-auto rounded-lg border border-border/60">
+      <div ref={scrollWrapRef} className="max-h-[420px] overflow-y-auto rounded-lg border border-border/60">
         <div
           ref={gridRef}
           className="relative select-none"
