@@ -786,17 +786,49 @@ function DayView({
           {sameDay(now, date) && (() => {
             const minutesFromMidnight = now.getHours() * 60 + now.getMinutes();
             const top = (minutesFromMidnight / 30) * SLOT_PX;
+            const dragging = !!drag;
+            // Vzdialenosť aktuálneho konca dragu od „teraz“ v minútach (pre tooltip).
+            let deltaLabel: string | null = null;
+            if (dragging) {
+              const dragMin = drag!.currSlot * 30;
+              const diff = dragMin - minutesFromMidnight;
+              const sign = diff >= 0 ? "+" : "−";
+              const abs = Math.abs(diff);
+              const hh = Math.floor(abs / 60);
+              const mm = abs % 60;
+              deltaLabel = hh > 0 ? `${sign}${hh}h ${mm}m` : `${sign}${mm}m`;
+            }
             return (
               <div
-                className="pointer-events-none absolute left-0 right-0 z-10 flex items-center"
+                className={cn(
+                  "pointer-events-none absolute left-0 right-0 flex items-center transition-all",
+                  dragging ? "z-30" : "z-10"
+                )}
                 style={{ top: top - 1 }}
               >
-                <span className="ml-1 rounded bg-priority-high px-1 py-0 text-[9px] font-bold uppercase tracking-wide text-white shadow">
-                  Teraz
+                <span
+                  className={cn(
+                    "ml-1 rounded px-1 py-0 text-[9px] font-bold uppercase tracking-wide text-white shadow transition-all",
+                    dragging
+                      ? "bg-priority-high px-1.5 py-0.5 text-[10px] shadow-lg ring-2 ring-priority-high/40 animate-pulse"
+                      : "bg-priority-high"
+                  )}
+                >
+                  Teraz{dragging && deltaLabel ? ` · ${deltaLabel}` : ""}
                 </span>
                 <div className="relative flex-1">
-                  <div className="h-[2px] w-full bg-priority-high" />
-                  <span className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-priority-high ring-2 ring-background" />
+                  <div
+                    className={cn(
+                      "w-full bg-priority-high transition-all",
+                      dragging ? "h-[3px] shadow-[0_0_10px_hsl(var(--priority-high)/0.8)]" : "h-[2px]"
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "absolute -left-1 top-1/2 -translate-y-1/2 rounded-full bg-priority-high ring-2 ring-background transition-all",
+                      dragging ? "h-3 w-3 animate-pulse" : "h-2 w-2"
+                    )}
+                  />
                 </div>
               </div>
             );
