@@ -246,7 +246,16 @@ export function NewTaskDialog({
     const pad = (n: number) => String(n).padStart(2, "0");
     setDueDate(`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`);
     setDueTime(startTime ?? "");
-    setEndTime(endTime ?? "");
+    // due_end nebrať fixne z uloženej úlohy — auto-počítaj najbližší pol-hodinový slot po štarte.
+    if (startTime) {
+      const [h, m] = startTime.split(":").map(Number);
+      const totalMin = h * 60 + m + 30;
+      const eh = Math.floor((totalMin / 60) % 24);
+      const em = totalMin % 60;
+      setEndTime(`${pad(eh)}:${pad(em)}`);
+    } else {
+      setEndTime("");
+    }
   };
 
   const submit = async () => {

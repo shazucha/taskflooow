@@ -50,6 +50,18 @@ function fmtTime(h: number, m: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/** Najbližší pol-hodinový slot od aktuálneho času (zaokrúhlené nadol). */
+function nowHalfHourSlot(): { time: string; end: string } {
+  const n = new Date();
+  const h = n.getHours();
+  const m = n.getMinutes() < 30 ? 0 : 30;
+  const startSlot = h * 2 + (m === 30 ? 1 : 0);
+  const endSlot = Math.min(startSlot + 1, 47);
+  const eh = Math.floor(endSlot / 2);
+  const em = endSlot % 2 === 0 ? 0 : 30;
+  return { time: fmtTime(h, m), end: fmtTime(eh, em) };
+}
+
 type Prefill = { date: string; time?: string; end?: string } | null;
 
 interface CalendarWidgetProps {
@@ -332,7 +344,8 @@ export function CalendarWidget({
           }}
           onCreateAt={(d) => {
             if (isReadOnly) return;
-            openCreate({ date: fmtDate(d) });
+            const { time, end } = nowHalfHourSlot();
+            openCreate({ date: fmtDate(d), time, end });
           }}
           quickCreateOnTap={useInlineComposer}
         />
@@ -355,7 +368,8 @@ export function CalendarWidget({
           }}
           onCreateAt={(d) => {
             if (isReadOnly) return;
-            openCreate({ date: fmtDate(d) });
+            const { time, end } = nowHalfHourSlot();
+            openCreate({ date: fmtDate(d), time, end });
           }}
           quickCreateOnTap={useInlineComposer}
         />
@@ -642,6 +656,21 @@ function DayView({
   const gridRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ startSlot: number; currSlot: number } | null>(null);
 
+  // Po otvorení Day view scrollni kontajner na aktuálny čas (nie na 00:00).
+  const scrollWrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const wrap = scrollWrapRef.current;
+    if (!wrap) return;
+    const today = new Date();
+    const isToday = sameDay(today, date);
+    const targetSlot = isToday
+      ? today.getHours() * 2 + (today.getMinutes() >= 30 ? 1 : 0)
+      : 8 * 2; // 08:00 pre iné dni
+    // Posuň o ~2 sloty vyššie pre kontext nad aktuálnym časom.
+    const top = Math.max(0, (targetSlot - 2) * SLOT_PX);
+    wrap.scrollTo({ top, behavior: "auto" });
+  }, [date]);
+
   const slotFromEvent = (clientY: number): number => {
     const rect = gridRef.current?.getBoundingClientRect();
     if (!rect) return 0;
@@ -701,7 +730,7 @@ function DayView({
         </div>
       )}
 
-      <div className="max-h-[420px] overflow-y-auto rounded-lg border border-border/60">
+      <div ref={scrollWrapRef} className="max-h-[420px] overflow-y-auto rounded-lg border border-border/60">
         <div
           ref={gridRef}
           className="relative select-none"
