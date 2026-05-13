@@ -782,6 +782,26 @@ function DayView({
             );
           })}
 
+          {/* Značka „Teraz“ — len pre dnešný deň. */}
+          {sameDay(now, date) && (() => {
+            const minutesFromMidnight = now.getHours() * 60 + now.getMinutes();
+            const top = (minutesFromMidnight / 30) * SLOT_PX;
+            return (
+              <div
+                className="pointer-events-none absolute left-0 right-0 z-10 flex items-center"
+                style={{ top: top - 1 }}
+              >
+                <span className="ml-1 rounded bg-priority-high px-1 py-0 text-[9px] font-bold uppercase tracking-wide text-white shadow">
+                  Teraz
+                </span>
+                <div className="relative flex-1">
+                  <div className="h-[2px] w-full bg-priority-high" />
+                  <span className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-priority-high ring-2 ring-background" />
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Drag preview */}
           {drag && (() => {
             const a = Math.min(drag.startSlot, drag.currSlot);
