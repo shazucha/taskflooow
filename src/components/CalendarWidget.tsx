@@ -658,6 +658,12 @@ function DayView({
 
   // Po otvorení Day view scrollni kontajner na aktuálny čas (nie na 00:00).
   const scrollWrapRef = useRef<HTMLDivElement>(null);
+  // Aktuálny čas (auto-refresh každú minútu) — pre značku „Teraz“ v Day view.
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   useEffect(() => {
     const wrap = scrollWrapRef.current;
     if (!wrap) return;
