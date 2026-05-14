@@ -64,7 +64,20 @@ export default function ProjectDetail() {
       if (t.due_date) withDate.push(t);
       else noDate.push(t);
     }
-    withDate.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+    const hasTime = (t: Task) => {
+      const d = new Date(t.due_date!);
+      return d.getHours() !== 0 || d.getMinutes() !== 0;
+    };
+    withDate.sort((a, b) => {
+      const da = new Date(a.due_date!);
+      const db = new Date(b.due_date!);
+      const dayDiff = startOfLocalDay(da).getTime() - startOfLocalDay(db).getTime();
+      if (dayDiff !== 0) return dayDiff;
+      const at = hasTime(a);
+      const bt = hasTime(b);
+      if (at !== bt) return at ? -1 : 1;
+      return da.getTime() - db.getTime();
+    });
     const map = new Map<string, { date: Date; tasks: Task[] }>();
     for (const t of withDate) {
       const d = new Date(t.due_date!);
