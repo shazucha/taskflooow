@@ -20,6 +20,10 @@ import { useCurrentUserId, useIsAppAdmin, useProjects, useProjectTasks } from "@
 import { formatLocalDayHeader, isSameLocalDay, localDayKey, startOfLocalDay } from "@/lib/dayLabels";
 import { cn } from "@/lib/utils";
 
+function isValidDate(d: Date): boolean {
+  return !isNaN(d.getTime());
+}
+
 export default function ProjectDetail() {
   const { id } = useParams();
   const { data: projects = [] } = useProjects();
