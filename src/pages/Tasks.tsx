@@ -42,8 +42,11 @@ export default function Tasks() {
     const withDate: Task[] = [];
     const noDate: Task[] = [];
     for (const t of list) {
-      if (t.due_date) withDate.push(t);
-      else noDate.push(t);
+      if (t.due_date) {
+        const d = new Date(t.due_date);
+        if (isValidDate(d)) withDate.push(t);
+        else noDate.push(t);
+      } else noDate.push(t);
     }
     const hasTime = (t: Task) => {
       const d = new Date(t.due_date!);
@@ -52,10 +55,8 @@ export default function Tasks() {
     withDate.sort((a, b) => {
       const da = new Date(a.due_date!);
       const db = new Date(b.due_date!);
-      // Najprv podľa dňa
       const dayDiff = startOfLocalDay(da).getTime() - startOfLocalDay(db).getTime();
       if (dayDiff !== 0) return dayDiff;
-      // V rámci dňa: timed úlohy chronologicky, all-day na koniec
       const at = hasTime(a);
       const bt = hasTime(b);
       if (at !== bt) return at ? -1 : 1;
