@@ -1000,8 +1000,15 @@ function SelectedDayList({
     }
   };
   const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
-  const myTasks = tasks.filter(isMine);
-  const otherTasks = tasks.filter((t) => !isMine(t));
+  const sortChrono = (a: Task, b: Task) => {
+    const at = hasTime(a);
+    const bt = hasTime(b);
+    if (at !== bt) return at ? -1 : 1;
+    return new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime();
+  };
+  const sortedTasks = [...tasks].sort(sortChrono);
+  const myTasks = sortedTasks.filter(isMine);
+  const otherTasks = sortedTasks.filter((t) => !isMine(t));
   const splitView = mode === "team";
   return (
     <div className="mt-3 border-t border-border/60 pt-3">
