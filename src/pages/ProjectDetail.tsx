@@ -65,8 +65,11 @@ export default function ProjectDetail() {
     const withDate: Task[] = [];
     const noDate: Task[] = [];
     for (const t of list) {
-      if (t.due_date) withDate.push(t);
-      else noDate.push(t);
+      if (t.due_date) {
+        const d = new Date(t.due_date);
+        if (isValidDate(d)) withDate.push(t);
+        else noDate.push(t);
+      } else noDate.push(t);
     }
     const hasTime = (t: Task) => {
       const d = new Date(t.due_date!);
