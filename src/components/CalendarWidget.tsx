@@ -36,10 +36,14 @@ function startOfWeek(d: Date) {
 function dayKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
+function isValidDate(d: Date): boolean {
+  return !isNaN(d.getTime());
+}
 function hasTime(t: Task) {
   // due_date with non-zero time component
   if (!t.due_date) return false;
   const d = new Date(t.due_date);
+  if (!isValidDate(d)) return false;
   return d.getHours() !== 0 || d.getMinutes() !== 0;
 }
 
