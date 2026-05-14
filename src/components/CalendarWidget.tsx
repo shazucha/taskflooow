@@ -1065,7 +1065,7 @@ function SelectedDayList({
         </div>
       ) : (
         <ul className="mt-2 space-y-1.5">
-          {tasks.map((t) => (
+          {sortedTasks.map((t) => (
             <TaskRow
               key={t.id}
               task={t}
