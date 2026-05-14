@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, CalendarDays, ChevronDown, NotebookPen } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarDays, CalendarOff, ChevronDown, NotebookPen } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
@@ -228,9 +228,10 @@ export default function ProjectDetail() {
                             );
                           })}
                           {noDate.length > 0 && (
-                            <Collapsible defaultOpen={false} className="rounded-xl border border-border/60 bg-card/60">
+                            <Collapsible defaultOpen={false} className="rounded-xl border border-dashed border-muted-foreground/30 bg-surface-muted/40">
                               <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-surface-muted">
                                 <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  <CalendarOff className="h-3.5 w-3.5" strokeWidth={2.5} />
                                   Bez dátumu
                                   <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal">
                                     {noDate.length}
