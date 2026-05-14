@@ -12,6 +12,10 @@ import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
 import { useCurrentUserId, useTasks } from "@/lib/queries";
 import { formatLocalDayHeader, isSameLocalDay, localDayKey, localTodayTomorrow, startOfLocalDay } from "@/lib/dayLabels";
 
+function isValidDate(d: Date): boolean {
+  return !isNaN(d.getTime());
+}
+
 type Filter = "all" | Priority | "mine";
 
 export default function Tasks() {
