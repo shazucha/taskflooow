@@ -1006,10 +1006,17 @@ function SelectedDayList({
   };
   const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
   const sortChrono = (a: Task, b: Task) => {
+    const da = a.due_date ? new Date(a.due_date) : null;
+    const db = b.due_date ? new Date(b.due_date) : null;
+    const va = da && isValidDate(da);
+    const vb = db && isValidDate(db);
+    if (!va && !vb) return 0;
+    if (!va) return 1;
+    if (!vb) return -1;
     const at = hasTime(a);
     const bt = hasTime(b);
     if (at !== bt) return at ? -1 : 1;
-    return new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime();
+    return da.getTime() - db.getTime();
   };
   const sortedTasks = [...tasks].sort(sortChrono);
   const myTasks = sortedTasks.filter(isMine);
