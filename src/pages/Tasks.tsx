@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown } from "lucide-react";
+import { AlertTriangle, ChevronDown, CalendarOff } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";

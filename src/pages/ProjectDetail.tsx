@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, CalendarDays, ChevronDown, NotebookPen } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarDays, CalendarOff, ChevronDown, NotebookPen } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
