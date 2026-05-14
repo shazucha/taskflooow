@@ -36,10 +36,14 @@ function startOfWeek(d: Date) {
 function dayKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
+function isValidDate(d: Date): boolean {
+  return !isNaN(d.getTime());
+}
 function hasTime(t: Task) {
   // due_date with non-zero time component
   if (!t.due_date) return false;
   const d = new Date(t.due_date);
+  if (!isValidDate(d)) return false;
   return d.getHours() !== 0 || d.getMinutes() !== 0;
 }
 
@@ -151,6 +155,7 @@ export function CalendarWidget({
     const map = new Map<string, Task[]>();
     for (const t of myTasks) {
       const d = new Date(t.due_date!);
+      if (!isValidDate(d)) continue;
       const key = dayKey(d);
       const arr = map.get(key) ?? [];
       arr.push(t);
@@ -1001,10 +1006,17 @@ function SelectedDayList({
   };
   const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
   const sortChrono = (a: Task, b: Task) => {
+    const da = a.due_date ? new Date(a.due_date) : null;
+    const db = b.due_date ? new Date(b.due_date) : null;
+    const va = da && isValidDate(da);
+    const vb = db && isValidDate(db);
+    if (!va && !vb) return 0;
+    if (!va) return 1;
+    if (!vb) return -1;
     const at = hasTime(a);
     const bt = hasTime(b);
     if (at !== bt) return at ? -1 : 1;
-    return new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime();
+    return da.getTime() - db.getTime();
   };
   const sortedTasks = [...tasks].sort(sortChrono);
   const myTasks = sortedTasks.filter(isMine);
