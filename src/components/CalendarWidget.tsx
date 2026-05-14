@@ -155,6 +155,7 @@ export function CalendarWidget({
     const map = new Map<string, Task[]>();
     for (const t of myTasks) {
       const d = new Date(t.due_date!);
+      if (!isValidDate(d)) continue;
       const key = dayKey(d);
       const arr = map.get(key) ?? [];
       arr.push(t);
