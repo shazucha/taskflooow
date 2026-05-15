@@ -277,18 +277,7 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
   const submitEdit = async () => {
     if (!editingId || !editTitle.trim()) return;
     try {
-      // Ak ešte nie je snapshot, najprv ho zmaterializuj — id sa prepíše na nové
-      if (!hasSnapshot) {
-        // Materializácia spôsobí, že editingId (z template) prestane platiť.
-        // Najprv si zapamätáme source title, potom po materializácii
-        // nájdeme zodpovedajúci snapshot riadok podľa source_work_id.
-        await updateSnap.mutateAsync({ id: editingId, patch: { title: editTitle.trim(), note: editNote.trim() || null } });
-        // Pozn: updateSnap interne najprv zavolá ensureMonthlyWorksSnapshot,
-        // ale id je stále template id → update nenájde riadok. Takže tu
-        // robíme manuálnu cestu.
-      } else {
-        await updateSnap.mutateAsync({ id: editingId, patch: { title: editTitle.trim(), note: editNote.trim() || null } });
-      }
+      await updateSnap.mutateAsync({ id: editingId, patch: { title: editTitle.trim(), note: editNote.trim() || null } });
       setEditingId(null);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Nepodarilo sa uložiť");
