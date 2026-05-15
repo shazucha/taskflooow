@@ -52,6 +52,18 @@ import {
   updateServiceCatalogItem,
   updateTask,
 } from "./api";
+import {
+  fetchProjectMonthlyWorks,
+  fetchMonthlyWorkCompletions,
+  ensureMonthlyWorksSnapshot,
+  createMonthlyWork,
+  updateMonthlyWork,
+  deleteMonthlyWork,
+  reorderMonthlyWorks,
+  setMonthlyWorkDone,
+  resetMonthlySnapshot,
+  saveSnapshotAsTemplate,
+} from "./api";
 import type { Profile, Project, Task, TaskStatus } from "./types";
 import { useSession } from "./useSession";
 import { syncTaskToGoogle } from "./googleCalendar";
