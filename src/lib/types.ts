@@ -149,6 +149,7 @@ export interface ChatMessage {
   body: string | null;
   image_url: string | null;
   created_at: string;
+  month_key?: string | null;
 }
 
 export interface DirectMessage {
