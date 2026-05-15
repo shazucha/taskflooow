@@ -28,6 +28,7 @@ import {
   useCreateMonthlyWork,
   useCurrentUserId,
   useDeleteMonthlyWork,
+  useEnsureMonthlySnapshot,
   useIsAppAdmin,
   useMonthlyWorkCompletions,
   useProjectMonthlyWorks,
@@ -204,6 +205,7 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
   const toggleSnap = useToggleMonthlyWorkDone(projectId, monthKey);
   const resetSnap = useResetMonthlySnapshot(projectId, monthKey);
   const saveTpl = useSaveSnapshotAsTemplate(projectId, monthKey);
+  const ensureSnap = useEnsureMonthlySnapshot(projectId, monthKey);
 
   // Mutácia — toggle nad šablónou (keď snapshot ešte nie je)
   const toggleTpl = useToggleRecurringWorkDone(projectId);
@@ -496,9 +498,20 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
       )}
 
       {!hasSnapshot && rows.length > 0 && (
-        <p className="mt-2 text-[10px] text-muted-foreground">
-          Tip: kliknutím na <Pencil className="inline h-3 w-3 align-text-bottom" /> alebo pridaním položky sa mesiac oddelí od šablóny.
-        </p>
+        <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-surface-muted/40 px-2 py-1.5">
+          <span className="text-[10px] text-muted-foreground">
+            Tento mesiac kopíruje šablónu. Pre úpravy ho oddeľ.
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 gap-1 px-2 text-[11px]"
+            disabled={ensureSnap.isPending}
+            onClick={() => ensureSnap.mutate()}
+          >
+            <Pencil className="h-3 w-3" /> Upraviť tento mesiac
+          </Button>
+        </div>
       )}
 
       {adding && (
