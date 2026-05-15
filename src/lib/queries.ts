@@ -52,6 +52,18 @@ import {
   updateServiceCatalogItem,
   updateTask,
 } from "./api";
+import {
+  fetchProjectMonthlyWorks,
+  fetchMonthlyWorkCompletions,
+  ensureMonthlyWorksSnapshot,
+  createMonthlyWork,
+  updateMonthlyWork,
+  deleteMonthlyWork,
+  reorderMonthlyWorks,
+  setMonthlyWorkDone,
+  resetMonthlySnapshot,
+  saveSnapshotAsTemplate,
+} from "./api";
 import type { Profile, Project, Task, TaskStatus } from "./types";
 import { useSession } from "./useSession";
 import { syncTaskToGoogle } from "./googleCalendar";
@@ -318,6 +330,132 @@ export function useReorderRecurringWorks(projectId: string) {
       if (ctx?.prev) qc.setQueryData(["project_recurring_works", projectId], ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["project_recurring_works", projectId] }),
+  });
+}
+
+// ---- Monthly works (snapshot na konkrétny mesiac)
+export function useProjectMonthlyWorks(projectId: string | undefined, monthKey: string) {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+  useEffect(() => {
+    if (!isReady || !user || !projectId) return;
+    const channel = supabase
+      .channel(`monthly-works-${projectId}-${monthKey}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_monthly_works", filter: `project_id=eq.${projectId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["project_monthly_works", projectId, monthKey] });
+          qc.invalidateQueries({ queryKey: ["monthly_work_completions", projectId, monthKey] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_monthly_work_completions" },
+        () => qc.invalidateQueries({ queryKey: ["monthly_work_completions", projectId, monthKey] }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc, isReady, user, projectId, monthKey]);
+  return useQuery({
+    queryKey: ["project_monthly_works", projectId, monthKey],
+    queryFn: () => fetchProjectMonthlyWorks(projectId!, monthKey),
+    enabled: !!projectId && isReady && !!user,
+  });
+}
+
+export function useMonthlyWorkCompletions(projectId: string | undefined, monthKey: string) {
+  const { isReady, user } = useAuthReady();
+  return useQuery({
+    queryKey: ["monthly_work_completions", projectId, monthKey],
+    queryFn: () => fetchMonthlyWorkCompletions(projectId!, monthKey),
+    enabled: !!projectId && isReady && !!user,
+  });
+}
+
+function invalidateMonthly(qc: ReturnType<typeof useQueryClient>, projectId: string, monthKey: string) {
+  qc.invalidateQueries({ queryKey: ["project_monthly_works", projectId, monthKey] });
+  qc.invalidateQueries({ queryKey: ["monthly_work_completions", projectId, monthKey] });
+}
+
+export function useEnsureMonthlySnapshot(projectId: string, monthKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => ensureMonthlyWorksSnapshot(projectId, monthKey),
+    onSuccess: () => invalidateMonthly(qc, projectId, monthKey),
+  });
+}
+
+export function useCreateMonthlyWork(projectId: string, monthKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { title: string; note: string | null; position: number }) => {
+      await ensureMonthlyWorksSnapshot(projectId, monthKey);
+      return createMonthlyWork({ project_id: projectId, month_key: monthKey, ...input });
+    },
+    onSuccess: () => invalidateMonthly(qc, projectId, monthKey),
+  });
+}
+
+export function useUpdateMonthlyWork(projectId: string, monthKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: { id: string; patch: Partial<{ title: string; note: string | null }> }) => {
+      await ensureMonthlyWorksSnapshot(projectId, monthKey);
+      await updateMonthlyWork(vars.id, vars.patch);
+    },
+    onSuccess: () => invalidateMonthly(qc, projectId, monthKey),
+  });
+}
+
+export function useDeleteMonthlyWork(projectId: string, monthKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await ensureMonthlyWorksSnapshot(projectId, monthKey);
+      await deleteMonthlyWork(id);
+    },
+    onSuccess: () => invalidateMonthly(qc, projectId, monthKey),
+  });
+}
+
+export function useReorderMonthlyWorks(projectId: string, monthKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (items: { id: string; position: number }[]) => {
+      await ensureMonthlyWorksSnapshot(projectId, monthKey);
+      await reorderMonthlyWorks(items);
+    },
+    onSuccess: () => invalidateMonthly(qc, projectId, monthKey),
+  });
+}
+
+export function useToggleMonthlyWorkDone(projectId: string, monthKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: { monthly_work_id: string; user_id: string; done: boolean }) => {
+      await setMonthlyWorkDone(vars);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["monthly_work_completions", projectId, monthKey] }),
+  });
+}
+
+export function useResetMonthlySnapshot(projectId: string, monthKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => resetMonthlySnapshot(projectId, monthKey),
+    onSuccess: () => invalidateMonthly(qc, projectId, monthKey),
+  });
+}
+
+export function useSaveSnapshotAsTemplate(projectId: string, monthKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => saveSnapshotAsTemplate(projectId, monthKey),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project_recurring_works", projectId] });
+      invalidateMonthly(qc, projectId, monthKey);
+    },
   });
 }
 
