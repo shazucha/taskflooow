@@ -23,20 +23,22 @@ interface Props {
   className?: string;
   /** "chat" (default) shows time only; "notes" shows full date + time and uses note-style copy. */
   variant?: "chat" | "notes";
+  /** Ak je nastavené, správy sa filtrujú podľa mesiaca a nové sa ukladajú s týmto kľúčom. */
+  monthKey?: string | null;
 }
 
 const MAX_IMG_MB = 5;
 
-export function Chat({ scope, projectId = null, title, className, variant = "chat" }: Props) {
+export function Chat({ scope, projectId = null, title, className, variant = "chat", monthKey = null }: Props) {
   const isNotes = variant === "notes";
   const qc = useQueryClient();
   const currentUserId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
-  const queryKey = ["chat", scope, projectId ?? "team"];
+  const queryKey = ["chat", scope, projectId ?? "team", monthKey ?? "all"];
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey,
-    queryFn: () => fetchChatMessages(scope, projectId),
+    queryFn: () => fetchChatMessages(scope, projectId, monthKey),
     enabled: scope === "team" || !!projectId,
   });
 
@@ -219,6 +221,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
         author_id: currentUserId,
         body: body || null,
         image_url: imageUrl,
+        month_key: scope === "project" ? monthKey : null,
       });
       setText("");
       setPendingFile(null);

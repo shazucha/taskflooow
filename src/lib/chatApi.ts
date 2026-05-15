@@ -1,14 +1,19 @@
 import { supabase } from "./supabase";
 import type { ChatMessage, ChatScope } from "./types";
 
-export async function fetchChatMessages(scope: ChatScope, projectId?: string | null): Promise<ChatMessage[]> {
+export async function fetchChatMessages(
+  scope: ChatScope,
+  projectId?: string | null,
+  monthKey?: string | null,
+): Promise<ChatMessage[]> {
   let q = supabase
     .from("chat_messages")
-    .select("id, scope, project_id, author_id, body, image_url, created_at")
+    .select("id, scope, project_id, author_id, body, image_url, created_at, month_key")
     .eq("scope", scope)
     .order("created_at", { ascending: true })
     .limit(200);
   if (scope === "project" && projectId) q = q.eq("project_id", projectId);
+  if (scope === "project" && monthKey) q = q.eq("month_key", monthKey);
   const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as ChatMessage[];
@@ -20,6 +25,7 @@ export async function sendChatMessage(input: {
   author_id: string;
   body: string | null;
   image_url: string | null;
+  month_key?: string | null;
 }) {
   const { data, error } = await supabase
     .from("chat_messages")

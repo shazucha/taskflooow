@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
-import { Chat } from "@/components/Chat";
+import { MonthlyProjectNotes } from "@/components/MonthlyProjectNotes";
 import { ProjectMetaCard } from "@/components/ProjectMetaCard";
 import { MonthlyDeliverablesCard } from "@/components/MonthlyDeliverablesCard";
 import { MonthlyBonusesCard } from "@/components/MonthlyBonusesCard";
@@ -126,6 +126,14 @@ export default function ProjectDetail() {
         <div className="space-y-4 md:col-span-2">
           <ProjectMaterialsCard projectId={project.id} />
           <MonthlyDeliverablesCard projectId={project.id} />
+
+          <section>
+            <h2 className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <NotebookPen className="h-4 w-4" /> Mesačná evidencia · poznámky
+            </h2>
+            <MonthlyProjectNotes projectId={project.id} />
+          </section>
+
           <MonthlyBonusesCard projectId={project.id} />
 
           <section>
@@ -261,12 +269,6 @@ export default function ProjectDetail() {
             </p>
           )}
 
-          <section className="pt-4">
-            <h2 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold">
-              <NotebookPen className="h-3.5 w-3.5" /> Poznámky k projektu
-            </h2>
-            <Chat scope="project" projectId={project.id} variant="notes" />
-          </section>
         </div>
 
         <aside className="mt-4 space-y-4 md:mt-0">
