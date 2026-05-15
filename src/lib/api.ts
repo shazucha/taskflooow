@@ -397,6 +397,213 @@ export async function unmarkRecurringWorkDone(work_id: string, month_key: string
   if (error) throw error;
 }
 
+// ---- Monthly works (snapshot na konkrétny mesiac)
+const MONTHLY_WORK_COLS =
+  "id, project_id, month_key, title, note, position, source_work_id, created_at";
+
+export async function fetchProjectMonthlyWorks(
+  projectId: string,
+  monthKey: string,
+): Promise<import("./types").ProjectMonthlyWork[]> {
+  const { data, error } = await supabase
+    .from("project_monthly_works")
+    .select(MONTHLY_WORK_COLS)
+    .eq("project_id", projectId)
+    .eq("month_key", monthKey)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as import("./types").ProjectMonthlyWork[];
+}
+
+export async function fetchMonthlyWorkCompletions(
+  projectId: string,
+  monthKey: string,
+): Promise<import("./types").ProjectMonthlyWorkCompletion[]> {
+  const { data, error } = await supabase
+    .from("project_monthly_work_completions")
+    .select(
+      "id, monthly_work_id, completed_by, completed_at, project_monthly_works!inner(project_id, month_key)",
+    )
+    .eq("project_monthly_works.project_id", projectId)
+    .eq("project_monthly_works.month_key", monthKey);
+  if (error) throw error;
+  return ((data ?? []) as Array<{
+    id: string;
+    monthly_work_id: string;
+    completed_by: string | null;
+    completed_at: string;
+  }>).map((r) => ({
+    id: r.id,
+    monthly_work_id: r.monthly_work_id,
+    completed_by: r.completed_by,
+    completed_at: r.completed_at,
+  }));
+}
+
+/**
+ * Materializuje snapshot pre daný mesiac, ak ešte neexistuje.
+ * Skopíruje šablónu (`project_recurring_works`) do `project_monthly_works`
+ * a prenesie aj prípadné staré completions (matchované cez source_work_id).
+ * Vracia true ak vznikol nový snapshot.
+ */
+export async function ensureMonthlyWorksSnapshot(
+  projectId: string,
+  monthKey: string,
+): Promise<boolean> {
+  const existing = await supabase
+    .from("project_monthly_works")
+    .select("id")
+    .eq("project_id", projectId)
+    .eq("month_key", monthKey)
+    .limit(1);
+  if (existing.error) throw existing.error;
+  if ((existing.data ?? []).length > 0) return false;
+
+  const tpl = await supabase
+    .from("project_recurring_works")
+    .select("id, title, note, position")
+    .eq("project_id", projectId)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (tpl.error) throw tpl.error;
+
+  const rows = (tpl.data ?? []).map((r, idx) => ({
+    project_id: projectId,
+    month_key: monthKey,
+    title: r.title as string,
+    note: (r.note as string | null) ?? null,
+    position: typeof r.position === "number" ? r.position : idx,
+    source_work_id: r.id as string,
+  }));
+  if (rows.length === 0) return true;
+
+  const inserted = await supabase
+    .from("project_monthly_works")
+    .insert(rows)
+    .select("id, source_work_id");
+  if (inserted.error) throw inserted.error;
+
+  // Migrácia old completions → monthly completions pre tento mesiac
+  const oldComp = await supabase
+    .from("project_recurring_work_completions")
+    .select("work_id, completed_by, completed_at")
+    .eq("month_key", monthKey)
+    .in("work_id", (tpl.data ?? []).map((r) => r.id as string));
+  if (!oldComp.error && (oldComp.data ?? []).length > 0) {
+    const map = new Map<string, string>();
+    for (const m of inserted.data ?? []) {
+      if (m.source_work_id) map.set(m.source_work_id as string, m.id as string);
+    }
+    const compRows = (oldComp.data ?? [])
+      .map((c) => {
+        const mid = map.get(c.work_id as string);
+        if (!mid) return null;
+        return {
+          monthly_work_id: mid,
+          completed_by: c.completed_by as string | null,
+          completed_at: c.completed_at as string,
+        };
+      })
+      .filter(Boolean) as Array<{ monthly_work_id: string; completed_by: string | null; completed_at: string }>;
+    if (compRows.length > 0) {
+      await supabase.from("project_monthly_work_completions").insert(compRows);
+    }
+  }
+  return true;
+}
+
+export async function createMonthlyWork(input: {
+  project_id: string;
+  month_key: string;
+  title: string;
+  note: string | null;
+  position: number;
+}): Promise<import("./types").ProjectMonthlyWork> {
+  const { data, error } = await supabase
+    .from("project_monthly_works")
+    .insert(input)
+    .select(MONTHLY_WORK_COLS)
+    .single();
+  if (error) throw error;
+  return data as import("./types").ProjectMonthlyWork;
+}
+
+export async function updateMonthlyWork(
+  id: string,
+  patch: Partial<{ title: string; note: string | null }>,
+) {
+  const { error } = await supabase.from("project_monthly_works").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteMonthlyWork(id: string) {
+  const { error } = await supabase.from("project_monthly_works").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function reorderMonthlyWorks(items: { id: string; position: number }[]) {
+  await Promise.all(
+    items.map(({ id, position }) =>
+      supabase.from("project_monthly_works").update({ position }).eq("id", id),
+    ),
+  );
+}
+
+export async function setMonthlyWorkDone(input: {
+  monthly_work_id: string;
+  user_id: string;
+  done: boolean;
+}) {
+  if (input.done) {
+    const { error } = await supabase
+      .from("project_monthly_work_completions")
+      .insert({ monthly_work_id: input.monthly_work_id, completed_by: input.user_id });
+    if (error && (error as { code?: string }).code !== "23505") throw error;
+  } else {
+    const { error } = await supabase
+      .from("project_monthly_work_completions")
+      .delete()
+      .eq("monthly_work_id", input.monthly_work_id);
+    if (error) throw error;
+  }
+}
+
+/** Zmaže snapshot mesiaca (resetuje na šablónu). */
+export async function resetMonthlySnapshot(projectId: string, monthKey: string) {
+  const { error } = await supabase
+    .from("project_monthly_works")
+    .delete()
+    .eq("project_id", projectId)
+    .eq("month_key", monthKey);
+  if (error) throw error;
+}
+
+/** Uloží aktuálny mesačný snapshot ako novú šablónu (prepíše `project_recurring_works`). */
+export async function saveSnapshotAsTemplate(projectId: string, monthKey: string) {
+  const snap = await supabase
+    .from("project_monthly_works")
+    .select("title, note, position")
+    .eq("project_id", projectId)
+    .eq("month_key", monthKey)
+    .order("position", { ascending: true });
+  if (snap.error) throw snap.error;
+
+  const del = await supabase.from("project_recurring_works").delete().eq("project_id", projectId);
+  if (del.error) throw del.error;
+
+  const rows = (snap.data ?? []).map((r, idx) => ({
+    project_id: projectId,
+    title: r.title as string,
+    note: (r.note as string | null) ?? null,
+    position: typeof r.position === "number" ? r.position : idx,
+  }));
+  if (rows.length > 0) {
+    const { error } = await supabase.from("project_recurring_works").insert(rows);
+    if (error) throw error;
+  }
+}
+
 
 // ---- Task materials
 const MATERIAL_COLS = "id, task_id, url, label, created_by, created_at";
