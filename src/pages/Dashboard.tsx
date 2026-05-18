@@ -1,48 +1,15 @@
-import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, CalendarDays } from "lucide-react";
+import { ArrowUpRight, CalendarDays, FolderKanban } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { CalendarWidget } from "@/components/CalendarWidget";
-import { MonthFilter } from "@/components/MonthFilter";
 import { SubscriptionPendingBadge } from "@/components/SubscriptionPendingBadge";
-import { PRIORITY_META } from "@/lib/types";
-import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
-import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useProfiles, useProjects } from "@/lib/queries";
 
 export default function Dashboard() {
-  const { data: tasks = [] } = useTasks();
   const { data: projects = [] } = useProjects();
   const { data: profiles = [] } = useProfiles();
-  const { data: watchers = [] } = useTaskWatchers();
   const currentUserId = useCurrentUserId();
   const me = profiles.find((p) => p.id === currentUserId);
-  const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
-
-  const visibleTasks = useMemo(
-    () =>
-      tasks.filter(
-        (t) =>
-          t.assignee_id === currentUserId || watchers.some((w) => w.task_id === t.id && w.user_id === currentUserId)
-      ),
-    [tasks, watchers, currentUserId]
-  );
-
-  // Filtrovanie podľa mesiaca + zoskupenie sérií
-  const monthFiltered = useMemo(
-    () => filterTasksByMonth(visibleTasks, monthKey),
-    [visibleTasks, monthKey]
-  );
-
-  const counts = useMemo(() => {
-    const open = monthFiltered.filter((t) => t.status !== "done");
-    return {
-      total: open.length,
-      high: open.filter((t) => t.priority === "high").length,
-      medium: open.filter((t) => t.priority === "medium").length,
-      low: open.filter((t) => t.priority === "low").length,
-      done: monthFiltered.filter((t) => t.status === "done").length,
-    };
-  }, [monthFiltered]);
 
   return (
     <div className="page-container">
@@ -64,41 +31,20 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="mt-6 md:mt-8 md:grid md:grid-cols-3 md:gap-6">
-        <section className="md:col-span-2">
+      <section className="mt-6 md:mt-8">
         <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
           <CalendarDays className="h-4 w-4" /> Kalendár
         </h2>
         <CalendarWidget mode="personal" />
-        </section>
+      </section>
 
-        <div className="mt-6 md:mt-0">
-          <section className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">Prehľad</h2>
-            <MonthFilter value={monthKey} onChange={setMonthKey} />
-          </section>
-          <section className="mt-3 grid grid-cols-3 gap-2.5">
-        {(["high", "medium", "low"] as const).map((p) => {
-          const meta = PRIORITY_META[p];
-          return (
-            <div key={p} className={`rounded-2xl p-3 ${meta.soft}`}>
-              <div className="flex items-center justify-between">
-                <span className={`priority-dot ${meta.dot}`} />
-                <span className={`text-xl font-bold ${meta.text}`}>{counts[p]}</span>
-              </div>
-              <p className={`mt-1 text-[11px] font-semibold ${meta.text}`}>{meta.label}</p>
-            </div>
-          );
-        })}
-          </section>
-        </div>
-      </div>
-
-      <section className="mt-6">
+      <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold">Projekty</h2>
-          <Link to="/projects" className="text-xs font-medium text-primary inline-flex items-center">
-            Všetky <ChevronRight className="h-3 w-3" />
+          <h2 className="inline-flex items-center gap-2 text-base font-semibold">
+            <FolderKanban className="h-4 w-4" /> Projekty
+          </h2>
+          <Link to="/projects" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+            Všetky <ArrowUpRight className="h-3 w-3" />
           </Link>
         </div>
         {projects.length === 0 ? (
@@ -106,19 +52,46 @@ export default function Dashboard() {
             Zatiaľ žiadne projekty. Vytvor prvý v sekcii Projekty.
           </p>
         ) : (
-          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-5">
+          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-4 xl:grid-cols-5">
             {projects.map((p) => {
+              const color = p.color ?? "#3b82f6";
               return (
                 <Link
                   key={p.id}
                   to={`/projects/${p.id}`}
-                  className="card-elevated min-w-[170px] flex-shrink-0 p-3.5 md:min-w-0"
+                  className="group relative isolate min-w-[200px] flex-shrink-0 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-transparent hover:shadow-xl md:min-w-0"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color ?? "#3b82f6" }} />
-                    <SubscriptionPendingBadge projectId={p.id} />
+                  {/* gradient glow accent */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 top-0 h-1"
+                    style={{ background: `linear-gradient(90deg, ${color}, transparent)` }}
+                  />
+
+                  <div className="relative flex items-start justify-between gap-2">
+                    <span
+                      className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold uppercase text-white shadow-sm"
+                      style={{ backgroundColor: color }}
+                    >
+                      {p.name.trim().charAt(0) || "•"}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <SubscriptionPendingBadge projectId={p.id} />
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
+                    </div>
                   </div>
-                  <h3 className="mt-2 text-sm font-semibold leading-snug">{p.name}</h3>
+
+                  <h3 className="relative mt-3 line-clamp-2 text-sm font-semibold leading-snug">
+                    {p.name}
+                  </h3>
+                  {p.category && (
+                    <p className="relative mt-1 text-[11px] text-muted-foreground">{p.category}</p>
+                  )}
                 </Link>
               );
             })}
