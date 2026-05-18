@@ -24,6 +24,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { UserAvatar } from "@/components/UserAvatar";
+import { UserCircle2 } from "lucide-react";
 import {
   useCreateMonthlyWork,
   useCurrentUserId,
@@ -31,6 +33,7 @@ import {
   useEnsureMonthlySnapshot,
   useIsAppAdmin,
   useMonthlyWorkCompletions,
+  useProfiles,
   useProjectMonthlyWorks,
   useProjectRecurringWorks,
   useRecurringWorkCompletions,
@@ -41,6 +44,7 @@ import {
   useToggleRecurringWorkDone,
   useUpdateMonthlyWork,
 } from "@/lib/queries";
+import type { Profile } from "@/lib/types";
 import { NewTaskDialog } from "./NewTaskDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -72,6 +76,7 @@ type Row = {
   title: string;
   note: string | null;
   position: number;
+  assignee_id: string | null;
 };
 
 function SortableRow({
@@ -82,6 +87,9 @@ function SortableRow({
   onOpenTask,
   onDelete,
   onEdit,
+  onAssign,
+  assignee,
+  profiles,
   toggleDisabled,
 }: {
   row: Row;
@@ -91,6 +99,9 @@ function SortableRow({
   onOpenTask: () => void;
   onDelete: () => void;
   onEdit: () => void;
+  onAssign: (userId: string | null) => void;
+  assignee: Profile | null;
+  profiles: Profile[];
   toggleDisabled: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -102,18 +113,27 @@ function SortableRow({
     zIndex: isDragging ? 20 : undefined,
   };
 
+  const accentColor = assignee?.color || null;
+
   return (
     <li
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group flex items-center gap-2 rounded-xl border px-2 py-2 transition",
+        "group relative flex items-center gap-2 overflow-hidden rounded-xl border px-2 py-2 pl-3 transition",
         done
           ? "border-success/30 bg-success/5"
           : "border-border bg-surface-muted/40 hover:border-primary/40",
         isDragging && "shadow-lg ring-2 ring-primary/40"
       )}
     >
+      {accentColor && (
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 h-full w-1.5 rounded-l-xl"
+          style={{ backgroundColor: accentColor }}
+        />
+      )}
       {editable && (
         <button
           type="button"
@@ -152,7 +172,47 @@ function SortableRow({
         {row.note && (
           <span className="block truncate text-[11px] text-muted-foreground">{row.note}</span>
         )}
+        {assignee && (
+          <span className="mt-0.5 block truncate text-[10px] font-medium" style={{ color: accentColor ?? undefined }}>
+            {assignee.full_name ?? assignee.email ?? "Priradené"}
+          </span>
+        )}
       </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition",
+              assignee
+                ? "hover:opacity-80"
+                : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
+            )}
+            aria-label={assignee ? `Priradené: ${assignee.full_name ?? "—"}` : "Priradiť osobu"}
+            title={assignee ? `Priradené: ${assignee.full_name ?? assignee.email ?? ""}` : "Priradiť osobu"}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {assignee ? (
+              <UserAvatar profile={assignee} size="sm" />
+            ) : (
+              <UserCircle2 className="h-5 w-5" />
+            )}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto">
+          <DropdownMenuItem onClick={() => onAssign(null)}>
+            <UserCircle2 className="mr-2 h-4 w-4" /> Nepriradené
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {profiles.map((p) => (
+            <DropdownMenuItem key={p.id} onClick={() => onAssign(p.id)}>
+              <UserAvatar profile={p} size="sm" className="mr-2 ring-0" />
+              <span className="truncate">{p.full_name ?? p.email ?? p.id}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
       {editable && (
         <>
           <button
@@ -184,6 +244,7 @@ function SortableRow({
 export function MonthlyDeliverablesCard({ projectId }: Props) {
   const userId = useCurrentUserId();
   const isAdmin = useIsAppAdmin();
+  const { data: profiles = [] } = useProfiles();
 
   const [monthKey, setMonthKey] = useState<string>(currentMonthKey());
 
@@ -237,8 +298,30 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
   // Zoznam riadkov + completed mapovanie
   const rows: Row[] = useMemo(() => {
     const src = hasSnapshot ? snapWorks : tplWorks;
-    return src.map((w) => ({ id: w.id, title: w.title, note: w.note, position: w.position }));
+    return src.map((w) => ({
+      id: w.id,
+      title: w.title,
+      note: w.note,
+      position: w.position,
+      assignee_id: (w as { assignee_id?: string | null }).assignee_id ?? null,
+    }));
   }, [hasSnapshot, snapWorks, tplWorks]);
+
+  const profileById = useMemo(() => {
+    const m = new Map<string, Profile>();
+    for (const p of profiles) m.set(p.id, p);
+    return m;
+  }, [profiles]);
+
+  const handleAssign = async (row: Row, newAssigneeId: string | null) => {
+    if (row.assignee_id === newAssigneeId) return;
+    try {
+      // Materializuje snapshot a uloží assignee pre tento mesiac.
+      await updateSnap.mutateAsync({ id: row.id, patch: { assignee_id: newAssigneeId } });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Nepodarilo sa priradiť");
+    }
+  };
 
   const doneSet = useMemo(() => {
     if (hasSnapshot) {
@@ -477,6 +560,9 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
                     onOpenTask={() => onWorkClick(r.title)}
                     onDelete={() => handleDelete(r)}
                     onEdit={() => startEdit(r)}
+                    onAssign={(uid) => handleAssign(r, uid)}
+                    assignee={r.assignee_id ? profileById.get(r.assignee_id) ?? null : null}
+                    profiles={profiles}
                     toggleDisabled={!userId || toggleSnap.isPending || toggleTpl.isPending}
                   />
                 )
