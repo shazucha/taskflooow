@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { NavLink, Link } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, CalendarDays, FolderOpen } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, CalendarDays, FolderOpen, Bug } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
 import { UserAvatar } from "@/components/UserAvatar";
-import { useCurrentUserId, useIsAppAdmin, useMySubscriptionPendingTotal, useProfiles, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useFeedbackNewCount, useIsAppAdmin, useMySubscriptionPendingTotal, useProfiles, useTasks } from "@/lib/queries";
 import { pendingTasksForUser } from "@/lib/recurring";
 
 type NavItem = {
@@ -13,7 +13,7 @@ type NavItem = {
   label: string;
   icon: typeof LayoutDashboard;
   end?: boolean;
-  badgeKey?: "team" | "dm" | "tasks" | "projects";
+  badgeKey?: "team" | "dm" | "tasks" | "projects" | "feedback";
 };
 
 export function DesktopSidebar() {
@@ -23,6 +23,7 @@ export function DesktopSidebar() {
   const { data: profiles = [] } = useProfiles();
   const { data: tasks = [] } = useTasks();
   const { data: subPending } = useMySubscriptionPendingTotal();
+  const feedbackNew = useFeedbackNewCount();
   const taskPending = useMemo(
     () => pendingTasksForUser(tasks, currentUserId).all.length,
     [tasks, currentUserId]
@@ -41,8 +42,9 @@ export function DesktopSidebar() {
     ? [
         ...base,
         { to: "/team-calendar", label: "Tímový kalendár", icon: CalendarDays },
+        { to: "/feedback", label: "Chyby & vylepšenia", icon: Bug, badgeKey: "feedback" },
       ]
-    : base;
+    : [...base, { to: "/feedback", label: "Chyby & vylepšenia", icon: Bug }];
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border/60 bg-card/60 backdrop-blur-xl md:flex">
@@ -65,13 +67,17 @@ export function DesktopSidebar() {
                 ? taskPending
                 : badgeKey === "projects"
                 ? subPending?.total ?? 0
+                : badgeKey === "feedback"
+                ? feedbackNew
                 : 0;
-            const glow = badgeKey === "tasks" || badgeKey === "projects";
+            const glow = badgeKey === "tasks" || badgeKey === "projects" || badgeKey === "feedback";
             const badgeTitle =
               badgeKey === "tasks"
                 ? `${badge} nedokončených úloh v aktuálnom mesiaci (červené = po termíne)`
                 : badgeKey === "projects"
                 ? `${badge} nedokončených položiek v náplni predplatného`
+                : badgeKey === "feedback"
+                ? `${badge} nových nahlásení (chyby/vylepšenia)`
                 : undefined;
             return (
               <li key={to}>
