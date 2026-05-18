@@ -296,6 +296,20 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
   const { data: snapWorks = [], isLoading: snapLoading } = useProjectMonthlyWorks(projectId, monthKey);
   const { data: snapCompletions = [] } = useMonthlyWorkCompletions(projectId, monthKey);
 
+  // Komentáre k položkám náplne (pre celý mesiac, zoskupené po work_id)
+  const { data: workComments = [] } = useMonthlyWorkComments(projectId, monthKey);
+  const [openCommentsId, setOpenCommentsId] = useState<string | null>(null);
+
+  const commentsByWork = useMemo(() => {
+    const m = new Map<string, typeof workComments>();
+    for (const c of workComments) {
+      const arr = m.get(c.work_id) ?? [];
+      arr.push(c);
+      m.set(c.work_id, arr);
+    }
+    return m;
+  }, [workComments]);
+
   const hasSnapshot = snapWorks.length > 0;
 
   // Mutácie — snapshot
@@ -333,6 +347,7 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
     setAdding(false);
     setTitle("");
     setNote("");
+    setOpenCommentsId(null);
   }, [monthKey]);
 
   // Zoznam riadkov + completed mapovanie
@@ -591,20 +606,37 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
                     </div>
                   </li>
                 ) : (
-                  <SortableRow
-                    key={r.id}
-                    row={r}
-                    done={doneSet.has(r.id)}
-                    editable={hasSnapshot}
-                    onToggle={() => handleToggle(r)}
-                    onOpenTask={() => onWorkClick(r.title)}
-                    onDelete={() => handleDelete(r)}
-                    onEdit={() => startEdit(r)}
-                    onAssign={(uid) => handleAssign(r, uid)}
-                    assignee={r.assignee_id ? profileById.get(r.assignee_id) ?? null : null}
-                    profiles={profiles}
-                    toggleDisabled={!userId || toggleSnap.isPending || toggleTpl.isPending}
-                  />
+                  <>
+                    <SortableRow
+                      key={r.id}
+                      row={r}
+                      done={doneSet.has(r.id)}
+                      editable={hasSnapshot}
+                      onToggle={() => handleToggle(r)}
+                      onOpenTask={() => onWorkClick(r.title)}
+                      onDelete={() => handleDelete(r)}
+                      onEdit={() => startEdit(r)}
+                      onAssign={(uid) => handleAssign(r, uid)}
+                      onToggleComments={() =>
+                        setOpenCommentsId((cur) => (cur === r.id ? null : r.id))
+                      }
+                      commentCount={commentsByWork.get(r.id)?.length ?? 0}
+                      commentsOpen={openCommentsId === r.id}
+                      assignee={r.assignee_id ? profileById.get(r.assignee_id) ?? null : null}
+                      profiles={profiles}
+                      toggleDisabled={!userId || toggleSnap.isPending || toggleTpl.isPending}
+                    />
+                    {openCommentsId === r.id && (
+                      <MonthlyWorkCommentsPanel
+                        key={`${r.id}-comments`}
+                        projectId={projectId}
+                        monthKey={monthKey}
+                        workId={r.id}
+                        comments={commentsByWork.get(r.id) ?? []}
+                        onClose={() => setOpenCommentsId(null)}
+                      />
+                    )}
+                  </>
                 )
               )}
             </ul>
