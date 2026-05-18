@@ -1029,6 +1029,11 @@ import {
   createFeedbackComment,
   deleteFeedbackComment,
 } from "./feedbackApi";
+import {
+  fetchMonthlyWorkComments,
+  createMonthlyWorkComment,
+  deleteMonthlyWorkComment,
+} from "./monthlyWorkCommentsApi";
 
 export function useFeedbackComments(reportId: string | undefined) {
   const { isReady, user } = useAuthReady();
@@ -1056,5 +1061,43 @@ export function useDeleteFeedbackComment(reportId: string) {
   return useMutation({
     mutationFn: deleteFeedbackComment,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["feedback_comments", reportId] }),
+  });
+}
+
+// ===== Komentáre k položkám náplne predplatného =====
+export function useMonthlyWorkComments(projectId: string, monthKey: string) {
+  const { isReady, user } = useAuthReady();
+  return useQuery({
+    queryKey: ["monthly_work_comments", projectId, monthKey],
+    queryFn: () => fetchMonthlyWorkComments(projectId, monthKey),
+    enabled: !!projectId && !!monthKey && isReady && !!user,
+  });
+}
+
+export function useCreateMonthlyWorkComment(projectId: string, monthKey: string) {
+  const qc = useQueryClient();
+  const userId = useCurrentUserId();
+  return useMutation({
+    mutationFn: (input: { work_id: string; body: string }) => {
+      if (!userId) throw new Error("Nie si prihlásený");
+      return createMonthlyWorkComment({
+        project_id: projectId,
+        month_key: monthKey,
+        work_id: input.work_id,
+        user_id: userId,
+        body: input.body,
+      });
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["monthly_work_comments", projectId, monthKey] }),
+  });
+}
+
+export function useDeleteMonthlyWorkComment(projectId: string, monthKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteMonthlyWorkComment,
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["monthly_work_comments", projectId, monthKey] }),
   });
 }
