@@ -240,6 +240,7 @@ export default function Feedback() {
                     )}
                   </div>
                 </div>
+                <FeedbackThread reportId={r.id} />
               </li>
             );
           })}
