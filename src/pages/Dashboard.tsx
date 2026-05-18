@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Bell, CalendarDays, FolderKanban } from "lucide-react";
+import { ArrowUpRight, Bell, CalendarDays, FolderKanban, AlertTriangle } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { SubscriptionPendingBadge } from "@/components/SubscriptionPendingBadge";
-import { useCurrentUserId, useProfiles, useProjects, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useMySubscriptionPendingTotal, useProfiles, useProjects, useTasks } from "@/lib/queries";
 import { pendingTasksForUser } from "@/lib/recurring";
 
 export default function Dashboard() {
