@@ -129,3 +129,46 @@ export function currentMonthKey(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
+
+/**
+ * Vráti nedokončené úlohy používateľa relevantné pre dashboard notifikáciu:
+ * aktuálny mesiac (s rešpektom k sériám) + nedokončené z minulých mesiacov (overdue)
+ * + úlohy bez dátumu.
+ */
+export function pendingTasksForUser<T extends Task>(
+  tasks: T[],
+  userId: string | null
+): { all: T[]; overdue: T[] } {
+  if (!userId) return { all: [], overdue: [] };
+  const monthKey = currentMonthKey();
+  const [y, m] = monthKey.split("-").map(Number);
+  const startOfMonth = new Date(y, m - 1, 1).getTime();
+  const startOfToday = (() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  })();
+
+  const mine = tasks.filter((t) => t.assignee_id === userId && t.status !== "done");
+
+  // aktuálny mesiac (collapsed series)
+  const currentMonth = filterTasksByMonth(mine, monthKey);
+
+  // overdue z minulých mesiacov + úlohy bez dátumu
+  const past = mine.filter((t) => {
+    if (!t.due_date) return true;
+    return new Date(t.due_date).getTime() < startOfMonth;
+  });
+
+  // zlúčiť bez duplicít
+  const seen = new Set<string>();
+  const all: T[] = [];
+  for (const t of [...currentMonth, ...past]) {
+    if (seen.has(t.id)) continue;
+    seen.add(t.id);
+    all.push(t);
+  }
+  const overdue = all.filter(
+    (t) => t.due_date && new Date(t.due_date).getTime() < startOfToday
+  );
+  return { all, overdue };
+}
