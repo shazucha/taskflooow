@@ -95,6 +95,7 @@ function SortableRow({
   onAssign,
   onToggleComments,
   commentCount,
+  unreadCount,
   commentsOpen,
   assignee,
   profiles,
@@ -110,6 +111,7 @@ function SortableRow({
   onAssign: (userId: string | null) => void;
   onToggleComments: () => void;
   commentCount: number;
+  unreadCount: number;
   commentsOpen: boolean;
   assignee: Profile | null;
   profiles: Profile[];
@@ -245,15 +247,31 @@ function SortableRow({
               ? "text-primary hover:bg-primary/10"
               : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
         )}
-        aria-label={commentCount > 0 ? `${commentCount} komentárov` : "Komentovať"}
-        title={commentCount > 0 ? `${commentCount} komentárov` : "Komentovať"}
+        aria-label={
+          unreadCount > 0
+            ? `${unreadCount} nových komentárov`
+            : commentCount > 0
+              ? `${commentCount} komentárov`
+              : "Komentovať"
+        }
+        title={
+          unreadCount > 0
+            ? `${unreadCount} nových z ${commentCount}`
+            : commentCount > 0
+              ? `${commentCount} komentárov`
+              : "Komentovať"
+        }
       >
         <MessageSquare className="h-3.5 w-3.5" />
-        {commentCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
+        {unreadCount > 0 ? (
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-priority-high px-1 text-[9px] font-bold leading-none text-white shadow ring-2 ring-card">
+            {unreadCount}
+          </span>
+        ) : commentCount > 0 ? (
+          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-muted px-1 text-[9px] font-bold leading-none text-muted-foreground">
             {commentCount}
           </span>
-        )}
+        ) : null}
       </button>
       {editable && (
         <>
