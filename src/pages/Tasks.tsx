@@ -16,39 +16,49 @@ function isValidDate(d: Date): boolean {
   return !isNaN(d.getTime());
 }
 
-type Filter = "all" | Priority | "mine";
+type Scope = "mine" | "all";
+type PriorityFilter = "all" | Priority;
 
 export default function Tasks() {
   const { data: tasks = [] } = useTasks();
   const { data: projects = [] } = useProjects();
   const currentUserId = useCurrentUserId();
-  const [filter, setFilter] = useState<Filter>("mine");
+  const [scope, setScope] = useState<Scope>("mine");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
   const [openTask, setOpenTask] = useState<Task | null>(null);
 
-  const filtered = useMemo(() => {
-    const monthScoped = filterTasksByMonth(tasks, monthKey);
-    const myProjectIds = new Set(projects.map((p) => p.id));
-    const base = monthScoped
-      .filter((t) => t.status !== "done")
-      .sort((a, b) => {
-        const order = { high: 0, medium: 1, low: 2 } as const;
-        return order[a.priority] - order[b.priority];
-      });
-    if (filter === "all")
-      return base.filter((t) => t.project_id && myProjectIds.has(t.project_id));
-    if (filter === "mine") return base.filter((t) => t.assignee_id === currentUserId);
-    return base.filter((t) => t.priority === filter);
-  }, [tasks, filter, currentUserId, monthKey, projects]);
+  const myProjectIds = useMemo(() => new Set(projects.map((p) => p.id)), [projects]);
 
-  const counts = useMemo(() => {
+  const scopedBase = useMemo(() => {
     const monthScoped = filterTasksByMonth(tasks, monthKey).filter((t) => t.status !== "done");
-    const myProjectIds = new Set(projects.map((p) => p.id));
     return {
-      mine: monthScoped.filter((t) => t.assignee_id === currentUserId).length,
-      all: monthScoped.filter((t) => t.project_id && myProjectIds.has(t.project_id)).length,
+      mine: monthScoped.filter((t) => t.assignee_id === currentUserId),
+      all: monthScoped.filter((t) => t.project_id && myProjectIds.has(t.project_id)),
     };
-  }, [tasks, monthKey, projects, currentUserId]);
+  }, [tasks, monthKey, myProjectIds, currentUserId]);
+
+  const applyPriority = (list: Task[]) =>
+    priorityFilter === "all" ? list : list.filter((t) => t.priority === priorityFilter);
+
+  const filtered = useMemo(() => {
+    return applyPriority(scopedBase[scope]).sort((a, b) => {
+      const order = { high: 0, medium: 1, low: 2 } as const;
+      return order[a.priority] - order[b.priority];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedBase, scope, priorityFilter]);
+
+  const scopeCounts = {
+    mine: applyPriority(scopedBase.mine).length,
+    all: applyPriority(scopedBase.all).length,
+  };
+  const priorityCounts = {
+    all: scopedBase[scope].length,
+    high: scopedBase[scope].filter((t) => t.priority === "high").length,
+    medium: scopedBase[scope].filter((t) => t.priority === "medium").length,
+    low: scopedBase[scope].filter((t) => t.priority === "low").length,
+  } as Record<PriorityFilter, number>;
 
   const groupByDate = (list: Task[]) => {
     const withDate: Task[] = [];
@@ -94,7 +104,8 @@ export default function Tasks() {
   const orderedGroups = [...todayGroups, ...otherGroups];
   const todayStart = today;
 
-  const chips: { id: Filter; label: string; cls?: string }[] = [
+  const chips: { id: PriorityFilter; label: string; cls?: string }[] = [
+    { id: "all", label: "Všetky" },
     { id: "high", label: PRIORITY_META.high.label, cls: "data-[active=true]:bg-priority-high-soft data-[active=true]:text-priority-high" },
     { id: "medium", label: PRIORITY_META.medium.label, cls: "data-[active=true]:bg-priority-medium-soft data-[active=true]:text-priority-medium" },
     { id: "low", label: PRIORITY_META.low.label, cls: "data-[active=true]:bg-priority-low-soft data-[active=true]:text-priority-low" },
@@ -113,13 +124,13 @@ export default function Tasks() {
 
       <div className="mt-4 inline-flex rounded-full bg-surface-muted p-1">
         {([
-          { id: "mine", label: "Moje", count: counts.mine },
-          { id: "all", label: "Tím", count: counts.all },
-        ] as { id: Filter; label: string; count: number }[]).map((s) => (
+          { id: "mine", label: "Moje", count: scopeCounts.mine },
+          { id: "all", label: "Tím", count: scopeCounts.all },
+        ] as { id: Scope; label: string; count: number }[]).map((s) => (
           <button
             key={s.id}
-            onClick={() => setFilter(s.id)}
-            data-active={filter === s.id}
+            onClick={() => setScope(s.id)}
+            data-active={scope === s.id}
             className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors data-[active=true]:bg-foreground data-[active=true]:text-background"
           >
             {s.label}
@@ -134,15 +145,18 @@ export default function Tasks() {
         {chips.map((c) => (
           <button
             key={c.id}
-            data-active={filter === c.id}
-            onClick={() => setFilter(c.id)}
+            data-active={priorityFilter === c.id}
+            onClick={() => setPriorityFilter(c.id)}
             className={cn(
-              "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+              "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
               "bg-surface-muted text-muted-foreground data-[active=true]:bg-foreground data-[active=true]:text-background",
               c.cls
             )}
           >
             {c.label}
+            <span className="rounded-full bg-background/60 px-1.5 py-0.5 text-[10px] font-bold text-foreground">
+              {priorityCounts[c.id]}
+            </span>
           </button>
         ))}
       </div>
