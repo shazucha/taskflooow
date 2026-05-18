@@ -21,7 +21,7 @@ type Filter = "all" | Priority | "mine";
 export default function Tasks() {
   const { data: tasks = [] } = useTasks();
   const currentUserId = useCurrentUserId();
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("mine");
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
   const [openTask, setOpenTask] = useState<Task | null>(null);
 
