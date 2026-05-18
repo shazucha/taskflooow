@@ -297,9 +297,10 @@ export default function TeamCalendar() {
                           <div className="min-w-0 flex-1">
                             <p
                               className={cn(
-                                "truncate text-sm font-semibold",
+                                "text-sm font-semibold leading-snug line-clamp-2 break-words",
                                 done && "text-muted-foreground line-through"
                               )}
+                              title={t.title}
                             >
                               {t.title}
                             </p>
