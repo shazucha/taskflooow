@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, ChevronDown, ChevronUp, Users2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, Users2, Repeat2 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useProfiles, useProjects, useTasks } from "@/lib/queries";
+import { getSeriesKey } from "@/lib/recurring";
 import { cn } from "@/lib/utils";
 
 type RangeKey = "7d" | "30d" | "all";
@@ -193,13 +194,46 @@ export function AdminCollaboratorsOverview() {
     return profiles
       .map((p) => {
         const e = byUser.get(p.id)!;
+        // Deduplikuj série: jedna položka na sériu (najnovší výskyt) + počet opakovaní
+        const seriesCounts = new Map<string, number>();
+        const seen = new Set<string>();
+        const unique: typeof e.done = [];
         const sorted = [...e.done].sort(
           (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
         );
-        return { profile: p, done: sorted, openCount: e.openCount };
+        for (const t of sorted) {
+          const sKey = getSeriesKey(tasks, t);
+          const dedupKey = sKey ?? `task:${t.id}`;
+          seriesCounts.set(dedupKey, (seriesCounts.get(dedupKey) ?? 0) + 1);
+          if (seen.has(dedupKey)) continue;
+          seen.add(dedupKey);
+          unique.push(t);
+        }
+        // Zoskupenie podľa projektu pre lepšiu štruktúru
+        const byProject = new Map<string, typeof e.done>();
+        for (const t of unique) {
+          const k = t.project_id ?? "__none__";
+          const arr = byProject.get(k) ?? [];
+          arr.push(t);
+          byProject.set(k, arr);
+        }
+        const projectGroups = Array.from(byProject.entries())
+          .map(([pid, list]) => ({
+            projectId: pid === "__none__" ? null : pid,
+            tasks: list,
+          }))
+          .sort((a, b) => b.tasks.length - a.tasks.length);
+        return {
+          profile: p,
+          done: unique,
+          totalDone: e.done.length,
+          seriesCounts,
+          projectGroups,
+          openCount: e.openCount,
+        };
       })
       .filter((g) => g.done.length > 0 || g.openCount > 0)
-      .sort((a, b) => b.done.length - a.done.length);
+      .sort((a, b) => b.totalDone - a.totalDone);
   }, [tasks, profiles, cutoff]);
 
   if (groups.length === 0) {
@@ -245,7 +279,12 @@ export function AdminCollaboratorsOverview() {
                 <p className="mt-0.5 inline-flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3 text-success" />
-                    {g.done.length} dokončených
+                    {g.totalDone} dokončených
+                    {g.done.length !== g.totalDone && (
+                      <span className="text-muted-foreground/70">
+                        ({g.done.length} unikátnych)
+                      </span>
+                    )}
                   </span>
                   <span className="text-border">•</span>
                   <span>{g.openCount} otvorených</span>
@@ -270,36 +309,76 @@ export function AdminCollaboratorsOverview() {
                     V tomto období nedokončil žiadnu úlohu.
                   </p>
                 ) : (
-                  <ul className="divide-y divide-border/60">
-                    {g.done.map((t) => {
-                      const project = t.project_id ? projectsById.get(t.project_id) : null;
+                  <div className="divide-y divide-border/60">
+                    {g.projectGroups.map((pg) => {
+                      const project = pg.projectId ? projectsById.get(pg.projectId) : null;
+                      const pKey = `${g.profile.id}:${pg.projectId ?? "none"}`;
+                      const pOpen = expanded[pKey] ?? false;
                       return (
-                        <li key={t.id} className="flex items-start gap-3 px-3.5 py-3">
-                          <span
-                            className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full"
-                            style={{ backgroundColor: project?.color ?? "#3b82f6" }}
-                          />
-                          <div className="min-w-0 flex-1">
-                            {project && (
-                              <p className="truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                {project.name}
-                              </p>
+                        <div key={pKey}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpanded((s) => ({ ...s, [pKey]: !pOpen }))
+                            }
+                            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left hover:bg-surface-muted/60"
+                          >
+                            <span
+                              className="h-2 w-2 flex-shrink-0 rounded-full"
+                              style={{ backgroundColor: project?.color ?? "hsl(var(--muted-foreground))" }}
+                            />
+                            <span className="min-w-0 flex-1 truncate text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              {project?.name ?? "Bez projektu"}
+                            </span>
+                            <span className="text-[11px] font-medium text-muted-foreground">
+                              {pg.tasks.length}
+                            </span>
+                            {pOpen ? (
+                              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                             )}
-                            <p className="text-sm font-medium leading-snug">{t.title}</p>
-                            <p className="mt-1 text-[11px] text-muted-foreground">
-                              Dokončené {formatDateTime(t.updated_at)}
-                              {t.due_date && (
-                                <>
-                                  <span className="mx-1">•</span>
-                                  termín {formatDate(t.due_date)}
-                                </>
-                              )}
-                            </p>
-                          </div>
-                        </li>
+                          </button>
+                          {pOpen && (
+                            <ul className="divide-y divide-border/40 bg-background/40">
+                              {pg.tasks.map((t) => {
+                                const sKey = getSeriesKey(tasks, t);
+                                const repeats = sKey ? g.seriesCounts.get(sKey) ?? 1 : 1;
+                                return (
+                                  <li
+                                    key={t.id}
+                                    className="flex items-start gap-2.5 px-3.5 py-2.5 pl-7"
+                                  >
+                                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-success" />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-sm font-medium leading-snug break-words">
+                                        {t.title}
+                                        {repeats > 1 && (
+                                          <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-primary">
+                                            <Repeat2 className="h-2.5 w-2.5" />
+                                            {repeats}×
+                                          </span>
+                                        )}
+                                      </p>
+                                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                        {formatDateTime(t.updated_at)}
+                                        {t.due_date && (
+                                          <>
+                                            <span className="mx-1">•</span>
+                                            termín {formatDate(t.due_date)}
+                                          </>
+                                        )}
+                                      </p>
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
                       );
                     })}
-                  </ul>
+                  </div>
                 )}
               </div>
             )}
