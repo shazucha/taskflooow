@@ -118,6 +118,11 @@ export default function Tasks() {
         <NewTaskDialog />
       </header>
 
+      <p className="mt-2 inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+        <span className="inline-flex h-3 w-3 rounded-full border-2 border-priority-high bg-priority-high-soft shadow-[0_0_8px_hsl(var(--priority-high)/0.5)]" />
+        Červený rámček a pulzujúci štítok = úloha je po termíne
+      </p>
+
       <div className="mt-4">
         <MonthFilter value={monthKey} onChange={setMonthKey} />
       </div>
