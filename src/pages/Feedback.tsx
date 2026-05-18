@@ -16,6 +16,7 @@ import {
 } from "@/lib/queries";
 import type { FeedbackKind } from "@/lib/feedbackApi";
 import { cn } from "@/lib/utils";
+import { FeedbackThread } from "@/components/FeedbackThread";
 
 export default function Feedback() {
   const isAdmin = useIsAppAdmin();
