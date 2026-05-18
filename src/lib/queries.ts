@@ -1033,6 +1033,8 @@ import {
   fetchMonthlyWorkComments,
   createMonthlyWorkComment,
   deleteMonthlyWorkComment,
+  fetchMyCommentReads,
+  markCommentsRead,
 } from "./monthlyWorkCommentsApi";
 
 export function useFeedbackComments(reportId: string | undefined) {
@@ -1099,5 +1101,28 @@ export function useDeleteMonthlyWorkComment(projectId: string, monthKey: string)
     mutationFn: deleteMonthlyWorkComment,
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["monthly_work_comments", projectId, monthKey] }),
+  });
+}
+
+export function useMyMonthlyWorkCommentReads(workIds: string[]) {
+  const { isReady, user } = useAuthReady();
+  const key = workIds.slice().sort().join(",");
+  return useQuery({
+    queryKey: ["monthly_work_comment_reads", user?.id, key],
+    queryFn: () => fetchMyCommentReads(user!.id, workIds),
+    enabled: isReady && !!user && workIds.length > 0,
+  });
+}
+
+export function useMarkMonthlyWorkCommentsRead() {
+  const qc = useQueryClient();
+  const userId = useCurrentUserId();
+  return useMutation({
+    mutationFn: (work_id: string) => {
+      if (!userId) throw new Error("Nie si prihlásený");
+      return markCommentsRead({ user_id: userId, work_id });
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["monthly_work_comment_reads", userId] }),
   });
 }
