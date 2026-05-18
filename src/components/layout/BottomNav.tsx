@@ -1,21 +1,23 @@
+import { useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
+import { useCurrentUserId, useMySubscriptionPendingTotal, useTasks } from "@/lib/queries";
 
 type NavItem = {
   to: string;
   label: string;
   icon: typeof LayoutDashboard;
   end?: boolean;
-  badgeKey?: "team" | "dm";
+  badgeKey?: "team" | "dm" | "tasks" | "projects";
 };
 
 const baseItems: NavItem[] = [
   { to: "/", label: "Prehľad", icon: LayoutDashboard, end: true, badgeKey: "team" },
-  { to: "/projects", label: "Projekty", icon: FolderKanban },
-  { to: "/tasks", label: "Úlohy", icon: ListChecks },
+  { to: "/projects", label: "Projekty", icon: FolderKanban, badgeKey: "projects" },
+  { to: "/tasks", label: "Úlohy", icon: ListChecks, badgeKey: "tasks" },
   { to: "/company-materials", label: "Materiály", icon: FolderOpen },
   { to: "/chat", label: "Chat", icon: MessageCircle, badgeKey: "dm" },
   { to: "/me", label: "Profil", icon: User },
@@ -24,6 +26,16 @@ const baseItems: NavItem[] = [
 export function BottomNav() {
   const teamUnread = useUnreadTeamChat();
   const { total: dmUnread } = useUnreadDirect();
+  const currentUserId = useCurrentUserId();
+  const { data: tasks = [] } = useTasks();
+  const { data: subPending } = useMySubscriptionPendingTotal();
+  const taskPending = useMemo(
+    () =>
+      currentUserId
+        ? tasks.filter((t) => t.assignee_id === currentUserId && t.status !== "done").length
+        : 0,
+    [tasks, currentUserId]
+  );
   const items: NavItem[] = baseItems;
 
   return (
@@ -31,7 +43,16 @@ export function BottomNav() {
       <ul className="grid grid-cols-6">
         {items.map(({ to, label, icon: Icon, end, badgeKey }) => {
           const badge =
-            badgeKey === "team" ? teamUnread : badgeKey === "dm" ? dmUnread : 0;
+            badgeKey === "team"
+              ? teamUnread
+              : badgeKey === "dm"
+              ? dmUnread
+              : badgeKey === "tasks"
+              ? taskPending
+              : badgeKey === "projects"
+              ? subPending?.total ?? 0
+              : 0;
+          const glow = badgeKey === "tasks" || badgeKey === "projects";
           return (
             <li key={to}>
               <NavLink
@@ -54,7 +75,14 @@ export function BottomNav() {
                     >
                       <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
                       {badge > 0 && (
-                        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                        <span
+                          className={cn(
+                            "absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold",
+                            glow
+                              ? "bg-priority-high text-white shadow-[0_0_10px_hsl(var(--priority-high)/0.6)] ring-2 ring-background"
+                              : "bg-destructive text-destructive-foreground"
+                          )}
+                        >
                           {badge > 9 ? "9+" : badge}
                         </span>
                       )}
