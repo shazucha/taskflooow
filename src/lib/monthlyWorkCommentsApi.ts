@@ -46,3 +46,37 @@ export async function deleteMonthlyWorkComment(id: string) {
   const { error } = await supabase.from("monthly_work_comments").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ===== Prečítané komentáre =====
+export type MonthlyWorkCommentRead = {
+  user_id: string;
+  work_id: string;
+  last_read_at: string;
+};
+
+export async function fetchMyCommentReads(
+  userId: string,
+  workIds: string[]
+): Promise<MonthlyWorkCommentRead[]> {
+  if (workIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("monthly_work_comment_reads")
+    .select("user_id, work_id, last_read_at")
+    .eq("user_id", userId)
+    .in("work_id", workIds);
+  if (error) throw error;
+  return (data ?? []) as MonthlyWorkCommentRead[];
+}
+
+export async function markCommentsRead(input: {
+  user_id: string;
+  work_id: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from("monthly_work_comment_reads")
+    .upsert(
+      { ...input, last_read_at: new Date().toISOString() },
+      { onConflict: "user_id,work_id" }
+    );
+  if (error) throw error;
+}
