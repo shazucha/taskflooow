@@ -670,10 +670,9 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
                       onDelete={() => handleDelete(r)}
                       onEdit={() => startEdit(r)}
                       onAssign={(uid) => handleAssign(r, uid)}
-                      onToggleComments={() =>
-                        setOpenCommentsId((cur) => (cur === r.id ? null : r.id))
-                      }
+                      onToggleComments={() => handleToggleComments(r.id)}
                       commentCount={commentsByWork.get(r.id)?.length ?? 0}
+                      unreadCount={unreadCount(r.id)}
                       commentsOpen={openCommentsId === r.id}
                       assignee={r.assignee_id ? profileById.get(r.assignee_id) ?? null : null}
                       profiles={profiles}
