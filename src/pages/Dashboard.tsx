@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, CalendarDays, ShieldCheck, Users2 } from "lucide-react";
+import { ChevronRight, CalendarDays } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { MonthFilter } from "@/components/MonthFilter";
-import { AdminCollaboratorsOverview } from "@/components/AdminCollaboratorsOverview";
 import { PRIORITY_META } from "@/lib/types";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
-import { useCurrentUserId, useIsAppAdmin, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
 
 export default function Dashboard() {
   const { data: tasks = [] } = useTasks();
@@ -15,7 +14,6 @@ export default function Dashboard() {
   const { data: profiles = [] } = useProfiles();
   const { data: watchers = [] } = useTaskWatchers();
   const currentUserId = useCurrentUserId();
-  const isAdmin = useIsAppAdmin();
   const me = profiles.find((p) => p.id === currentUserId);
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
 
@@ -126,22 +124,6 @@ export default function Dashboard() {
         )}
       </section>
 
-      {isAdmin && (
-        <section className="mt-6 mb-6 md:mt-8">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="inline-flex items-center gap-2 text-base font-semibold">
-              <ShieldCheck className="h-4 w-4" /> Prehľad spolupracovníkov
-            </h2>
-            <Link
-              to="/admin/team"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:opacity-90"
-            >
-              <Users2 className="h-3.5 w-3.5" /> Otvoriť kalendáre
-            </Link>
-          </div>
-          <AdminCollaboratorsOverview />
-        </section>
-      )}
     </div>
   );
 }
