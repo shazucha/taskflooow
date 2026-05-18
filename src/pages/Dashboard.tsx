@@ -11,6 +11,7 @@ export default function Dashboard() {
   const { data: projects = [] } = useProjects();
   const { data: profiles = [] } = useProfiles();
   const { data: tasks = [] } = useTasks();
+  const { data: subPending } = useMySubscriptionPendingTotal();
   const currentUserId = useCurrentUserId();
   const me = profiles.find((p) => p.id === currentUserId);
 
@@ -18,6 +19,8 @@ export default function Dashboard() {
     const { all, overdue } = pendingTasksForUser(tasks, currentUserId);
     return { pendingCount: all.length, overdueCount: overdue.length };
   }, [tasks, currentUserId]);
+
+  const projectPendingCount = subPending?.total ?? 0;
 
   return (
     <div className="page-container">
