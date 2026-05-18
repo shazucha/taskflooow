@@ -4,6 +4,7 @@ import { ChevronRight, CalendarDays } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { MonthFilter } from "@/components/MonthFilter";
+import { SubscriptionPendingBadge } from "@/components/SubscriptionPendingBadge";
 import { PRIORITY_META } from "@/lib/types";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
 import { useCurrentUserId, useProfiles, useProjects, useTaskWatchers, useTasks } from "@/lib/queries";
@@ -113,8 +114,9 @@ export default function Dashboard() {
                   to={`/projects/${p.id}`}
                   className="card-elevated min-w-[170px] flex-shrink-0 p-3.5 md:min-w-0"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color ?? "#3b82f6" }} />
+                    <SubscriptionPendingBadge projectId={p.id} />
                   </div>
                   <h3 className="mt-2 text-sm font-semibold leading-snug">{p.name}</h3>
                 </Link>
