@@ -75,14 +75,35 @@ export default function TeamCalendar() {
       return d >= startOfToday && d <= horizon;
     });
 
-    filtered.sort((a, b) => {
+    // Deduplikácia: rovnaký názov + dátum + assignee = jedna úloha
+    const seen = new Map<string, Task>();
+    for (const t of filtered) {
+      const d = new Date(t.due_date!);
+      const key = [
+        t.title.trim().toLowerCase(),
+        dayKey(d),
+        t.assignee_id ?? "",
+      ].join("|");
+      const prev = seen.get(key);
+      if (!prev) {
+        seen.set(key, t);
+      } else {
+        // prefer done alebo novší update
+        const prevTs = new Date(prev.updated_at || prev.created_at || 0).getTime();
+        const curTs = new Date(t.updated_at || t.created_at || 0).getTime();
+        if (t.status === "done" || curTs > prevTs) seen.set(key, t);
+      }
+    }
+    const deduped = Array.from(seen.values());
+
+    deduped.sort((a, b) => {
       const da = new Date(a.due_date!).getTime();
       const db = new Date(b.due_date!).getTime();
       return da - db;
     });
 
     const groups = new Map<string, { date: Date; tasks: Task[] }>();
-    for (const t of filtered) {
+    for (const t of deduped) {
       const d = new Date(t.due_date!);
       const key = dayKey(d);
       const existing = groups.get(key);
@@ -276,9 +297,10 @@ export default function TeamCalendar() {
                           <div className="min-w-0 flex-1">
                             <p
                               className={cn(
-                                "truncate text-sm font-semibold",
+                                "text-sm font-semibold leading-snug line-clamp-2 break-words",
                                 done && "text-muted-foreground line-through"
                               )}
+                              title={t.title}
                             >
                               {t.title}
                             </p>
