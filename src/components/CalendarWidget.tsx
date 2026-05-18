@@ -416,21 +416,24 @@ export function CalendarWidget({
         />
       )}
 
-      {/* Selected day list (for month/week) */}
-      {view !== "day" && (
-        <SelectedDayList
-          selected={selected}
-          tasks={tasksByDay.get(dayKey(selected)) ?? []}
-          googleEvents={googleByDay.get(dayKey(selected)) ?? []}
-          myColor={myColor}
-          projectsById={projectsById}
-          profilesById={profilesById}
-          currentUserId={targetUserId}
-          onOpenTask={setOpenTask}
-          readOnly={isReadOnly}
-          mode={mode}
-        />
-      )}
+      {/* Agenda — vždy zobrazená pre vybraný deň (v day view = cursor) */}
+      {(() => {
+        const agendaDay = view === "day" ? cursor : selected;
+        return (
+          <SelectedDayList
+            selected={agendaDay}
+            tasks={tasksByDay.get(dayKey(agendaDay)) ?? []}
+            googleEvents={googleByDay.get(dayKey(agendaDay)) ?? []}
+            myColor={myColor}
+            projectsById={projectsById}
+            profilesById={profilesById}
+            currentUserId={targetUserId}
+            onOpenTask={setOpenTask}
+            readOnly={isReadOnly}
+            mode={mode}
+          />
+        );
+      })()}
 
       <TaskDetailDialog
         task={openTask}
@@ -1063,7 +1066,7 @@ function SelectedDayList({
     <div className="mt-3 border-t border-border/60 pt-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-          {selected.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long" })}
+          Agenda · {selected.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long" })}
           {totalCount > 0 && (
             <span className="ml-1.5 text-muted-foreground/70">· {totalCount}</span>
           )}
