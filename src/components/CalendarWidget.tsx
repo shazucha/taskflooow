@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUserId, useDeleteTask, useProfiles, useProjects, useTaskWatchers, useTasks, useToggleTaskDone } from "@/lib/queries";
 import type { Profile, Project, Task } from "@/lib/types";
@@ -994,6 +994,7 @@ function SelectedDayList({
   mode?: "personal" | "team";
 }) {
   const del = useDeleteTask();
+  const [expanded, setExpanded] = useState(false);
   const handleDelete = async (task: Task) => {
     if (!confirm("Naozaj zmazať túto úlohu?")) return;
     try {
@@ -1018,26 +1019,77 @@ function SelectedDayList({
     if (at !== bt) return at ? -1 : 1;
     return da.getTime() - db.getTime();
   };
-  const sortedTasks = [...tasks].sort(sortChrono);
+  // Deduplikuj úlohy podľa (title + due_date + assignee) — odstráni duplicitné záznamy
+  // ktoré vznikli napr. opakovaným importom z Google.
+  const dedupTasks = (list: Task[]): Task[] => {
+    const seen = new Map<string, Task>();
+    for (const t of list) {
+      const k = `${t.title.trim().toLowerCase()}|${t.due_date ?? ""}|${t.assignee_id ?? ""}`;
+      const prev = seen.get(k);
+      // preferuj dokončené / novšie
+      if (!prev) seen.set(k, t);
+      else {
+        const prevDone = prev.status === "done";
+        const curDone = t.status === "done";
+        if (curDone && !prevDone) seen.set(k, t);
+        else if (curDone === prevDone && new Date(t.updated_at) > new Date(prev.updated_at)) seen.set(k, t);
+      }
+    }
+    return Array.from(seen.values());
+  };
+  const sortedTasks = dedupTasks([...tasks]).sort(sortChrono);
+  // Vyfiltruj Google eventy, ktoré sú už zachytené ako úlohy (rovnaký titulok + čas).
+  const taskKeys = new Set(
+    sortedTasks.map(
+      (t) => `${t.title.trim().toLowerCase()}|${t.due_date ? new Date(t.due_date).getTime() : ""}`
+    )
+  );
+  const filteredGoogle = googleEvents.filter((e) => {
+    const k = `${(e.title ?? "").trim().toLowerCase()}|${e.start ? new Date(e.start).getTime() : ""}`;
+    return !taskKeys.has(k);
+  });
   const myTasks = sortedTasks.filter(isMine);
   const otherTasks = sortedTasks.filter((t) => !isMine(t));
   const splitView = mode === "team";
+  const totalCount = sortedTasks.length + filteredGoogle.length;
+  const COLLAPSED_LIMIT = 4;
+  const collapsible = totalCount > COLLAPSED_LIMIT;
+  const visibleTasks = !collapsible || expanded ? sortedTasks : sortedTasks.slice(0, COLLAPSED_LIMIT);
+  const visibleGoogle =
+    !collapsible || expanded
+      ? filteredGoogle
+      : filteredGoogle.slice(0, Math.max(0, COLLAPSED_LIMIT - sortedTasks.length));
   return (
     <div className="mt-3 border-t border-border/60 pt-3">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-        {selected.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long" })}
-      </p>
-      {tasks.length === 0 && googleEvents.length === 0 ? (
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          {selected.toLocaleDateString("sk-SK", { weekday: "long", day: "numeric", month: "long" })}
+          {totalCount > 0 && (
+            <span className="ml-1.5 text-muted-foreground/70">· {totalCount}</span>
+          )}
+        </p>
+        {collapsible && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+          >
+            {expanded ? "Zbaliť" : `Zobraziť všetky (${totalCount})`}
+            {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </button>
+        )}
+      </div>
+      {sortedTasks.length === 0 && filteredGoogle.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">Žiadne úlohy.</p>
       ) : splitView ? (
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <div>
             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Moje</p>
-            {myTasks.length === 0 ? (
+            {(expanded ? myTasks : myTasks.slice(0, COLLAPSED_LIMIT)).length === 0 ? (
               <p className="text-xs text-muted-foreground/70">Žiadne moje úlohy.</p>
             ) : (
               <ul className="space-y-1.5">
-                {myTasks.map((t) => (
+                {(expanded ? myTasks : myTasks.slice(0, COLLAPSED_LIMIT)).map((t) => (
                   <TaskRow
                     key={t.id}
                     task={t}
@@ -1053,11 +1105,11 @@ function SelectedDayList({
           </div>
           <div>
             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Ostatní</p>
-            {otherTasks.length === 0 && googleEvents.length === 0 ? (
+            {otherTasks.length === 0 && filteredGoogle.length === 0 ? (
               <p className="text-xs text-muted-foreground/70">Nič od ostatných.</p>
             ) : (
               <ul className="space-y-1.5">
-                {otherTasks.map((t) => (
+                {(expanded ? otherTasks : otherTasks.slice(0, COLLAPSED_LIMIT)).map((t) => (
                   <TaskRow
                     key={t.id}
                     task={t}
@@ -1068,7 +1120,7 @@ function SelectedDayList({
                     onDelete={readOnly ? undefined : handleDelete}
                   />
                 ))}
-                {googleEvents.map((e) => (
+                {filteredGoogle.map((e) => (
                   <GoogleEventRow key={e.id} event={e} />
                 ))}
               </ul>
@@ -1077,7 +1129,7 @@ function SelectedDayList({
         </div>
       ) : (
         <ul className="mt-2 space-y-1.5">
-          {sortedTasks.map((t) => (
+          {visibleTasks.map((t) => (
             <TaskRow
               key={t.id}
               task={t}
@@ -1088,10 +1140,19 @@ function SelectedDayList({
               onDelete={readOnly ? undefined : handleDelete}
             />
           ))}
-          {googleEvents.map((e) => (
+          {visibleGoogle.map((e) => (
             <GoogleEventRow key={e.id} event={e} />
           ))}
         </ul>
+      )}
+      {collapsible && !expanded && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-2 w-full rounded-lg border border-dashed border-border/60 py-1.5 text-[11px] font-semibold text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+        >
+          + {totalCount - COLLAPSED_LIMIT} ďalších
+        </button>
       )}
     </div>
   );
