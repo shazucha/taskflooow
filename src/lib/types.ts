@@ -43,6 +43,7 @@ export interface ProjectRecurringWork {
   note: string | null;
   position: number;
   created_at: string;
+  assignee_id: string | null;
 }
 
 export interface ProjectRecurringWorkCompletion {
@@ -62,6 +63,7 @@ export interface ProjectMonthlyWork {
   position: number;
   source_work_id: string | null;
   created_at: string;
+  assignee_id: string | null;
 }
 
 export interface ProjectMonthlyWorkCompletion {
