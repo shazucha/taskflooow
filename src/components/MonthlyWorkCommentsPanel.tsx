@@ -21,6 +21,24 @@ interface Props {
   onClose: () => void;
 }
 
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const sec = Math.round(diffMs / 1000);
+  if (sec < 45) return "teraz";
+  const min = Math.round(sec / 60);
+  if (min < 60) return `pred ${min} min`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `pred ${hr} h`;
+  const day = Math.round(hr / 24);
+  if (day < 7) return `pred ${day} d`;
+  const wk = Math.round(day / 7);
+  if (wk < 5) return `pred ${wk} týž.`;
+  const mo = Math.round(day / 30);
+  if (mo < 12) return `pred ${mo} mes.`;
+  const yr = Math.round(day / 365);
+  return `pred ${yr} r.`;
+}
+
 /**
  * Vlákno komentárov k jednej položke náplne predplatného (per mesiac).
  * Zobrazuje sa inline pod riadkom v MonthlyDeliverablesCard.
@@ -71,7 +89,17 @@ export function MonthlyWorkCommentsPanel({ projectId, monthKey, workId, comments
                         {author?.full_name?.trim() || author?.email || "Neznámy"}
                       </span>
                       <span>·</span>
-                      <span>{new Date(c.created_at).toLocaleString("sk-SK")}</span>
+                      <span title={new Date(c.created_at).toLocaleString("sk-SK")}>
+                        {relativeTime(c.created_at)}
+                      </span>
+                      <span className="text-muted-foreground/60">
+                        ({new Date(c.created_at).toLocaleString("sk-SK", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })})
+                      </span>
                     </div>
                     <p className="mt-0.5 whitespace-pre-wrap break-words text-sm">{c.body}</p>
                   </div>
