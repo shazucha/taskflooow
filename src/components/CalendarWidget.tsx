@@ -96,7 +96,7 @@ export function CalendarWidget({
   teamFocusUserId = null,
   projectId,
 }: CalendarWidgetProps = {}) {
-  const [view, setView] = useState<View>("month");
+  const [view, setView] = useState<View>("day");
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<Date>(new Date());
   const [openTask, setOpenTask] = useState<Task | null>(null);
