@@ -15,6 +15,7 @@ export default function Dashboard() {
 
   const pendingCount = useMemo(
     () =>
+      !currentUserId ? 0 :
       tasks.filter(
         (t) => t.assignee_id === currentUserId && t.status !== "done"
       ).length,
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const today = new Date();
   const overdueCount = useMemo(
     () =>
+      !currentUserId ? 0 :
       tasks.filter(
         (t) =>
           t.assignee_id === currentUserId &&
