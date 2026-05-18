@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { Priority, Task } from "@/lib/types";
 import { PRIORITY_META } from "@/lib/types";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
-import { useCurrentUserId, useProjects, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useIsAppAdmin, useProjects, useTasks } from "@/lib/queries";
 import { formatLocalDayHeader, isSameLocalDay, localDayKey, localTodayTomorrow, startOfLocalDay } from "@/lib/dayLabels";
 
 function isValidDate(d: Date): boolean {
@@ -23,6 +23,7 @@ export default function Tasks() {
   const { data: tasks = [] } = useTasks();
   const { data: projects = [] } = useProjects();
   const currentUserId = useCurrentUserId();
+  const isAdmin = useIsAppAdmin();
   const [scope, setScope] = useState<Scope>("mine");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [overdueOnly, setOverdueOnly] = useState(false);
@@ -35,9 +36,11 @@ export default function Tasks() {
     const monthScoped = filterTasksByMonth(tasks, monthKey).filter((t) => t.status !== "done");
     return {
       mine: monthScoped.filter((t) => t.assignee_id === currentUserId),
-      all: monthScoped.filter((t) => t.project_id && myProjectIds.has(t.project_id)),
+      all: isAdmin
+        ? monthScoped
+        : monthScoped.filter((t) => t.project_id && myProjectIds.has(t.project_id)),
     };
-  }, [tasks, monthKey, myProjectIds, currentUserId]);
+  }, [tasks, monthKey, myProjectIds, currentUserId, isAdmin]);
 
   const applyPriority = (list: Task[]) =>
     priorityFilter === "all" ? list : list.filter((t) => t.priority === priorityFilter);
