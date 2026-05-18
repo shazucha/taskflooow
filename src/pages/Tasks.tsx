@@ -83,8 +83,6 @@ export default function Tasks() {
   const todayStart = today;
 
   const chips: { id: Filter; label: string; cls?: string }[] = [
-    { id: "all", label: "Všetko" },
-    { id: "mine", label: "Moje" },
     { id: "high", label: PRIORITY_META.high.label, cls: "data-[active=true]:bg-priority-high-soft data-[active=true]:text-priority-high" },
     { id: "medium", label: PRIORITY_META.medium.label, cls: "data-[active=true]:bg-priority-medium-soft data-[active=true]:text-priority-medium" },
     { id: "low", label: PRIORITY_META.low.label, cls: "data-[active=true]:bg-priority-low-soft data-[active=true]:text-priority-low" },
