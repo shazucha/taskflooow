@@ -205,7 +205,7 @@ export default function Feedback() {
                       </p>
                     )}
                     <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <UserAvatar profile={author} size="xs" />
+                      <UserAvatar profile={author} size="sm" />
                       <span>{author?.full_name?.trim() || author?.email || "Neznámy"}</span>
                       <span>·</span>
                       <span>{new Date(r.created_at).toLocaleString("sk-SK")}</span>
