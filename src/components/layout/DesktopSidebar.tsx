@@ -15,15 +15,6 @@ type NavItem = {
   badgeKey?: "team" | "dm" | "tasks" | "projects";
 };
 
-const baseItems: NavItem[] = [
-  { to: "/", label: "Prehľad", icon: LayoutDashboard, end: true, badgeKey: "team" },
-  { to: "/projects", label: "Projekty", icon: FolderKanban },
-  { to: "/tasks", label: "Úlohy", icon: ListChecks },
-  { to: "/company-materials", label: "Firemné materiály", icon: FolderOpen },
-  { to: "/chat", label: "Chat", icon: MessageCircle, badgeKey: "dm" },
-  { to: "/me", label: "Profil", icon: User },
-];
-
 export function DesktopSidebar() {
   const teamUnread = useUnreadTeamChat();
   const { total: dmUnread } = useUnreadDirect();
