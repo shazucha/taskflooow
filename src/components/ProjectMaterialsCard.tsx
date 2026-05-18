@@ -13,6 +13,8 @@ import {
   Trash2,
   Youtube,
   FolderOpen,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -104,6 +106,10 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
+  const PREVIEW_COUNT = 3;
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = materials.length > PREVIEW_COUNT;
+  const visible = expanded || !hasMore ? materials : materials.slice(0, PREVIEW_COUNT);
 
   const submit = async () => {
     if (!currentUserId) return;
@@ -130,12 +136,28 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
   return (
     <div className="card-elevated p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="inline-flex items-center gap-2 text-sm font-semibold">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="inline-flex items-center gap-2 text-sm font-semibold hover:text-primary"
+          aria-expanded={expanded}
+          title={expanded ? "Zbaliť" : "Rozbaliť"}
+        >
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <FolderOpen className="h-4 w-4" />
           </span>
           Materiály
-        </h3>
+          {materials.length > 0 && (
+            <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+              {materials.length}
+            </span>
+          )}
+          {materials.length > 0 && (
+            expanded
+              ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+              : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+        </button>
         {!adding && (
           <button
             type="button"
@@ -155,7 +177,7 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
 
       {materials.length > 0 && (
         <ul className="space-y-1.5">
-          {materials.map((m) => {
+          {visible.map((m) => {
             const kind = detectKind(m.url);
             const meta = KIND_META[kind];
             const Icon = meta.icon;
@@ -202,6 +224,24 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
             );
           })}
         </ul>
+      )}
+
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="h-3 w-3" /> Zbaliť
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3 w-3" /> Zobraziť všetky ({materials.length})
+            </>
+          )}
+        </button>
       )}
 
       {adding && (
