@@ -298,7 +298,7 @@ export async function fetchTaskActivity(taskId: string): Promise<TaskActivity[]>
 }
 
 // ---- Project recurring works (mesačná náplň predplatného)
-const RECURRING_COLS = "id, project_id, title, note, position, created_at";
+const RECURRING_COLS = "id, project_id, title, note, position, created_at, assignee_id";
 
 export async function fetchProjectRecurringWorks(projectId: string): Promise<ProjectRecurringWork[]> {
   const { data, error } = await supabase
@@ -316,6 +316,7 @@ export async function createProjectRecurringWork(input: {
   title: string;
   note: string | null;
   position?: number;
+  assignee_id?: string | null;
 }): Promise<ProjectRecurringWork> {
   const { data, error } = await supabase
     .from("project_recurring_works")
@@ -324,6 +325,7 @@ export async function createProjectRecurringWork(input: {
       title: input.title,
       note: input.note,
       position: input.position ?? 0,
+      assignee_id: input.assignee_id ?? null,
     })
     .select(RECURRING_COLS)
     .single();
@@ -399,7 +401,7 @@ export async function unmarkRecurringWorkDone(work_id: string, month_key: string
 
 // ---- Monthly works (snapshot na konkrétny mesiac)
 const MONTHLY_WORK_COLS =
-  "id, project_id, month_key, title, note, position, source_work_id, created_at";
+  "id, project_id, month_key, title, note, position, source_work_id, created_at, assignee_id";
 
 export async function fetchProjectMonthlyWorks(
   projectId: string,
@@ -462,7 +464,7 @@ export async function ensureMonthlyWorksSnapshot(
 
   const tpl = await supabase
     .from("project_recurring_works")
-    .select("id, title, note, position")
+    .select("id, title, note, position, assignee_id")
     .eq("project_id", projectId)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });
@@ -475,6 +477,7 @@ export async function ensureMonthlyWorksSnapshot(
     note: (r.note as string | null) ?? null,
     position: typeof r.position === "number" ? r.position : idx,
     source_work_id: r.id as string,
+    assignee_id: (r.assignee_id as string | null) ?? null,
   }));
   if (rows.length === 0) return true;
 
@@ -519,10 +522,18 @@ export async function createMonthlyWork(input: {
   title: string;
   note: string | null;
   position: number;
+  assignee_id?: string | null;
 }): Promise<import("./types").ProjectMonthlyWork> {
   const { data, error } = await supabase
     .from("project_monthly_works")
-    .insert(input)
+    .insert({
+      project_id: input.project_id,
+      month_key: input.month_key,
+      title: input.title,
+      note: input.note,
+      position: input.position,
+      assignee_id: input.assignee_id ?? null,
+    })
     .select(MONTHLY_WORK_COLS)
     .single();
   if (error) throw error;
@@ -531,7 +542,7 @@ export async function createMonthlyWork(input: {
 
 export async function updateMonthlyWork(
   id: string,
-  patch: Partial<{ title: string; note: string | null }>,
+  patch: Partial<{ title: string; note: string | null; assignee_id: string | null }>,
 ) {
   const { error } = await supabase.from("project_monthly_works").update(patch).eq("id", id);
   if (error) throw error;
@@ -583,7 +594,7 @@ export async function resetMonthlySnapshot(projectId: string, monthKey: string) 
 export async function saveSnapshotAsTemplate(projectId: string, monthKey: string) {
   const snap = await supabase
     .from("project_monthly_works")
-    .select("title, note, position")
+    .select("title, note, position, assignee_id")
     .eq("project_id", projectId)
     .eq("month_key", monthKey)
     .order("position", { ascending: true });
@@ -597,6 +608,7 @@ export async function saveSnapshotAsTemplate(projectId: string, monthKey: string
     title: r.title as string,
     note: (r.note as string | null) ?? null,
     position: typeof r.position === "number" ? r.position : idx,
+    assignee_id: (r.assignee_id as string | null) ?? null,
   }));
   if (rows.length > 0) {
     const { error } = await supabase.from("project_recurring_works").insert(rows);
