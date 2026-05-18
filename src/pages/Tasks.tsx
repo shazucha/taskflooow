@@ -25,6 +25,7 @@ export default function Tasks() {
   const currentUserId = useCurrentUserId();
   const [scope, setScope] = useState<Scope>("mine");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
   const [openTask, setOpenTask] = useState<Task | null>(null);
 
@@ -40,25 +41,28 @@ export default function Tasks() {
 
   const applyPriority = (list: Task[]) =>
     priorityFilter === "all" ? list : list.filter((t) => t.priority === priorityFilter);
+  const isOverdue = (t: Task) => !!t.due_date && new Date(t.due_date).getTime() < Date.now();
+  const applyOverdue = (list: Task[]) => (overdueOnly ? list.filter(isOverdue) : list);
 
   const filtered = useMemo(() => {
-    return applyPriority(scopedBase[scope]).sort((a, b) => {
+    return applyOverdue(applyPriority(scopedBase[scope])).sort((a, b) => {
       const order = { high: 0, medium: 1, low: 2 } as const;
       return order[a.priority] - order[b.priority];
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopedBase, scope, priorityFilter]);
+  }, [scopedBase, scope, priorityFilter, overdueOnly]);
 
   const scopeCounts = {
-    mine: applyPriority(scopedBase.mine).length,
-    all: applyPriority(scopedBase.all).length,
+    mine: applyOverdue(applyPriority(scopedBase.mine)).length,
+    all: applyOverdue(applyPriority(scopedBase.all)).length,
   };
   const priorityCounts = {
-    all: scopedBase[scope].length,
-    high: scopedBase[scope].filter((t) => t.priority === "high").length,
-    medium: scopedBase[scope].filter((t) => t.priority === "medium").length,
-    low: scopedBase[scope].filter((t) => t.priority === "low").length,
+    all: applyOverdue(scopedBase[scope]).length,
+    high: applyOverdue(scopedBase[scope].filter((t) => t.priority === "high")).length,
+    medium: applyOverdue(scopedBase[scope].filter((t) => t.priority === "medium")).length,
+    low: applyOverdue(scopedBase[scope].filter((t) => t.priority === "low")).length,
   } as Record<PriorityFilter, number>;
+  const overdueTotal = scopedBase[scope].filter(isOverdue).length;
 
   const groupByDate = (list: Task[]) => {
     const withDate: Task[] = [];
@@ -127,7 +131,8 @@ export default function Tasks() {
         <MonthFilter value={monthKey} onChange={setMonthKey} />
       </div>
 
-      <div className="mt-4 inline-flex rounded-full bg-surface-muted p-1">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-full bg-surface-muted p-1">
         {([
           { id: "mine", label: "Moje", count: scopeCounts.mine },
           { id: "all", label: "Tím", count: scopeCounts.all },
@@ -144,6 +149,28 @@ export default function Tasks() {
             </span>
           </button>
         ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setOverdueOnly((v) => !v)}
+          data-active={overdueOnly}
+          title="Zobraziť iba úlohy po termíne"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all",
+            overdueOnly
+              ? "border-priority-high/60 bg-priority-high text-white shadow-[0_0_12px_hsl(var(--priority-high)/0.5)]"
+              : "border-priority-high/40 bg-priority-high-soft/50 text-priority-high hover:bg-priority-high-soft"
+          )}
+        >
+          <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.5} />
+          Po termíne
+          <span className={cn(
+            "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+            overdueOnly ? "bg-white/20" : "bg-priority-high/15"
+          )}>
+            {overdueTotal}
+          </span>
+        </button>
       </div>
 
       <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0">
