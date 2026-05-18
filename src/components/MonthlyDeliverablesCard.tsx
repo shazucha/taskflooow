@@ -606,9 +606,8 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
                     </div>
                   </li>
                 ) : (
-                  <>
+                  <Fragment key={r.id}>
                     <SortableRow
-                      key={r.id}
                       row={r}
                       done={doneSet.has(r.id)}
                       editable={hasSnapshot}
@@ -636,7 +635,7 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
                         onClose={() => setOpenCommentsId(null)}
                       />
                     )}
-                  </>
+                  </Fragment>
                 )
               )}
             </ul>
