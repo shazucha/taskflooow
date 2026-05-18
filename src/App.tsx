@@ -18,6 +18,7 @@ import PresenceDiag from "./pages/PresenceDiag";
 import TeamCalendar from "./pages/TeamCalendar";
 import CompanyMaterials from "./pages/CompanyMaterials";
 import Feedback from "./pages/Feedback";
+import PendingDeliverables from "./pages/PendingDeliverables";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/team-calendar" element={<TeamCalendar />} />
             <Route path="/company-materials" element={<CompanyMaterials />} />
             <Route path="/feedback" element={<Feedback />} />
+            <Route path="/projects/pending" element={<PendingDeliverables />} />
             <Route path="/diag/google-sync" element={<GoogleSyncDiag />} />
             <Route path="/diag/presence" element={<PresenceDiag />} />
           </Route>

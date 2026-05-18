@@ -74,7 +74,7 @@ export default function Dashboard() {
 
           {projectPendingCount > 0 && (
             <Link
-              to="/projects"
+              to="/projects/pending"
               title="Nedokončené náplne projektov (predplatné)."
               className="group flex items-center gap-3 overflow-hidden rounded-2xl border border-primary/40 bg-primary-soft/70 p-3.5 transition hover:shadow-md"
             >
