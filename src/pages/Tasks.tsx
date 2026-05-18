@@ -131,7 +131,8 @@ export default function Tasks() {
         <MonthFilter value={monthKey} onChange={setMonthKey} />
       </div>
 
-      <div className="mt-4 inline-flex rounded-full bg-surface-muted p-1">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-full bg-surface-muted p-1">
         {([
           { id: "mine", label: "Moje", count: scopeCounts.mine },
           { id: "all", label: "Tím", count: scopeCounts.all },
@@ -148,6 +149,28 @@ export default function Tasks() {
             </span>
           </button>
         ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setOverdueOnly((v) => !v)}
+          data-active={overdueOnly}
+          title="Zobraziť iba úlohy po termíne"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all",
+            overdueOnly
+              ? "border-priority-high/60 bg-priority-high text-white shadow-[0_0_12px_hsl(var(--priority-high)/0.5)]"
+              : "border-priority-high/40 bg-priority-high-soft/50 text-priority-high hover:bg-priority-high-soft"
+          )}
+        >
+          <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.5} />
+          Po termíne
+          <span className={cn(
+            "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+            overdueOnly ? "bg-white/20" : "bg-priority-high/15"
+          )}>
+            {overdueTotal}
+          </span>
+        </button>
       </div>
 
       <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0">
