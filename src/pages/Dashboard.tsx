@@ -46,6 +46,7 @@ export default function Dashboard() {
       {pendingCount > 0 && (
         <Link
           to="/tasks"
+          title="Červené = nedokončené úlohy v aktuálnom mesiaci. Po termíne svietia silnejšie."
           className="group mt-4 flex items-center gap-3 overflow-hidden rounded-2xl border border-priority-high/30 bg-priority-high-soft/60 p-3.5 transition hover:shadow-md md:mt-6"
         >
           <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-priority-high text-white shadow-[0_0_18px_hsl(var(--priority-high)/0.55)]">
