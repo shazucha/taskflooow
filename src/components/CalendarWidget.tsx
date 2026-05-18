@@ -96,7 +96,7 @@ export function CalendarWidget({
   teamFocusUserId = null,
   projectId,
 }: CalendarWidgetProps = {}) {
-  const [view, setView] = useState<View>("month");
+  const [view, setView] = useState<View>("day");
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<Date>(new Date());
   const [openTask, setOpenTask] = useState<Task | null>(null);
@@ -293,7 +293,7 @@ export function CalendarWidget({
     <div className="card-elevated p-4">
       {/* View switcher */}
       <div className="mb-3 flex gap-1 rounded-xl bg-surface-muted p-1">
-        {(["month", "week", "day"] as const).map((v) => (
+        {(["day", "week", "month"] as const).map((v) => (
           <button
             key={v}
             type="button"
