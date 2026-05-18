@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  MessageSquare,
   MoreVertical,
   Pencil,
   Plus,
@@ -33,6 +34,7 @@ import {
   useEnsureMonthlySnapshot,
   useIsAppAdmin,
   useMonthlyWorkCompletions,
+  useMonthlyWorkComments,
   useProfiles,
   useProjectMonthlyWorks,
   useProjectRecurringWorks,
@@ -44,6 +46,7 @@ import {
   useToggleRecurringWorkDone,
   useUpdateMonthlyWork,
 } from "@/lib/queries";
+import { MonthlyWorkCommentsPanel } from "./MonthlyWorkCommentsPanel";
 import type { Profile } from "@/lib/types";
 import { NewTaskDialog } from "./NewTaskDialog";
 import { toast } from "sonner";
@@ -88,6 +91,9 @@ function SortableRow({
   onDelete,
   onEdit,
   onAssign,
+  onToggleComments,
+  commentCount,
+  commentsOpen,
   assignee,
   profiles,
   toggleDisabled,
@@ -100,6 +106,9 @@ function SortableRow({
   onDelete: () => void;
   onEdit: () => void;
   onAssign: (userId: string | null) => void;
+  onToggleComments: () => void;
+  commentCount: number;
+  commentsOpen: boolean;
   assignee: Profile | null;
   profiles: Profile[];
   toggleDisabled: boolean;
@@ -222,6 +231,28 @@ function SortableRow({
           <UserAvatar profile={assignee} size="sm" />
         </span>
       ) : null}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onToggleComments(); }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className={cn(
+          "relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition",
+          commentsOpen
+            ? "bg-primary/15 text-primary"
+            : commentCount > 0
+              ? "text-primary hover:bg-primary/10"
+              : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
+        )}
+        aria-label={commentCount > 0 ? `${commentCount} komentárov` : "Komentovať"}
+        title={commentCount > 0 ? `${commentCount} komentárov` : "Komentovať"}
+      >
+        <MessageSquare className="h-3.5 w-3.5" />
+        {commentCount > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
+            {commentCount}
+          </span>
+        )}
+      </button>
       {editable && (
         <>
           <button
