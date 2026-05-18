@@ -41,6 +41,15 @@ export default function Tasks() {
     return base.filter((t) => t.priority === filter);
   }, [tasks, filter, currentUserId, monthKey, projects]);
 
+  const counts = useMemo(() => {
+    const monthScoped = filterTasksByMonth(tasks, monthKey).filter((t) => t.status !== "done");
+    const myProjectIds = new Set(projects.map((p) => p.id));
+    return {
+      mine: monthScoped.filter((t) => t.assignee_id === currentUserId).length,
+      all: monthScoped.filter((t) => t.project_id && myProjectIds.has(t.project_id)).length,
+    };
+  }, [tasks, monthKey, projects, currentUserId]);
+
   const groupByDate = (list: Task[]) => {
     const withDate: Task[] = [];
     const noDate: Task[] = [];
@@ -104,16 +113,19 @@ export default function Tasks() {
 
       <div className="mt-4 inline-flex rounded-full bg-surface-muted p-1">
         {([
-          { id: "mine", label: "Moje" },
-          { id: "all", label: "Tím" },
-        ] as { id: Filter; label: string }[]).map((s) => (
+          { id: "mine", label: "Moje", count: counts.mine },
+          { id: "all", label: "Tím", count: counts.all },
+        ] as { id: Filter; label: string; count: number }[]).map((s) => (
           <button
             key={s.id}
             onClick={() => setFilter(s.id)}
             data-active={filter === s.id}
-            className="rounded-full px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors data-[active=true]:bg-foreground data-[active=true]:text-background"
+            className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors data-[active=true]:bg-foreground data-[active=true]:text-background"
           >
             {s.label}
+            <span className="rounded-full bg-background/60 px-1.5 py-0.5 text-[10px] font-bold text-foreground data-[active=true]:bg-background/20">
+              {s.count}
+            </span>
           </button>
         ))}
       </div>
