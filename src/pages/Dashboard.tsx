@@ -5,6 +5,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { SubscriptionPendingBadge } from "@/components/SubscriptionPendingBadge";
 import { useCurrentUserId, useProfiles, useProjects, useTasks } from "@/lib/queries";
+import { pendingTasksForUser } from "@/lib/recurring";
 
 export default function Dashboard() {
   const { data: projects = [] } = useProjects();
@@ -13,27 +14,10 @@ export default function Dashboard() {
   const currentUserId = useCurrentUserId();
   const me = profiles.find((p) => p.id === currentUserId);
 
-  const pendingCount = useMemo(
-    () =>
-      !currentUserId ? 0 :
-      tasks.filter(
-        (t) => t.assignee_id === currentUserId && t.status !== "done"
-      ).length,
-    [tasks, currentUserId]
-  );
-  const today = new Date();
-  const overdueCount = useMemo(
-    () =>
-      !currentUserId ? 0 :
-      tasks.filter(
-        (t) =>
-          t.assignee_id === currentUserId &&
-          t.status !== "done" &&
-          t.due_date &&
-          new Date(t.due_date) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      ).length,
-    [tasks, currentUserId]
-  );
+  const { pendingCount, overdueCount } = useMemo(() => {
+    const { all, overdue } = pendingTasksForUser(tasks, currentUserId);
+    return { pendingCount: all.length, overdueCount: overdue.length };
+  }, [tasks, currentUserId]);
 
   return (
     <div className="page-container">
