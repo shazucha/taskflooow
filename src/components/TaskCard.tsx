@@ -201,12 +201,15 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
       .filter((p): p is NonNullable<typeof p> => !!p);
   }, [profiles, allWatchers, task.id, task.created_by, task.assignee_id]);
   const done = task.status === "done";
+  const isOverdue = !done && !!task.due_date && new Date(task.due_date).getTime() < Date.now();
 
   return (
     <div
       className={cn(
         "card-elevated p-3.5 transition-all active:scale-[0.99]",
-        done && "opacity-70"
+        done && "opacity-70",
+        isOverdue &&
+          "border-priority-high/60 bg-priority-high-soft/40 shadow-[0_0_0_2px_hsl(var(--priority-high)/0.18),0_0_18px_hsl(var(--priority-high)/0.25)]"
       )}
     >
       <div className="flex items-start gap-3">
@@ -252,15 +255,27 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
             <PriorityBadge priority={task.priority} />
             {task.due_date && (
               hasTime ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                <span className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium",
+                  isOverdue
+                    ? "bg-priority-high/15 text-priority-high font-bold animate-pulse"
+                    : "text-muted-foreground"
+                )}>
                   <Clock className="h-3 w-3" />
                   {format(new Date(task.due_date), "HH:mm", { locale: sk })}
                   {task.due_end && ` – ${format(new Date(task.due_end), "HH:mm", { locale: sk })}`}
+                  {isOverdue && <span className="ml-0.5 font-extrabold">!</span>}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                <span className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium",
+                  isOverdue
+                    ? "bg-priority-high/15 text-priority-high font-bold animate-pulse"
+                    : "text-muted-foreground"
+                )}>
                   <CalendarDays className="h-3 w-3" />
                   {format(new Date(task.due_date), "d. MMM", { locale: sk })}
+                  {isOverdue && <span className="ml-0.5 font-extrabold">!</span>}
                 </span>
               )
             )}
