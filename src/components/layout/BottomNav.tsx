@@ -51,11 +51,18 @@ export function BottomNav() {
               ? subPending?.total ?? 0
               : 0;
           const glow = badgeKey === "tasks" || badgeKey === "projects";
+          const badgeTitle =
+            badgeKey === "tasks"
+              ? `${badge} nedokončených úloh v aktuálnom mesiaci (červené = po termíne)`
+              : badgeKey === "projects"
+              ? `${badge} nedokončených položiek v náplni predplatného`
+              : undefined;
           return (
             <li key={to}>
               <NavLink
                 to={to}
                 end={end}
+                title={badgeTitle}
                 className={({ isActive }) =>
                   cn(
                     "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
