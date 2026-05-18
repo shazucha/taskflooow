@@ -968,3 +968,58 @@ export function useDeleteProjectServiceOverride(projectId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["project_service_overrides", projectId] }),
   });
 }
+
+// ===== Feedback (chyby/vylepšenia) =====
+import {
+  fetchFeedbackReports,
+  createFeedbackReport,
+  setFeedbackStatus,
+  deleteFeedbackReport,
+  type FeedbackKind,
+  type FeedbackStatus,
+} from "./feedbackApi";
+
+export function useFeedbackReports() {
+  const { isReady, user } = useAuthReady();
+  return useQuery({
+    queryKey: ["feedback_reports"],
+    queryFn: fetchFeedbackReports,
+    enabled: isReady && !!user,
+  });
+}
+
+export function useFeedbackNewCount() {
+  const { data = [] } = useFeedbackReports();
+  const isAdmin = useIsAppAdmin();
+  if (!isAdmin) return 0;
+  return data.filter((r) => r.status === "new").length;
+}
+
+export function useCreateFeedbackReport() {
+  const qc = useQueryClient();
+  const userId = useCurrentUserId();
+  return useMutation({
+    mutationFn: (input: { kind: FeedbackKind; title: string; description: string | null }) => {
+      if (!userId) throw new Error("Nie si prihlásený");
+      return createFeedbackReport({ ...input, user_id: userId });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["feedback_reports"] }),
+  });
+}
+
+export function useSetFeedbackStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; status: FeedbackStatus }) =>
+      setFeedbackStatus(input.id, input.status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["feedback_reports"] }),
+  });
+}
+
+export function useDeleteFeedbackReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteFeedbackReport,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["feedback_reports"] }),
+  });
+}
