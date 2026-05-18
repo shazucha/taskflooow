@@ -178,6 +178,7 @@ function SortableRow({
           </span>
         )}
       </button>
+      {editable ? (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -213,6 +214,14 @@ function SortableRow({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
+      ) : assignee ? (
+        <span
+          className="flex h-7 w-7 shrink-0 items-center justify-center"
+          title={`Priradené: ${assignee.full_name ?? assignee.email ?? ""}`}
+        >
+          <UserAvatar profile={assignee} size="sm" />
+        </span>
+      ) : null}
       {editable && (
         <>
           <button
