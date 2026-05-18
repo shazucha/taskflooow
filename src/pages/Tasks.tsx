@@ -83,8 +83,6 @@ export default function Tasks() {
   const todayStart = today;
 
   const chips: { id: Filter; label: string; cls?: string }[] = [
-    { id: "all", label: "Všetko" },
-    { id: "mine", label: "Moje" },
     { id: "high", label: PRIORITY_META.high.label, cls: "data-[active=true]:bg-priority-high-soft data-[active=true]:text-priority-high" },
     { id: "medium", label: PRIORITY_META.medium.label, cls: "data-[active=true]:bg-priority-medium-soft data-[active=true]:text-priority-medium" },
     { id: "low", label: PRIORITY_META.low.label, cls: "data-[active=true]:bg-priority-low-soft data-[active=true]:text-priority-low" },
@@ -99,6 +97,22 @@ export default function Tasks() {
 
       <div className="mt-4">
         <MonthFilter value={monthKey} onChange={setMonthKey} />
+      </div>
+
+      <div className="mt-4 inline-flex rounded-full bg-surface-muted p-1">
+        {([
+          { id: "mine", label: "Moje" },
+          { id: "all", label: "Tím" },
+        ] as { id: Filter; label: string }[]).map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setFilter(s.id)}
+            data-active={filter === s.id}
+            className="rounded-full px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors data-[active=true]:bg-foreground data-[active=true]:text-background"
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
 
       <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0">
