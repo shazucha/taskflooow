@@ -25,6 +25,7 @@ export default function Tasks() {
   const currentUserId = useCurrentUserId();
   const [scope, setScope] = useState<Scope>("mine");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
   const [openTask, setOpenTask] = useState<Task | null>(null);
 
@@ -40,25 +41,28 @@ export default function Tasks() {
 
   const applyPriority = (list: Task[]) =>
     priorityFilter === "all" ? list : list.filter((t) => t.priority === priorityFilter);
+  const isOverdue = (t: Task) => !!t.due_date && new Date(t.due_date).getTime() < Date.now();
+  const applyOverdue = (list: Task[]) => (overdueOnly ? list.filter(isOverdue) : list);
 
   const filtered = useMemo(() => {
-    return applyPriority(scopedBase[scope]).sort((a, b) => {
+    return applyOverdue(applyPriority(scopedBase[scope])).sort((a, b) => {
       const order = { high: 0, medium: 1, low: 2 } as const;
       return order[a.priority] - order[b.priority];
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopedBase, scope, priorityFilter]);
+  }, [scopedBase, scope, priorityFilter, overdueOnly]);
 
   const scopeCounts = {
-    mine: applyPriority(scopedBase.mine).length,
-    all: applyPriority(scopedBase.all).length,
+    mine: applyOverdue(applyPriority(scopedBase.mine)).length,
+    all: applyOverdue(applyPriority(scopedBase.all)).length,
   };
   const priorityCounts = {
-    all: scopedBase[scope].length,
-    high: scopedBase[scope].filter((t) => t.priority === "high").length,
-    medium: scopedBase[scope].filter((t) => t.priority === "medium").length,
-    low: scopedBase[scope].filter((t) => t.priority === "low").length,
+    all: applyOverdue(scopedBase[scope]).length,
+    high: applyOverdue(scopedBase[scope].filter((t) => t.priority === "high")).length,
+    medium: applyOverdue(scopedBase[scope].filter((t) => t.priority === "medium")).length,
+    low: applyOverdue(scopedBase[scope].filter((t) => t.priority === "low")).length,
   } as Record<PriorityFilter, number>;
+  const overdueTotal = scopedBase[scope].filter(isOverdue).length;
 
   const groupByDate = (list: Task[]) => {
     const withDate: Task[] = [];
