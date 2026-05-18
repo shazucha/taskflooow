@@ -35,6 +35,8 @@ import {
   useIsAppAdmin,
   useMonthlyWorkCompletions,
   useMonthlyWorkComments,
+  useMyMonthlyWorkCommentReads,
+  useMarkMonthlyWorkCommentsRead,
   useProfiles,
   useProjectMonthlyWorks,
   useProjectRecurringWorks,
@@ -299,6 +301,7 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
   // Komentáre k položkám náplne (pre celý mesiac, zoskupené po work_id)
   const { data: workComments = [] } = useMonthlyWorkComments(projectId, monthKey);
   const [openCommentsId, setOpenCommentsId] = useState<string | null>(null);
+  const markReadMut = useMarkMonthlyWorkCommentsRead();
 
   const commentsByWork = useMemo(() => {
     const m = new Map<string, typeof workComments>();
@@ -309,6 +312,39 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
     }
     return m;
   }, [workComments]);
+
+  const workIdsWithComments = useMemo(
+    () => Array.from(commentsByWork.keys()),
+    [commentsByWork]
+  );
+  const { data: readRows = [] } = useMyMonthlyWorkCommentReads(workIdsWithComments);
+  const readByWork = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of readRows) m.set(r.work_id, new Date(r.last_read_at).getTime());
+    return m;
+  }, [readRows]);
+
+  const unreadCount = (workId: string) => {
+    const list = commentsByWork.get(workId);
+    if (!list || list.length === 0) return 0;
+    const lastRead = readByWork.get(workId) ?? 0;
+    let n = 0;
+    for (const c of list) {
+      if (c.user_id === userId) continue;
+      if (new Date(c.created_at).getTime() > lastRead) n++;
+    }
+    return n;
+  };
+
+  const handleToggleComments = (workId: string) => {
+    setOpenCommentsId((cur) => {
+      const next = cur === workId ? null : workId;
+      if (next && userId) {
+        markReadMut.mutate(next);
+      }
+      return next;
+    });
+  };
 
   const hasSnapshot = snapWorks.length > 0;
 
