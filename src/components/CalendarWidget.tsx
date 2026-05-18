@@ -293,7 +293,7 @@ export function CalendarWidget({
     <div className="card-elevated p-4">
       {/* View switcher */}
       <div className="mb-3 flex gap-1 rounded-xl bg-surface-muted p-1">
-        {(["month", "week", "day"] as const).map((v) => (
+        {(["day", "week", "month"] as const).map((v) => (
           <button
             key={v}
             type="button"
