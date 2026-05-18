@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   CalendarCheck2,
   Check,
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  MessageSquare,
   MoreVertical,
   Pencil,
   Plus,
@@ -33,6 +34,7 @@ import {
   useEnsureMonthlySnapshot,
   useIsAppAdmin,
   useMonthlyWorkCompletions,
+  useMonthlyWorkComments,
   useProfiles,
   useProjectMonthlyWorks,
   useProjectRecurringWorks,
@@ -44,6 +46,7 @@ import {
   useToggleRecurringWorkDone,
   useUpdateMonthlyWork,
 } from "@/lib/queries";
+import { MonthlyWorkCommentsPanel } from "./MonthlyWorkCommentsPanel";
 import type { Profile } from "@/lib/types";
 import { NewTaskDialog } from "./NewTaskDialog";
 import { toast } from "sonner";
@@ -88,6 +91,9 @@ function SortableRow({
   onDelete,
   onEdit,
   onAssign,
+  onToggleComments,
+  commentCount,
+  commentsOpen,
   assignee,
   profiles,
   toggleDisabled,
@@ -100,6 +106,9 @@ function SortableRow({
   onDelete: () => void;
   onEdit: () => void;
   onAssign: (userId: string | null) => void;
+  onToggleComments: () => void;
+  commentCount: number;
+  commentsOpen: boolean;
   assignee: Profile | null;
   profiles: Profile[];
   toggleDisabled: boolean;
@@ -222,6 +231,28 @@ function SortableRow({
           <UserAvatar profile={assignee} size="sm" />
         </span>
       ) : null}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onToggleComments(); }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className={cn(
+          "relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition",
+          commentsOpen
+            ? "bg-primary/15 text-primary"
+            : commentCount > 0
+              ? "text-primary hover:bg-primary/10"
+              : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
+        )}
+        aria-label={commentCount > 0 ? `${commentCount} komentárov` : "Komentovať"}
+        title={commentCount > 0 ? `${commentCount} komentárov` : "Komentovať"}
+      >
+        <MessageSquare className="h-3.5 w-3.5" />
+        {commentCount > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
+            {commentCount}
+          </span>
+        )}
+      </button>
       {editable && (
         <>
           <button
@@ -265,6 +296,20 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
   const { data: snapWorks = [], isLoading: snapLoading } = useProjectMonthlyWorks(projectId, monthKey);
   const { data: snapCompletions = [] } = useMonthlyWorkCompletions(projectId, monthKey);
 
+  // Komentáre k položkám náplne (pre celý mesiac, zoskupené po work_id)
+  const { data: workComments = [] } = useMonthlyWorkComments(projectId, monthKey);
+  const [openCommentsId, setOpenCommentsId] = useState<string | null>(null);
+
+  const commentsByWork = useMemo(() => {
+    const m = new Map<string, typeof workComments>();
+    for (const c of workComments) {
+      const arr = m.get(c.work_id) ?? [];
+      arr.push(c);
+      m.set(c.work_id, arr);
+    }
+    return m;
+  }, [workComments]);
+
   const hasSnapshot = snapWorks.length > 0;
 
   // Mutácie — snapshot
@@ -302,6 +347,7 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
     setAdding(false);
     setTitle("");
     setNote("");
+    setOpenCommentsId(null);
   }, [monthKey]);
 
   // Zoznam riadkov + completed mapovanie
@@ -560,20 +606,36 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
                     </div>
                   </li>
                 ) : (
-                  <SortableRow
-                    key={r.id}
-                    row={r}
-                    done={doneSet.has(r.id)}
-                    editable={hasSnapshot}
-                    onToggle={() => handleToggle(r)}
-                    onOpenTask={() => onWorkClick(r.title)}
-                    onDelete={() => handleDelete(r)}
-                    onEdit={() => startEdit(r)}
-                    onAssign={(uid) => handleAssign(r, uid)}
-                    assignee={r.assignee_id ? profileById.get(r.assignee_id) ?? null : null}
-                    profiles={profiles}
-                    toggleDisabled={!userId || toggleSnap.isPending || toggleTpl.isPending}
-                  />
+                  <Fragment key={r.id}>
+                    <SortableRow
+                      row={r}
+                      done={doneSet.has(r.id)}
+                      editable={hasSnapshot}
+                      onToggle={() => handleToggle(r)}
+                      onOpenTask={() => onWorkClick(r.title)}
+                      onDelete={() => handleDelete(r)}
+                      onEdit={() => startEdit(r)}
+                      onAssign={(uid) => handleAssign(r, uid)}
+                      onToggleComments={() =>
+                        setOpenCommentsId((cur) => (cur === r.id ? null : r.id))
+                      }
+                      commentCount={commentsByWork.get(r.id)?.length ?? 0}
+                      commentsOpen={openCommentsId === r.id}
+                      assignee={r.assignee_id ? profileById.get(r.assignee_id) ?? null : null}
+                      profiles={profiles}
+                      toggleDisabled={!userId || toggleSnap.isPending || toggleTpl.isPending}
+                    />
+                    {openCommentsId === r.id && (
+                      <MonthlyWorkCommentsPanel
+                        key={`${r.id}-comments`}
+                        projectId={projectId}
+                        monthKey={monthKey}
+                        workId={r.id}
+                        comments={commentsByWork.get(r.id) ?? []}
+                        onClose={() => setOpenCommentsId(null)}
+                      />
+                    )}
+                  </Fragment>
                 )
               )}
             </ul>
