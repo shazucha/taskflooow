@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { Priority, Task } from "@/lib/types";
 import { PRIORITY_META } from "@/lib/types";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
-import { useCurrentUserId, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useProjects, useTasks } from "@/lib/queries";
 import { formatLocalDayHeader, isSameLocalDay, localDayKey, localTodayTomorrow, startOfLocalDay } from "@/lib/dayLabels";
 
 function isValidDate(d: Date): boolean {
@@ -20,6 +20,7 @@ type Filter = "all" | Priority | "mine";
 
 export default function Tasks() {
   const { data: tasks = [] } = useTasks();
+  const { data: projects = [] } = useProjects();
   const currentUserId = useCurrentUserId();
   const [filter, setFilter] = useState<Filter>("mine");
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
@@ -27,16 +28,18 @@ export default function Tasks() {
 
   const filtered = useMemo(() => {
     const monthScoped = filterTasksByMonth(tasks, monthKey);
+    const myProjectIds = new Set(projects.map((p) => p.id));
     const base = monthScoped
       .filter((t) => t.status !== "done")
       .sort((a, b) => {
         const order = { high: 0, medium: 1, low: 2 } as const;
         return order[a.priority] - order[b.priority];
       });
-    if (filter === "all") return base;
+    if (filter === "all")
+      return base.filter((t) => t.project_id && myProjectIds.has(t.project_id));
     if (filter === "mine") return base.filter((t) => t.assignee_id === currentUserId);
     return base.filter((t) => t.priority === filter);
-  }, [tasks, filter, currentUserId, monthKey]);
+  }, [tasks, filter, currentUserId, monthKey, projects]);
 
   const groupByDate = (list: Task[]) => {
     const withDate: Task[] = [];
