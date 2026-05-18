@@ -40,3 +40,10 @@ drop policy if exists "delete own or admin" on public.feedback_comments;
 create policy "delete own or admin"
   on public.feedback_comments for delete to authenticated
   using (public.is_app_admin() or user_id = auth.uid());
+
+-- Aby ostatní členovia mohli komentovať a vidieť kontext, otvoríme SELECT na reportoch
+drop policy if exists "select own or admin" on public.feedback_reports;
+drop policy if exists "select all authenticated" on public.feedback_reports;
+create policy "select all authenticated"
+  on public.feedback_reports for select to authenticated
+  using (true);
