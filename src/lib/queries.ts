@@ -1023,3 +1023,38 @@ export function useDeleteFeedbackReport() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["feedback_reports"] }),
   });
 }
+
+import {
+  fetchFeedbackComments,
+  createFeedbackComment,
+  deleteFeedbackComment,
+} from "./feedbackApi";
+
+export function useFeedbackComments(reportId: string | undefined) {
+  const { isReady, user } = useAuthReady();
+  return useQuery({
+    queryKey: ["feedback_comments", reportId],
+    queryFn: () => fetchFeedbackComments(reportId!),
+    enabled: !!reportId && isReady && !!user,
+  });
+}
+
+export function useCreateFeedbackComment(reportId: string) {
+  const qc = useQueryClient();
+  const userId = useCurrentUserId();
+  return useMutation({
+    mutationFn: (body: string) => {
+      if (!userId) throw new Error("Nie si prihlásený");
+      return createFeedbackComment({ report_id: reportId, user_id: userId, body });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["feedback_comments", reportId] }),
+  });
+}
+
+export function useDeleteFeedbackComment(reportId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteFeedbackComment,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["feedback_comments", reportId] }),
+  });
+}
