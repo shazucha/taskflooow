@@ -79,6 +79,77 @@ export function useCurrentUserId() {
   return user?.id ?? null;
 }
 
+/**
+ * Spočíta nedokončené položky „Náplň predplatného" pre aktuálny mesiac
+ * naprieč všetkými projektmi, kde je prihlásený užívateľ priradený.
+ */
+export function useMySubscriptionPendingTotal() {
+  const { isReady, user } = useAuthReady();
+  const userId = user?.id ?? null;
+
+  return useQuery({
+    queryKey: ["my-subscription-pending-total", userId],
+    enabled: isReady && !!userId,
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      if (!userId) return { total: 0, perProject: {} as Record<string, number> };
+      const monthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+
+      // Mesačný snapshot priradený mne
+      const { data: snapWorks } = await supabase
+        .from("project_monthly_works")
+        .select("id, project_id, month_key, assignee_id")
+        .eq("month_key", monthKey)
+        .eq("assignee_id", userId);
+      const snapIds = (snapWorks ?? []).map((w) => w.id);
+      const { data: snapDone } = snapIds.length
+        ? await supabase
+            .from("project_monthly_work_completions")
+            .select("monthly_work_id")
+            .in("monthly_work_id", snapIds)
+        : { data: [] as { monthly_work_id: string }[] };
+      const snapDoneSet = new Set((snapDone ?? []).map((c) => c.monthly_work_id));
+      const snapPendingByProject: Record<string, number> = {};
+      const projectsWithSnapshot = new Set<string>();
+      for (const w of snapWorks ?? []) {
+        projectsWithSnapshot.add(w.project_id);
+        if (!snapDoneSet.has(w.id)) {
+          snapPendingByProject[w.project_id] = (snapPendingByProject[w.project_id] ?? 0) + 1;
+        }
+      }
+
+      // Šablóny (recurring works) priradené mne — len pre projekty bez snapshotu
+      const { data: tplWorks } = await supabase
+        .from("project_recurring_works")
+        .select("id, project_id, assignee_id")
+        .eq("assignee_id", userId);
+      const tplForProjects = (tplWorks ?? []).filter((w) => !projectsWithSnapshot.has(w.project_id));
+      const tplIds = tplForProjects.map((w) => w.id);
+      const { data: tplDone } = tplIds.length
+        ? await supabase
+            .from("project_recurring_work_completions")
+            .select("work_id, month_key")
+            .eq("month_key", monthKey)
+            .in("work_id", tplIds)
+        : { data: [] as { work_id: string; month_key: string }[] };
+      const tplDoneSet = new Set((tplDone ?? []).map((c) => c.work_id));
+      const tplPendingByProject: Record<string, number> = {};
+      for (const w of tplForProjects) {
+        if (!tplDoneSet.has(w.id)) {
+          tplPendingByProject[w.project_id] = (tplPendingByProject[w.project_id] ?? 0) + 1;
+        }
+      }
+
+      const perProject: Record<string, number> = { ...snapPendingByProject };
+      for (const [pid, n] of Object.entries(tplPendingByProject)) {
+        perProject[pid] = (perProject[pid] ?? 0) + n;
+      }
+      const total = Object.values(perProject).reduce((a, b) => a + b, 0);
+      return { total, perProject };
+    },
+  });
+}
+
 const ADMIN_EMAIL = "hazucha.stano@gmail.com";
 export function useIsAppAdmin() {
   const { user } = useSession();
