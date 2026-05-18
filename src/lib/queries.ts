@@ -389,7 +389,7 @@ export function useEnsureMonthlySnapshot(projectId: string, monthKey: string) {
 export function useCreateMonthlyWork(projectId: string, monthKey: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { title: string; note: string | null; position: number }) => {
+    mutationFn: async (input: { title: string; note: string | null; position: number; assignee_id?: string | null }) => {
       await ensureMonthlyWorksSnapshot(projectId, monthKey);
       return createMonthlyWork({ project_id: projectId, month_key: monthKey, ...input });
     },
@@ -400,7 +400,7 @@ export function useCreateMonthlyWork(projectId: string, monthKey: string) {
 export function useUpdateMonthlyWork(projectId: string, monthKey: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: { id: string; patch: Partial<{ title: string; note: string | null }> }) => {
+    mutationFn: async (vars: { id: string; patch: Partial<{ title: string; note: string | null; assignee_id: string | null }> }) => {
       await ensureMonthlyWorksSnapshot(projectId, monthKey);
       await updateMonthlyWork(vars.id, vars.patch);
     },
