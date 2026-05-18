@@ -149,24 +149,8 @@ export function pendingTasksForUser<T extends Task>(
   })();
 
   const mine = tasks.filter((t) => t.assignee_id === userId && t.status !== "done");
-
-  // aktuálny mesiac (collapsed series)
-  const currentMonth = filterTasksByMonth(mine, monthKey);
-
-  // overdue z minulých mesiacov + úlohy bez dátumu
-  const past = mine.filter((t) => {
-    if (!t.due_date) return true;
-    return new Date(t.due_date).getTime() < startOfMonth;
-  });
-
-  // zlúčiť bez duplicít
-  const seen = new Set<string>();
-  const all: T[] = [];
-  for (const t of [...currentMonth, ...past]) {
-    if (seen.has(t.id)) continue;
-    seen.add(t.id);
-    all.push(t);
-  }
+  // iba aktuálny mesiac (collapsed series)
+  const all = filterTasksByMonth(mine, monthKey);
   const overdue = all.filter(
     (t) => t.due_date && new Date(t.due_date).getTime() < startOfToday
   );
