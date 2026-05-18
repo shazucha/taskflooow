@@ -75,22 +75,22 @@ export default function Dashboard() {
           {projectPendingCount > 0 && (
             <Link
               to="/projects"
-              title="Nedokončené položky náplne predplatného v projektoch."
-              className="group flex items-center gap-3 overflow-hidden rounded-2xl border border-priority-high/30 bg-priority-high-soft/60 p-3.5 transition hover:shadow-md"
+              title="Nedokončené náplne projektov (predplatné)."
+              className="group flex items-center gap-3 overflow-hidden rounded-2xl border border-primary/40 bg-primary-soft/70 p-3.5 transition hover:shadow-md"
             >
-              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-priority-high text-white shadow-[0_0_18px_hsl(var(--priority-high)/0.55)]">
+              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_18px_hsl(var(--primary)/0.6)]">
                 <AlertTriangle className="h-5 w-5" />
-                <span className="absolute inset-0 animate-ping rounded-xl bg-priority-high/40" />
+                <span className="absolute inset-0 animate-ping rounded-xl bg-primary/40" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-priority-high">
-                  {projectPendingCount} nedokončen{projectPendingCount === 1 ? "á položka" : projectPendingCount < 5 ? "é položky" : "ých položiek"} náplne
+                <p className="text-sm font-semibold text-primary">
+                  {projectPendingCount} nedokončen{projectPendingCount === 1 ? "á náplň projektu" : projectPendingCount < 5 ? "é náplne projektov" : "ých náplní projektov"}
                 </p>
-                <p className="text-xs text-priority-high/80">
-                  v náplni predplatného · klikni pre zoznam
+                <p className="text-xs text-primary/80">
+                  v rámci predplatného · klikni pre zoznam
                 </p>
               </div>
-              <ArrowUpRight className="h-5 w-5 text-priority-high transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <ArrowUpRight className="h-5 w-5 text-primary transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
           )}
         </div>
