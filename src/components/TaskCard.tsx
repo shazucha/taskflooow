@@ -205,6 +205,7 @@ export function TaskCard({ task, onOpen, showProject }: Props) {
 
   return (
     <div
+      title={isOverdue ? "Úloha je po termíne" : undefined}
       className={cn(
         "card-elevated p-3.5 transition-all active:scale-[0.99]",
         done && "opacity-70",
