@@ -139,7 +139,7 @@ export function useProfiles() {
 
 export function useProjects() {
   const { isReady, user } = useAuthReady();
-  return useQuery({ queryKey: ["projects", user?.id ?? null], queryFn: fetchProjects, enabled: isReady && !!user });
+  return useQuery({ queryKey: ["projects", user?.id ?? null], queryFn: fetchProjects, enabled: isReady && !!user, placeholderData: (prev) => prev });
 }
 
 export function useTasks() {
@@ -163,7 +163,7 @@ export function useTasks() {
     };
   }, [qc, isReady, user]);
 
-  return useQuery({ queryKey: ["tasks", user?.id ?? null], queryFn: fetchTasks, enabled: isReady && !!user });
+  return useQuery({ queryKey: ["tasks", user?.id ?? null], queryFn: fetchTasks, enabled: isReady && !!user, placeholderData: (prev) => prev });
 }
 
 export function useProjectTasks(projectId: string | undefined) {
