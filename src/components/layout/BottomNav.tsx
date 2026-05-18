@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
 import { useCurrentUserId, useMySubscriptionPendingTotal, useTasks } from "@/lib/queries";
+import { pendingTasksForUser } from "@/lib/recurring";
 
 type NavItem = {
   to: string;
@@ -30,10 +31,7 @@ export function BottomNav() {
   const { data: tasks = [] } = useTasks();
   const { data: subPending } = useMySubscriptionPendingTotal();
   const taskPending = useMemo(
-    () =>
-      currentUserId
-        ? tasks.filter((t) => t.assignee_id === currentUserId && t.status !== "done").length
-        : 0,
+    () => pendingTasksForUser(tasks, currentUserId).all.length,
     [tasks, currentUserId]
   );
   const items: NavItem[] = baseItems;
