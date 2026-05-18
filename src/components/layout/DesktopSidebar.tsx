@@ -67,11 +67,18 @@ export function DesktopSidebar() {
                 ? subPending?.total ?? 0
                 : 0;
             const glow = badgeKey === "tasks" || badgeKey === "projects";
+            const badgeTitle =
+              badgeKey === "tasks"
+                ? `${badge} nedokončených úloh v aktuálnom mesiaci (červené = po termíne)`
+                : badgeKey === "projects"
+                ? `${badge} nedokončených položiek v náplni predplatného`
+                : undefined;
             return (
               <li key={to}>
                 <NavLink
                   to={to}
                   end={end}
+                  title={badgeTitle}
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
