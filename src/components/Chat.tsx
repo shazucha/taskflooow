@@ -121,7 +121,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
     });
   };
 
-  const renderBody = (body: string) => {
+  const renderBody = (body: string, mine = false) => {
     const names = profiles
       .map((p) => (p.full_name ?? p.email ?? "").trim())
       .filter(Boolean)
@@ -137,7 +137,12 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
       parts.push(
         <span
           key={`${m.index}-${m[1]}`}
-          className="rounded bg-primary/15 px-1 font-semibold text-primary"
+          className={cn(
+            "rounded px-1 font-semibold",
+            mine
+              ? "bg-primary-foreground/25 text-primary-foreground"
+              : "bg-primary/15 text-primary"
+          )}
         >
           @{m[1]}
         </span>
