@@ -342,7 +342,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
                       </a>
                     )}
                     {m.body && (
-                      <p className="whitespace-pre-wrap break-words">{renderBody(m.body)}</p>
+                      <p className="whitespace-pre-wrap break-words">{renderBody(m.body, mine)}</p>
                     )}
                   </div>
                   {mine && (
