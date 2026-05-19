@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Calendar, ClipboardCheck, Loader2, RefreshCw, Undo2, Unlink, Wrench } from "lucide-react";
+import { AlertTriangle, Calendar, CheckCircle2, CircleSlash, ClipboardCheck, Loader2, RefreshCw, Undo2, Unlink, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   disconnectGoogle,
@@ -173,16 +173,31 @@ export function GoogleCalendarConnect() {
           <Calendar className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">Google kalendár</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold">Google kalendár</p>
+            {!loading && (
+              connected ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Pripojené
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  <CircleSlash className="h-3 w-3" />
+                  Nepripojené
+                </span>
+              )
+            )}
+          </div>
           {loading ? (
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Načítavam…</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">Načítavam stav…</p>
           ) : connected ? (
             <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-              Pripojený{email ? `: ${email}` : ""}
+              {email ?? "Aktívne prepojenie"}
             </p>
           ) : (
             <p className="mt-0.5 text-[11px] text-muted-foreground">
-              Sync úloh s časom do tvojho Google kalendára.
+              Pripoj si Google účet a sync úloh s časom prebehne automaticky.
             </p>
           )}
         </div>
