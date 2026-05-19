@@ -35,7 +35,10 @@ export async function sendChatMessage(input: {
     .single();
   if (error) throw error;
   // Push do tímového / projektového chatu — všetkým ostatným členom.
-  try {
+  // Fire-and-forget, aby odoslanie nikdy nezadrhlo UI keď RLS/sieť spomalí
+  // pomocné selecty (profiles, project_members…).
+  void (async () => {
+    try {
     const { data: author } = await supabase
       .from("profiles")
       .select("full_name, email")
@@ -82,7 +85,10 @@ export async function sendChatMessage(input: {
         tag: `project-chat-${input.project_id}`,
       });
     }
-  } catch { /* ignore */ }
+    } catch (e) {
+      console.warn("chat notify failed", e);
+    }
+  })();
   return data as ChatMessage;
 }
 
