@@ -1,6 +1,6 @@
 // Facebook-style "upozornenia" — zvonček s dropdown zoznamom správ.
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, MessageCircle, Users, FolderKanban, CheckCheck, ListTodo } from "lucide-react";
+import { Bell, MessageCircle, Users, FolderKanban, CheckCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,6 @@ function timeAgo(iso: string): string {
 function IconFor({ kind }: { kind: NotificationItem["kind"] }) {
   if (kind === "dm") return <MessageCircle className="h-4 w-4" />;
   if (kind === "team-chat") return <Users className="h-4 w-4" />;
-  if (kind === "tasks-pending") return <ListTodo className="h-4 w-4" />;
   return <FolderKanban className="h-4 w-4" />;
 }
 
