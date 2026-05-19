@@ -377,8 +377,8 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       // Použijeme priamy fetch (callGoogleFunction), ktorý spoľahlivo posiela
-      // user JWT v Authorization aj x-user-authorization aj v body. Pri 401
-      // vráti unauthorizedFallback namiesto throw → žiadna biela obrazovka.
+      // user JWT v x-user-authorization aj v body. Pri 401 vráti fallback
+      // namiesto throw → žiadna biela obrazovka.
       const data = await callGoogleFunction<GoogleSyncResult>(
         "google-calendar-sync",
         { action, task_id: taskId },
