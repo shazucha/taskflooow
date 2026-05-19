@@ -4,6 +4,7 @@ import { ArrowUpRight, Bell, CalendarDays, FolderKanban, AlertTriangle } from "l
 import { UserAvatar } from "@/components/UserAvatar";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { SubscriptionPendingBadge } from "@/components/SubscriptionPendingBadge";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { useCurrentUserId, useMySubscriptionPendingTotal, useProfiles, useProjects, useTasks } from "@/lib/queries";
 import { pendingTasksForUser } from "@/lib/recurring";
 
@@ -32,6 +33,7 @@ export default function Dashboard() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <NotificationsBell />
           <PendingTasksBell count={pendingCount} overdue={overdueCount} />
           <Link to="/me"><UserAvatar profile={me} size="lg" /></Link>
         </div>
@@ -43,7 +45,10 @@ export default function Dashboard() {
             {me?.full_name?.trim() || "Tím"}
           </h1>
         </div>
-        <PendingTasksBell count={pendingCount} overdue={overdueCount} />
+        <div className="flex items-center gap-2">
+          <NotificationsBell />
+          <PendingTasksBell count={pendingCount} overdue={overdueCount} />
+        </div>
       </header>
 
       {(pendingCount > 0 || projectPendingCount > 0) && (
