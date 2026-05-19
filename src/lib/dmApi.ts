@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { DirectMessage } from "./types";
+import { notifyUsers } from "./push";
 
 /** Stable conversation key: smaller uuid first, joined with ":". */
 export function conversationKey(a: string, b: string): string {
@@ -44,6 +45,23 @@ export async function sendDirectMessage(input: {
     .select("id, sender_id, recipient_id, body, image_url, created_at")
     .single();
   if (error) throw error;
+  // Best-effort push notifikácia príjemcovi.
+  try {
+    const { data: sender } = await supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", input.sender_id)
+      .maybeSingle();
+    const senderName = sender?.full_name?.trim() || sender?.email || "Niekto";
+    const preview = input.body?.trim() || (input.image_url ? "📷 Fotka" : "Nová správa");
+    void notifyUsers({
+      user_ids: [input.recipient_id],
+      title: senderName,
+      body: preview.length > 140 ? `${preview.slice(0, 140)}…` : preview,
+      url: "/chat",
+      tag: `dm-${input.sender_id}`,
+    });
+  } catch { /* ignore */ }
   return data as DirectMessage;
 }
 
