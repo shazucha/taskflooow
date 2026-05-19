@@ -96,12 +96,41 @@ export function useNotificationsFeed(): {
 
       const out: NotificationItem[] = [];
 
+      // Pomocné: resolve mena autora aj keď nie je v `profiles` cache
+      // (napr. prázdny full_name/email → pozri auth.users cez RPC fallback).
+      const nameCache = new Map<string, string>();
+      async function resolveName(uid: string): Promise<string> {
+        if (nameCache.has(uid)) return nameCache.get(uid)!;
+        const cached = profiles.find((p) => p.id === uid);
+        let n = cached?.full_name?.trim() || cached?.email || "";
+        if (!n) {
+          const { data } = await supabase
+            .from("profiles")
+            .select("full_name, email")
+            .eq("id", uid)
+            .maybeSingle();
+          n = data?.full_name?.trim() || data?.email || "";
+        }
+        if (!n) n = "Niekto";
+        nameCache.set(uid, n);
+        return n;
+      }
+      async function resolveProjectName(pid: string): Promise<string> {
+        const cached = projects.find((p) => p.id === pid);
+        if (cached?.name) return cached.name;
+        const { data } = await supabase
+          .from("projects")
+          .select("name")
+          .eq("id", pid)
+          .maybeSingle();
+        return data?.name || "Projekt";
+      }
+
       // Team chat — agregovaný do jednej položky
       const teamMsgs = (teamRes.data ?? []) as RawMsg[];
       if (teamMsgs.length > 0) {
         const last = teamMsgs[0];
-        const author = profiles.find((p) => p.id === last.author_id);
-        const name = author?.full_name?.trim() || author?.email || "Niekto";
+        const name = await resolveName(last.author_id!);
         out.push({
           id: "team",
           kind: "team-chat",
@@ -126,13 +155,14 @@ export function useNotificationsFeed(): {
       }
       for (const [pid, msgs] of projGroups) {
         const last = msgs[0];
-        const project = projects.find((p) => p.id === pid);
-        const author = profiles.find((p) => p.id === last.author_id);
-        const name = author?.full_name?.trim() || author?.email || "Niekto";
+        const [projName, name] = await Promise.all([
+          resolveProjectName(pid),
+          resolveName(last.author_id!),
+        ]);
         out.push({
           id: `project:${pid}`,
           kind: "project-chat",
-          title: project?.name ?? "Projekt",
+          title: projName,
           preview: `${name}: ${previewOf(last.body, last.image_url)}`,
           url: `/projects/${pid}`,
           count: msgs.length,
@@ -152,8 +182,7 @@ export function useNotificationsFeed(): {
       }
       for (const [peerId, msgs] of dmGroups) {
         const last = msgs[0];
-        const peer = profiles.find((p) => p.id === peerId);
-        const name = peer?.full_name?.trim() || peer?.email || "Niekto";
+        const name = await resolveName(peerId);
         out.push({
           id: `dm:${peerId}`,
           kind: "dm",
