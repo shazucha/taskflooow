@@ -178,13 +178,30 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
           )}
         </button>
         {!adding && (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-          >
-            <Plus className="h-3 w-3" /> Pridať odkaz
-          </button>
+          <div className="flex items-center gap-2">
+            {materials.length > 1 && (
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="appearance-none rounded-md bg-surface-muted py-1 pl-2 pr-6 text-[11px] font-medium text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="newest">Najnovšie</option>
+                  <option value="oldest">Najstaršie</option>
+                  <option value="az">A – Z</option>
+                  <option value="za">Z – A</option>
+                </select>
+                <ArrowUpDown className="pointer-events-none absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            >
+              <Plus className="h-3 w-3" /> Pridať odkaz
+            </button>
+          </div>
         )}
       </div>
 
