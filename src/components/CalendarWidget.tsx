@@ -647,8 +647,17 @@ function DayView({
   const allDayOthers = allDay.filter((t) => !isMine(t));
   const splitView = mode === "team";
 
+  // Kľúče časovaných úloh (title + start ms) — používame na odstránenie
+  // duplicitných Google eventov, ktoré sú už zachytené ako úlohy.
+  const timedTaskKeys = new Set(
+    timed.map((t) => `${t.title.trim().toLowerCase()}|${new Date(t.due_date!).getTime()}`)
+  );
   const googleAllDay = googleEvents.filter((e) => e.all_day);
-  const googleTimed = googleEvents.filter((e) => !e.all_day && e.start);
+  const googleTimed = googleEvents.filter((e) => {
+    if (e.all_day || !e.start) return false;
+    const k = `${(e.title ?? "").trim().toLowerCase()}|${new Date(e.start).getTime()}`;
+    return !timedTaskKeys.has(k);
+  });
 
   const blocks = timed.map((t) => {
     const s = new Date(t.due_date!);
