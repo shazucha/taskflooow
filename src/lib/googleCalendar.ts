@@ -236,6 +236,8 @@ export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<G
     queueRetryUntilAuthenticated(() => { void fetchGoogleEvents(timeMin, timeMax); });
     return [];
   }
+  // Bez pripojeného Google účtu funkciu vôbec nevoláme.
+  if (!(await hasGoogleConnection())) return [];
   try {
     const data = await callGoogleFunction<{ events: GoogleEvent[]; not_connected?: boolean }>("google-calendar-fetch", {
       time_min: timeMin.toISOString(),
