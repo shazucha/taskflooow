@@ -1,17 +1,25 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, CalendarDays, FolderKanban, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, Bell, CalendarDays, FolderKanban, AlertTriangle } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { SubscriptionPendingBadge } from "@/components/SubscriptionPendingBadge";
 import { NotificationsBell } from "@/components/NotificationsBell";
-import { useCurrentUserId, useMySubscriptionPendingTotal, useProfiles, useProjects } from "@/lib/queries";
+import { useCurrentUserId, useMySubscriptionPendingTotal, useProfiles, useProjects, useTasks } from "@/lib/queries";
+import { pendingTasksForUser } from "@/lib/recurring";
 
 export default function Dashboard() {
   const { data: projects = [] } = useProjects();
   const { data: profiles = [] } = useProfiles();
+  const { data: tasks = [] } = useTasks();
   const { data: subPending } = useMySubscriptionPendingTotal();
   const currentUserId = useCurrentUserId();
   const me = profiles.find((p) => p.id === currentUserId);
+
+  const { pendingCount, overdueCount } = useMemo(() => {
+    const { all, overdue } = pendingTasksForUser(tasks, currentUserId);
+    return { pendingCount: all.length, overdueCount: overdue.length };
+  }, [tasks, currentUserId]);
 
   const projectPendingCount = subPending?.total ?? 0;
 
@@ -41,8 +49,33 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {projectPendingCount > 0 && (
-        <div className="mt-4 md:mt-6">
+      {(pendingCount > 0 || projectPendingCount > 0) && (
+        <div className="mt-4 grid gap-3 md:mt-6 md:grid-cols-2">
+          {pendingCount > 0 && (
+            <Link
+              to="/tasks"
+              title="Červené = nedokončené úlohy v aktuálnom mesiaci. Po termíne svietia silnejšie."
+              className="group flex items-center gap-3 overflow-hidden rounded-2xl border border-priority-high/30 bg-priority-high-soft/60 p-3.5 transition hover:shadow-md"
+            >
+              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-priority-high text-white shadow-[0_0_18px_hsl(var(--priority-high)/0.55)]">
+                <Bell className="h-5 w-5" />
+                <span className="absolute inset-0 animate-ping rounded-xl bg-priority-high/40" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-priority-high">
+                  Máš {pendingCount} nedokončen{pendingCount === 1 ? "ú úlohu" : pendingCount < 5 ? "é úlohy" : "ých úloh"}
+                </p>
+                <p className="text-xs text-priority-high/80">
+                  {overdueCount > 0
+                    ? `${overdueCount} po termíne · klikni pre zoznam`
+                    : "Klikni pre zobrazenie zoznamu"}
+                </p>
+              </div>
+              <ArrowUpRight className="h-5 w-5 text-priority-high transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </Link>
+          )}
+
+          {projectPendingCount > 0 && (
             <Link
               to="/projects/pending"
               title="Nedokončené náplne projektov (predplatné)."
@@ -62,6 +95,7 @@ export default function Dashboard() {
               </div>
               <ArrowUpRight className="h-5 w-5 text-primary transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
+          )}
         </div>
       )}
 
