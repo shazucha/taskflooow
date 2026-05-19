@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AtSign, ImagePlus, Loader2, Send, Trash2, X } from "lucide-react";
+import { AtSign, Check, ImagePlus, Loader2, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
 import { supabase } from "@/lib/supabase";
@@ -44,6 +44,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendStep, setSendStep] = useState<null | "upload" | "insert" | "done" | "error">(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -210,6 +211,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
     const body = text.trim();
     if (!body && !pendingFile) return;
     setSending(true);
+    setSendStep(null);
     try {
       let imageUrl: string | null = null;
       if (pendingFile) {
@@ -218,9 +220,11 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
           setSending(false);
           return;
         }
+        setSendStep("upload");
         console.log("[Chat] uploading image", pendingFile.name);
         imageUrl = await uploadChatImage(currentUserId, pendingFile);
       }
+      setSendStep("insert");
       console.log("[Chat] sending message", { scope, projectId, monthKey, hasImage: !!imageUrl });
       await sendChatMessage({
         scope,
@@ -230,12 +234,16 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
         image_url: imageUrl,
         month_key: scope === "project" ? monthKey : null,
       });
+      setSendStep("done");
+      toast.success(isNotes ? "Poznámka uložená ✓" : "Správa odoslaná ✓");
       console.log("[Chat] sent OK");
       setText("");
       setPendingFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       qc.invalidateQueries({ queryKey });
+      setTimeout(() => setSendStep((s) => (s === "done" ? null : s)), 1500);
     } catch (err) {
+      setSendStep("error");
       console.error("[Chat] send failed", err);
       toast.error(err instanceof Error ? err.message : "Nepodarilo sa odoslať");
     } finally {
@@ -378,6 +386,46 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
           >
             <X className="h-3.5 w-3.5" />
           </button>
+        </div>
+      )}
+
+      {sendStep && (
+        <div
+          className={cn(
+            "flex items-center gap-2 border-t border-border/60 px-3 py-1.5 text-[11px] font-medium",
+            sendStep === "done"
+              ? "bg-success/10 text-success"
+              : sendStep === "error"
+              ? "bg-destructive/10 text-destructive"
+              : "bg-primary/5 text-muted-foreground"
+          )}
+          role="status"
+          aria-live="polite"
+        >
+          {sendStep === "upload" && (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>1/2 Nahrávam prílohu…</span>
+            </>
+          )}
+          {sendStep === "insert" && (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{pendingFile ? "2/2 " : ""}Ukladám {isNotes ? "poznámku" : "správu"}…</span>
+            </>
+          )}
+          {sendStep === "done" && (
+            <>
+              <Check className="h-3 w-3" />
+              <span>{isNotes ? "Poznámka uložená ✓" : "Správa odoslaná ✓"}</span>
+            </>
+          )}
+          {sendStep === "error" && (
+            <>
+              <X className="h-3 w-3" />
+              <span>Nepodarilo sa odoslať — skús znova</span>
+            </>
+          )}
         </div>
       )}
 
