@@ -670,17 +670,33 @@ function DayView({
     });
   });
 
-  const blocks = timed.map((t) => {
-    const s = new Date(t.due_date!);
-    const startSlot = s.getHours() * 2 + (s.getMinutes() >= 30 ? 1 : 0);
-    let lengthSlots = 1;
-    if (t.due_end) {
-      const e = new Date(t.due_end);
-      const endSlot = e.getHours() * 2 + Math.ceil(e.getMinutes() / 30);
-      lengthSlots = Math.max(1, endSlot - startSlot);
+  const blocks = (() => {
+    // Deduplikácia úloh s rovnakým názvom a začiatkom (napr. duplicitný
+    // render počas drag-to-resize) — necháme len najdlhší/najnovší.
+    const seen = new Map<string, Task>();
+    for (const t of timed) {
+      const s = new Date(t.due_date!).getTime();
+      const key = `${t.title.trim().toLowerCase()}|${s}`;
+      const prev = seen.get(key);
+      if (!prev) { seen.set(key, t); continue; }
+      const prevLen = prev.due_end ? new Date(prev.due_end).getTime() - new Date(prev.due_date!).getTime() : 0;
+      const curLen = t.due_end ? new Date(t.due_end).getTime() - s : 0;
+      const prevTs = new Date(prev.updated_at || prev.created_at || 0).getTime();
+      const curTs = new Date(t.updated_at || t.created_at || 0).getTime();
+      if (curLen > prevLen || (curLen === prevLen && curTs > prevTs)) seen.set(key, t);
     }
-    return { task: t, startSlot, lengthSlots, mine: isMine(t) };
-  });
+    return Array.from(seen.values()).map((t) => {
+      const s = new Date(t.due_date!);
+      const startSlot = s.getHours() * 2 + (s.getMinutes() >= 30 ? 1 : 0);
+      let lengthSlots = 1;
+      if (t.due_end) {
+        const e = new Date(t.due_end);
+        const endSlot = e.getHours() * 2 + Math.ceil(e.getMinutes() / 30);
+        lengthSlots = Math.max(1, endSlot - startSlot);
+      }
+      return { task: t, startSlot, lengthSlots, mine: isMine(t) };
+    });
+  })();
 
   const gridRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ startSlot: number; currSlot: number } | null>(null);
