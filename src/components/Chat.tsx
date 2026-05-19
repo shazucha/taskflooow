@@ -51,7 +51,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
 
-  const presenceKey = `presence-${scope}-${projectId ?? "team"}`;
+  const presenceKey = `presence-${scope}-${projectId ?? "team"}-${Math.random().toString(36).slice(2, 8)}`;
 
   // Realtime presence — kto je práve online v tomto chate
   useEffect(() => {
