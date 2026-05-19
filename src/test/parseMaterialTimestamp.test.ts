@@ -63,11 +63,12 @@ describe("parseMaterialTimestamp", () => {
 describe("triedenie podľa created_at", () => {
   type Row = { id: string; created_at: unknown };
   const ts = (v: unknown) => parseMaterialTimestamp(v) ?? 0;
+  // Zoradené tak, aby výsledok nezávisel od lokálnej časovej zóny testovacieho prostredia
   const rows: Row[] = [
-    { id: "a", created_at: "2026-05-19T10:00:00Z" },
-    { id: "b", created_at: 1_700_000_000 },
-    { id: "c", created_at: null },
-    { id: "d", created_at: "2026-05-19 12:34:56" },
+    { id: "a", created_at: "2030-01-01T00:00:00Z" }, // najnovšie
+    { id: "b", created_at: 1_700_000_000 }, // 2023
+    { id: "c", created_at: null }, // 0
+    { id: "d", created_at: "2025-06-15T08:00:00Z" }, // medzi b a a
   ];
 
   it("newest", () => {
