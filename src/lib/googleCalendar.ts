@@ -38,6 +38,36 @@ async function hasActiveSession(): Promise<boolean> {
   return !!data.session?.access_token;
 }
 
+/**
+ * Lacná klientská kontrola, či má aktuálny user pripojený Google účet.
+ * Bez nej by sme volali edge funkciu aj pre nepripojených userov a gateway
+ * 401 by sa zobrazoval v Lovable error overlay ako "RUNTIME_ERROR".
+ * Výsledok cacheujeme v module na 60s.
+ */
+let googleConnectedCache: { value: boolean; until: number } | null = null;
+async function hasGoogleConnection(): Promise<boolean> {
+  const now = Date.now();
+  if (googleConnectedCache && googleConnectedCache.until > now) {
+    return googleConnectedCache.value;
+  }
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
+  if (!userId) return false;
+  const { data } = await supabase
+    .from("google_calendar_tokens")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const connected = !!data;
+  googleConnectedCache = { value: connected, until: now + 60_000 };
+  return connected;
+}
+
+/** Zruš cache po (dis)connecte, aby ďalší pull použil aktuálny stav. */
+export function invalidateGoogleConnectionCache() {
+  googleConnectedCache = null;
+}
+
 async function callGoogleFunction<T>(functionName: string, payload: unknown, unauthorizedFallback: T): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
@@ -206,6 +236,8 @@ export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<G
     queueRetryUntilAuthenticated(() => { void fetchGoogleEvents(timeMin, timeMax); });
     return [];
   }
+  // Bez pripojeného Google účtu funkciu vôbec nevoláme.
+  if (!(await hasGoogleConnection())) return [];
   try {
     const data = await callGoogleFunction<{ events: GoogleEvent[]; not_connected?: boolean }>("google-calendar-fetch", {
       time_min: timeMin.toISOString(),
@@ -262,6 +294,8 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
     queueRetryUntilAuthenticated(() => { void pullGoogleEvents(); });
     return null;
   }
+  // Bez pripojeného Google účtu funkciu vôbec nevoláme.
+  if (!(await hasGoogleConnection())) return null;
   // Edge runtime občas vráti 503 (studený štart / dočasná nedostupnosť).
   // Skúsime až 5x s narastajúcim backoffom — ostatné chyby propagujeme hneď.
   let lastErr: unknown = null;
