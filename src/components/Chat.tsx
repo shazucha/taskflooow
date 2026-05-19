@@ -218,8 +218,10 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
           setSending(false);
           return;
         }
+        console.log("[Chat] uploading image", pendingFile.name);
         imageUrl = await uploadChatImage(currentUserId, pendingFile);
       }
+      console.log("[Chat] sending message", { scope, projectId, monthKey, hasImage: !!imageUrl });
       await sendChatMessage({
         scope,
         project_id: scope === "project" ? projectId : null,
@@ -228,11 +230,13 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
         image_url: imageUrl,
         month_key: scope === "project" ? monthKey : null,
       });
+      console.log("[Chat] sent OK");
       setText("");
       setPendingFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       qc.invalidateQueries({ queryKey });
     } catch (err) {
+      console.error("[Chat] send failed", err);
       toast.error(err instanceof Error ? err.message : "Nepodarilo sa odoslať");
     } finally {
       setSending(false);
