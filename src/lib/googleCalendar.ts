@@ -81,11 +81,11 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      // Send the real user JWT in Authorization so both the Supabase gateway
-      // (if verify_jwt is still enabled on a stale deploy) AND our in-function
-      // validation accept the request. We also mirror it in the body and a
-      // custom header for redundancy.
-      Authorization: `Bearer ${accessToken}`,
+      // Gateway pri starom deployi môže stále overovať Authorization a ES256
+      // user JWT odmietnuť. Preto gateway dostane anon JWT a edge funkcia si
+      // reálneho používateľa overí z x-user-authorization / __user_jwt.
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-authorization": `Bearer ${accessToken}`,
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify(bodyPayload),
@@ -377,8 +377,8 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       // Použijeme priamy fetch (callGoogleFunction), ktorý spoľahlivo posiela
-      // user JWT v Authorization aj x-user-authorization aj v body. Pri 401
-      // vráti unauthorizedFallback namiesto throw → žiadna biela obrazovka.
+      // user JWT v x-user-authorization aj v body. Pri 401 vráti fallback
+      // namiesto throw → žiadna biela obrazovka.
       const data = await callGoogleFunction<GoogleSyncResult>(
         "google-calendar-sync",
         { action, task_id: taskId },
