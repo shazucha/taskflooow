@@ -113,43 +113,15 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
 
   const sortedMaterials = useMemo(() => {
     const arr = [...materials];
-    const ts = (raw: unknown): number => {
-      if (raw == null) return 0;
-      if (raw instanceof Date) {
-        const t = raw.getTime();
-        return Number.isNaN(t) ? 0 : t;
-      }
-      // Numerický timestamp (sekundy alebo milisekundy)
-      if (typeof raw === "number" && Number.isFinite(raw)) {
-        return raw < 1e12 ? raw * 1000 : raw;
-      }
-      if (typeof raw !== "string") return 0;
-      const s = raw.trim();
-      if (!s) return 0;
-      // Čisto číselný string → unix (sekundy alebo ms)
-      if (/^-?\d+(\.\d+)?$/.test(s)) {
-        const n = Number(s);
-        if (Number.isFinite(n)) return n < 1e12 ? n * 1000 : n;
-      }
-      // Postgres "YYYY-MM-DD HH:MM:SS[.ms][+TZ]" – doplníme 'T' medzi dátum a čas
-      let candidate = s;
-      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(candidate)) {
-        candidate = candidate.replace(" ", "T");
-      }
-      const d = new Date(candidate);
-      if (!Number.isNaN(d.getTime())) return d.getTime();
-      const p = Date.parse(s);
-      return Number.isNaN(p) ? 0 : p;
-    };
     switch (sortBy) {
       case "newest":
-        return arr.sort((a, b) => ts(b.created_at) - ts(a.created_at));
+        return arr.sort((a, b) => (parseMaterialTimestamp(b.created_at) ?? 0) - (parseMaterialTimestamp(a.created_at) ?? 0));
       case "oldest":
-        return arr.sort((a, b) => ts(a.created_at) - ts(b.created_at));
+        return arr.sort((a, b) => (parseMaterialTimestamp(a.created_at) ?? 0) - (parseMaterialTimestamp(b.created_at) ?? 0));
       case "az":
         return arr.sort((a, b) => (a.label || hostOf(a.url)).localeCompare(b.label || hostOf(b.url), "sk"));
       case "za":
-        return arr.sort((a, b) => (b.label || hostOf(b.url)).localeCompare(a.label || hostOf(a.url), "sk"));
+        return arr.sort((a, b) => (b.label || hostOf(b.url)).localeCompare(a.label || hostOf(b.url), "sk"));
       default:
         return arr;
     }
