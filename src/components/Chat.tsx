@@ -161,7 +161,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
   // Realtime subscription
   useEffect(() => {
     if (scope === "project" && !projectId) return;
-    const channelName = `chat-${scope}-${projectId ?? "team"}`;
+    const channelName = `chat-${scope}-${projectId ?? "team"}-${Math.random().toString(36).slice(2, 8)}`;
     const filter =
       scope === "team"
         ? "scope=eq.team"
