@@ -34,15 +34,21 @@ export async function sendChatMessage(input: {
     .select()
     .single();
   if (error) throw error;
-  // Push do tímového chatu — všetkým ostatným členom.
-  if (input.scope === "team") {
-    try {
-      const [{ data: author }, { data: others }] = await Promise.all([
-        supabase.from("profiles").select("full_name, email").eq("id", input.author_id).maybeSingle(),
-        supabase.from("profiles").select("id").neq("id", input.author_id),
-      ]);
-      const name = author?.full_name?.trim() || author?.email || "Niekto";
-      const preview = input.body?.trim() || (input.image_url ? "📷 Fotka" : "Nová správa v tíme");
+  // Push do tímového / projektového chatu — všetkým ostatným členom.
+  try {
+    const { data: author } = await supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", input.author_id)
+      .maybeSingle();
+    const name = author?.full_name?.trim() || author?.email || "Niekto";
+    const preview = input.body?.trim() || (input.image_url ? "📷 Fotka" : "Nová správa");
+
+    if (input.scope === "team") {
+      const { data: others } = await supabase
+        .from("profiles")
+        .select("id")
+        .neq("id", input.author_id);
       const ids = (others ?? []).map((p) => p.id as string);
       void notifyUsers({
         user_ids: ids,
@@ -51,8 +57,32 @@ export async function sendChatMessage(input: {
         url: "/chat",
         tag: "team-chat",
       });
-    } catch { /* ignore */ }
-  }
+    } else if (input.scope === "project" && input.project_id) {
+      // Notifikuj členov projektu (okrem autora). Vlastníka zahŕňame cez projects.owner_id.
+      const [{ data: members }, { data: project }] = await Promise.all([
+        supabase
+          .from("project_members")
+          .select("user_id")
+          .eq("project_id", input.project_id),
+        supabase
+          .from("projects")
+          .select("owner_id, name")
+          .eq("id", input.project_id)
+          .maybeSingle(),
+      ]);
+      const ids = new Set<string>();
+      for (const m of members ?? []) if (m.user_id) ids.add(m.user_id as string);
+      if (project?.owner_id) ids.add(project.owner_id as string);
+      ids.delete(input.author_id);
+      void notifyUsers({
+        user_ids: Array.from(ids),
+        title: `${name} v projekte${project?.name ? ` ${project.name}` : ""}`,
+        body: preview.length > 140 ? `${preview.slice(0, 140)}…` : preview,
+        url: `/projects/${input.project_id}`,
+        tag: `project-chat-${input.project_id}`,
+      });
+    }
+  } catch { /* ignore */ }
   return data as ChatMessage;
 }
 
