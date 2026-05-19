@@ -44,6 +44,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendStep, setSendStep] = useState<null | "upload" | "insert" | "done" | "error">(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
