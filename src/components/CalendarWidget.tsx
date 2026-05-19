@@ -1134,17 +1134,15 @@ function DayView({
                   )}
                   <div className="font-mono text-[10px] text-muted-foreground">
                     {(() => {
-                      if (dragging) {
-                        const sh = Math.floor(renderStart / 2);
-                        const sm = renderStart % 2 === 0 ? 0 : 30;
-                        const endSlotNow = renderStart + renderLen;
-                        const eh = Math.floor(endSlotNow / 2);
-                        const em = endSlotNow % 2 === 0 ? 0 : 30;
-                        return `${fmtTime(sh, sm)} – ${fmtTime(eh, em)}`;
-                      }
-                      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}${
-                        e ? ` – ${String(e.getHours()).padStart(2, "0")}:${String(e.getMinutes()).padStart(2, "0")}` : ""
-                      }`;
+                      // Vždy zobrazujeme jediný zjednotený rozsah na základe
+                      // aktuálnych slotov bloku (renderStart + renderLen),
+                      // bez ohľadu na drag/resize alebo chýbajúce due_end.
+                      const sh = Math.floor(renderStart / 2);
+                      const sm = renderStart % 2 === 0 ? 0 : 30;
+                      const endSlotNow = renderStart + renderLen;
+                      const eh = Math.floor(endSlotNow / 2);
+                      const em = endSlotNow % 2 === 0 ? 0 : 30;
+                      return `${fmtTime(sh, sm)} – ${fmtTime(eh, em)}`;
                     })()}
                   </div>
                   <div className={cn("truncate font-semibold", isDone && "line-through")}>{task.title}</div>
