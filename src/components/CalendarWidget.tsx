@@ -671,21 +671,32 @@ function DayView({
   });
 
   const blocks = (() => {
-    // Deduplikácia úloh s rovnakým názvom a začiatkom (napr. duplicitný
-    // render počas drag-to-resize) — necháme len najdlhší/najnovší.
-    const seen = new Map<string, Task>();
-    for (const t of timed) {
+    // Deduplikácia úloh s rovnakým názvom (case-insensitive) — ak sa
+    // časovo prekrývajú, ponecháme len najdlhšiu (príp. najnovšiu).
+    // Týmto skryjeme krátke "zvyškové" bloky po roztiahnutí úlohy.
+    type Item = { t: Task; start: number; end: number };
+    const items: Item[] = timed.map((t) => {
       const s = new Date(t.due_date!).getTime();
-      const key = `${t.title.trim().toLowerCase()}|${s}`;
-      const prev = seen.get(key);
-      if (!prev) { seen.set(key, t); continue; }
-      const prevLen = prev.due_end ? new Date(prev.due_end).getTime() - new Date(prev.due_date!).getTime() : 0;
-      const curLen = t.due_end ? new Date(t.due_end).getTime() - s : 0;
-      const prevTs = new Date(prev.updated_at || prev.created_at || 0).getTime();
-      const curTs = new Date(t.updated_at || t.created_at || 0).getTime();
-      if (curLen > prevLen || (curLen === prevLen && curTs > prevTs)) seen.set(key, t);
+      const e = t.due_end ? new Date(t.due_end).getTime() : s + 30 * 60_000;
+      return { t, start: s, end: e };
+    });
+    const removed = new Set<string>();
+    for (let i = 0; i < items.length; i++) {
+      if (removed.has(items[i].t.id)) continue;
+      for (let j = i + 1; j < items.length; j++) {
+        if (removed.has(items[j].t.id)) continue;
+        const a = items[i], b = items[j];
+        const sameTitle = a.t.title.trim().toLowerCase() === b.t.title.trim().toLowerCase();
+        const overlap = a.start < b.end && b.start < a.end;
+        if (!sameTitle || !overlap) continue;
+        const aLen = a.end - a.start, bLen = b.end - b.start;
+        const aTs = new Date(a.t.updated_at || a.t.created_at || 0).getTime();
+        const bTs = new Date(b.t.updated_at || b.t.created_at || 0).getTime();
+        const keepA = aLen > bLen || (aLen === bLen && aTs >= bTs);
+        removed.add(keepA ? b.t.id : a.t.id);
+      }
     }
-    return Array.from(seen.values()).map((t) => {
+    return items.filter((it) => !removed.has(it.t.id)).map(({ t }) => {
       const s = new Date(t.due_date!);
       const startSlot = s.getHours() * 2 + (s.getMinutes() >= 30 ? 1 : 0);
       let lengthSlots = 1;
