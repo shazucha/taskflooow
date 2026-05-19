@@ -647,16 +647,27 @@ function DayView({
   const allDayOthers = allDay.filter((t) => !isMine(t));
   const splitView = mode === "team";
 
-  // Kľúče časovaných úloh (title + start ms) — používame na odstránenie
-  // duplicitných Google eventov, ktoré sú už zachytené ako úlohy.
-  const timedTaskKeys = new Set(
-    timed.map((t) => `${t.title.trim().toLowerCase()}|${new Date(t.due_date!).getTime()}`)
-  );
+  // Skryjeme Google eventy, ktoré sú duplikátmi našich časovaných úloh.
+  // Match podľa rovnakého názvu (case-insensitive) na ten istý deň,
+  // a navyše ak sa časový rozsah Google eventu prekrýva s úlohou —
+  // tým eliminujeme aj pôvodné kratšie bloky po natiahnutí úlohy.
+  const timedRanges = timed.map((t) => {
+    const s = new Date(t.due_date!).getTime();
+    const e = t.due_end ? new Date(t.due_end).getTime() : s + 30 * 60_000;
+    return { title: t.title.trim().toLowerCase(), start: s, end: e };
+  });
   const googleAllDay = googleEvents.filter((e) => e.all_day);
   const googleTimed = googleEvents.filter((e) => {
     if (e.all_day || !e.start) return false;
-    const k = `${(e.title ?? "").trim().toLowerCase()}|${new Date(e.start).getTime()}`;
-    return !timedTaskKeys.has(k);
+    const title = (e.title ?? "").trim().toLowerCase();
+    const gs = new Date(e.start).getTime();
+    const ge = e.end ? new Date(e.end).getTime() : gs + 30 * 60_000;
+    return !timedRanges.some((r) => {
+      if (r.title !== title) return false;
+      // rovnaký začiatok (tolerancia 1 min) alebo prekryv intervalov
+      if (Math.abs(r.start - gs) <= 60_000) return true;
+      return gs < r.end && ge > r.start;
+    });
   });
 
   const blocks = timed.map((t) => {
