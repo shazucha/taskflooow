@@ -68,6 +68,8 @@ export async function sendDirectMessage(input: {
       body: preview.length > 140 ? `${preview.slice(0, 140)}…` : preview,
       url: "/chat",
       tag: `dm-${input.sender_id}`,
+      sender_id: input.sender_id,
+      title_template: "{name}",
     });
   } catch { /* ignore */ }
   return data as DirectMessage;

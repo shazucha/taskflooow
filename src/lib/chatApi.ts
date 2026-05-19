@@ -64,6 +64,8 @@ export async function sendChatMessage(input: {
         body: preview.length > 140 ? `${preview.slice(0, 140)}…` : preview,
         url: "/chat",
         tag: "team-chat",
+        sender_id: input.author_id,
+        title_template: "{name} v tímovom chate",
       });
     } else if (input.scope === "project" && input.project_id) {
       // Notifikuj členov projektu (okrem autora). Vlastníka zahŕňame cez projects.owner_id.
@@ -88,6 +90,8 @@ export async function sendChatMessage(input: {
         body: preview.length > 140 ? `${preview.slice(0, 140)}…` : preview,
         url: `/projects/${input.project_id}`,
         tag: `project-chat-${input.project_id}`,
+        sender_id: input.author_id,
+        title_template: `{name} v projekte${project?.name ? ` ${project.name}` : ""}`,
       });
     }
     } catch (e) {

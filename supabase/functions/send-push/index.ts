@@ -46,6 +46,10 @@ interface Payload {
   tag?: string;
   /** Ak je true, posiela aj v tichom režime (urgentné). */
   force?: boolean;
+  /** Voliteľne: id odosielateľa — server doplní jeho meno do `title_template`. */
+  sender_id?: string;
+  /** Šablóna s placeholderom `{name}`. Ak je zadaná, prepíše `title`. */
+  title_template?: string;
 }
 
 Deno.serve(async (req) => {
@@ -92,6 +96,27 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  // Server-side rozbalenie {name} cez service role — obíde RLS a vie čítať
+  // aj auth.users.email, takže notifikácia nikdy nebude „Niekto".
+  let resolvedTitle = payload.title;
+  if (payload.sender_id && payload.title_template?.includes("{name}")) {
+    let name = "";
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", payload.sender_id)
+      .maybeSingle();
+    name = prof?.full_name?.trim() || prof?.email?.trim() || "";
+    if (!name) {
+      try {
+        const { data: au } = await admin.auth.admin.getUserById(payload.sender_id);
+        name = au?.user?.email ?? "";
+      } catch { /* ignore */ }
+    }
+    if (!name) name = "Niekto";
+    resolvedTitle = payload.title_template.replace("{name}", name);
+  }
+
   const { data: subs, error } = await admin
     .from("push_subscriptions")
     .select("endpoint, p256dh, auth, user_id")
@@ -106,7 +131,7 @@ Deno.serve(async (req) => {
   }
 
   const notifPayload = JSON.stringify({
-    title: payload.title,
+    title: resolvedTitle,
     body: payload.body,
     url: payload.url ?? "/",
     tag: payload.tag ?? "taskflow",
