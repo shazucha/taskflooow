@@ -113,10 +113,33 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
 
   const sortedMaterials = useMemo(() => {
     const arr = [...materials];
-    const ts = (raw: string | null | undefined): number => {
-      if (!raw) return 0;
-      const d = new Date(raw);
-      return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+    const ts = (raw: unknown): number => {
+      if (raw == null) return 0;
+      if (raw instanceof Date) {
+        const t = raw.getTime();
+        return Number.isNaN(t) ? 0 : t;
+      }
+      // Numerický timestamp (sekundy alebo milisekundy)
+      if (typeof raw === "number" && Number.isFinite(raw)) {
+        return raw < 1e12 ? raw * 1000 : raw;
+      }
+      if (typeof raw !== "string") return 0;
+      const s = raw.trim();
+      if (!s) return 0;
+      // Čisto číselný string → unix (sekundy alebo ms)
+      if (/^-?\d+(\.\d+)?$/.test(s)) {
+        const n = Number(s);
+        if (Number.isFinite(n)) return n < 1e12 ? n * 1000 : n;
+      }
+      // Postgres "YYYY-MM-DD HH:MM:SS[.ms][+TZ]" – doplníme 'T' medzi dátum a čas
+      let candidate = s;
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(candidate)) {
+        candidate = candidate.replace(" ", "T");
+      }
+      const d = new Date(candidate);
+      if (!Number.isNaN(d.getTime())) return d.getTime();
+      const p = Date.parse(s);
+      return Number.isNaN(p) ? 0 : p;
     };
     switch (sortBy) {
       case "newest":
