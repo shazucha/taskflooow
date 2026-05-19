@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, CalendarDays, FolderKanban, AlertTriangle } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
