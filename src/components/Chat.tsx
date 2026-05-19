@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AtSign, ImagePlus, Loader2, Send, Trash2, X } from "lucide-react";
+import { AtSign, Check, ImagePlus, Loader2, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
 import { supabase } from "@/lib/supabase";
