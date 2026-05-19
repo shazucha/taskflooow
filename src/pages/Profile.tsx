@@ -23,6 +23,7 @@ import { ServiceCatalogAdmin } from "@/components/ServiceCatalogAdmin";
 import { useTheme } from "@/lib/useTheme";
 import { useTeamPresence } from "@/lib/useTeamPresence";
 import { PushNotificationsCard } from "@/components/PushNotificationsCard";
+import { AppChangelogCard } from "@/components/AppChangelogCard";
 
 const COLOR_OPTIONS = [
   "#3b82f6", // blue
@@ -223,6 +224,7 @@ export default function Profile() {
           aria-label="Prepnúť tmavý režim"
         />
       </section>
+      <AppChangelogCard />
         </div>
         <div>
 
