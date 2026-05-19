@@ -24,7 +24,7 @@ import {
   useDeleteCompanyMaterial,
   useProfiles,
 } from "@/lib/queries";
-import { cn } from "@/lib/utils";
+import { cn, formatMaterialDate } from "@/lib/utils";
 
 function normalizeUrl(raw: string): string | null {
   const trimmed = raw.trim();
@@ -201,6 +201,7 @@ export default function CompanyMaterials() {
               const Icon = meta.icon;
               const canDelete = m.created_by === currentUserId;
               const author = m.created_by ? profileById.get(m.created_by) : null;
+              const dateText = formatMaterialDate(m.created_at);
               return (
                 <li
                   key={m.id}
@@ -228,6 +229,7 @@ export default function CompanyMaterials() {
                     <span className="truncate text-[11px] text-muted-foreground">
                       {m.label ? `${hostOf(m.url)}` : meta.label}
                       {author?.full_name ? ` · pridal ${author.full_name}` : ""}
+                      {dateText ? ` · ${dateText}` : ""}
                     </span>
                   </a>
                   {canDelete && (
