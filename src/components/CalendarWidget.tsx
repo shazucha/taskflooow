@@ -1143,7 +1143,7 @@ function DayView({
                       <span className="truncate">{proj.name}</span>
                     </div>
                   )}
-                  <div className="font-mono text-[10px] text-muted-foreground">
+                  <div className="truncate whitespace-nowrap font-mono text-[10px] leading-tight tabular-nums text-muted-foreground">
                     {(() => {
                       // Vždy zobrazujeme jediný zjednotený rozsah na základe
                       // aktuálnych slotov bloku (renderStart + renderLen),
@@ -1153,7 +1153,8 @@ function DayView({
                       const endSlotNow = renderStart + renderLen;
                       const eh = Math.floor(endSlotNow / 2);
                       const em = endSlotNow % 2 === 0 ? 0 : 30;
-                      return `${fmtTime(sh, sm)} – ${fmtTime(eh, em)}`;
+                      // Pomlčka bez medzier + non-breaking aby sa nezalamovala vertikálne na mobile.
+                      return `${fmtTime(sh, sm)}\u2013${fmtTime(eh, em)}`;
                     })()}
                   </div>
                   <div className={cn("truncate font-semibold", isDone && "line-through")}>{task.title}</div>
