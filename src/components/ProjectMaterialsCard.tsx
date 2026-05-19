@@ -113,11 +113,16 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
 
   const sortedMaterials = useMemo(() => {
     const arr = [...materials];
+    const ts = (raw: string | null | undefined): number => {
+      if (!raw) return 0;
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+    };
     switch (sortBy) {
       case "newest":
-        return arr.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+        return arr.sort((a, b) => ts(b.created_at) - ts(a.created_at));
       case "oldest":
-        return arr.sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+        return arr.sort((a, b) => ts(a.created_at) - ts(b.created_at));
       case "az":
         return arr.sort((a, b) => (a.label || hostOf(a.url)).localeCompare(b.label || hostOf(b.url), "sk"));
       case "za":
