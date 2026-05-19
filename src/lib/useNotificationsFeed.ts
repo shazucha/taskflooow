@@ -2,12 +2,11 @@
 // Načítava unread počty + posledné správy a vystaví zoznam položiek pre zvonček.
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
-import { useCurrentUserId, useProfiles, useProjects, useTasks } from "./queries";
+import { useCurrentUserId, useProfiles, useProjects } from "./queries";
 import { fetchChatReads, markChatRead } from "./chatApi";
 import { fetchDirectReads, markDirectRead } from "./dmApi";
-import { pendingTasksForUser } from "./recurring";
 
-export type NotificationKind = "dm" | "team-chat" | "project-chat" | "tasks-pending";
+export type NotificationKind = "dm" | "team-chat" | "project-chat";
 
 export interface NotificationItem {
   id: string;
@@ -47,7 +46,6 @@ export function useNotificationsFeed(): {
   const userId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
   const { data: projects = [] } = useProjects();
-  const { data: tasks = [] } = useTasks();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const refreshRef = useRef<() => void>(() => {});
 
@@ -169,29 +167,11 @@ export function useNotificationsFeed(): {
       }
 
       out.sort((a, b) => (a.time < b.time ? 1 : -1));
-
-      // Nedokončené úlohy — jedna agregovaná položka navrchu
-      const { all: pendingAll, overdue: pendingOverdue } = pendingTasksForUser(tasks, userId);
-      if (pendingAll.length > 0) {
-        out.unshift({
-          id: "tasks-pending",
-          kind: "tasks-pending",
-          title: "Nedokončené úlohy",
-          preview:
-            pendingOverdue.length > 0
-              ? `${pendingAll.length} celkom · ${pendingOverdue.length} po termíne`
-              : `${pendingAll.length} čaká na dokončenie`,
-          url: "/tasks",
-          count: pendingAll.length,
-          time: new Date().toISOString(),
-        });
-      }
-
       setItems(out);
     } catch (e) {
       console.warn("notifications refresh failed", e);
     }
-  }, [userId, profiles, projects, tasks]);
+  }, [userId, profiles, projects]);
 
   refreshRef.current = refresh;
 
