@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCurrentUserId, useDeleteTask, useProfiles, useProjects, useTaskWatchers, useTasks, useToggleTaskDone } from "@/lib/queries";
+import { useCurrentUserId, useDeleteTask, useProfiles, useProjects, useTaskWatchers, useTasks, useToggleTaskDone, useUpdateTask } from "@/lib/queries";
 import type { Profile, Project, Task } from "@/lib/types";
 import { TaskDetailDialog } from "./TaskDetailDialog";
 import { NewTaskDialog } from "./NewTaskDialog";
@@ -626,6 +626,7 @@ function DayView({
 }) {
   const toggleStatus = useToggleTaskDone();
   const del = useDeleteTask();
+  const updateTask = useUpdateTask();
   const handleDelete = async (task: Task) => {
     if (!confirm("Naozaj zmazať túto úlohu?")) return;
     try {
@@ -663,6 +664,104 @@ function DayView({
 
   const gridRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ startSlot: number; currSlot: number } | null>(null);
+
+  // Drag/resize existujúcich blokov (presun + zmena trvania).
+  type BlockDrag = {
+    taskId: string;
+    kind: "move" | "resize";
+    initStart: number;
+    initLength: number;
+    originSlot: number;
+    startSlot: number;
+    lengthSlots: number;
+    moved: boolean;
+  };
+  const [blockDrag, setBlockDrag] = useState<BlockDrag | null>(null);
+  const suppressClickRef = useRef(false);
+
+  const commitBlockDrag = async (bd: BlockDrag) => {
+    const task = tasks.find((t) => t.id === bd.taskId);
+    if (!task) return;
+    if (bd.startSlot === bd.initStart && bd.lengthSlots === bd.initLength) return;
+    const base = new Date(date);
+    base.setHours(0, 0, 0, 0);
+    const startMs = base.getTime() + bd.startSlot * 30 * 60_000;
+    const endMs = startMs + bd.lengthSlots * 30 * 60_000;
+    try {
+      await updateTask.mutateAsync({
+        id: task.id,
+        patch: {
+          due_date: new Date(startMs).toISOString(),
+          due_end: new Date(endMs).toISOString(),
+        },
+      });
+      toast.success(bd.kind === "move" ? "Termín presunutý" : "Trvanie upravené");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Nepodarilo sa upraviť úlohu";
+      toast.error(msg);
+    }
+  };
+
+  const onBlockPointerDown = (
+    e: React.PointerEvent<HTMLDivElement>,
+    task: Task,
+    startSlot: number,
+    lengthSlots: number,
+    kind: "move" | "resize",
+  ) => {
+    if (readOnly) return;
+    e.stopPropagation();
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    const origin = slotFromEvent(e.clientY);
+    setBlockDrag({
+      taskId: task.id,
+      kind,
+      initStart: startSlot,
+      initLength: lengthSlots,
+      originSlot: origin,
+      startSlot,
+      lengthSlots,
+      // pri resize štartujeme drag okamžite, pri move až po prahu pohybu
+      moved: kind === "resize",
+    });
+  };
+
+  const onBlockPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!blockDrag) return;
+    const s = slotFromEvent(e.clientY);
+    const delta = s - blockDrag.originSlot;
+    const moved = blockDrag.moved || Math.abs(delta) >= 1;
+    if (blockDrag.kind === "move") {
+      const newStart = Math.max(
+        0,
+        Math.min(SLOTS_PER_DAY - blockDrag.initLength, blockDrag.initStart + delta),
+      );
+      if (newStart === blockDrag.startSlot && moved === blockDrag.moved) return;
+      setBlockDrag({ ...blockDrag, startSlot: newStart, moved });
+    } else {
+      const newLen = Math.max(
+        1,
+        Math.min(SLOTS_PER_DAY - blockDrag.initStart, blockDrag.initLength + delta),
+      );
+      if (newLen === blockDrag.lengthSlots && moved === blockDrag.moved) return;
+      setBlockDrag({ ...blockDrag, lengthSlots: newLen, moved });
+    }
+  };
+
+  const onBlockPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!blockDrag) return;
+    const bd = blockDrag;
+    setBlockDrag(null);
+    if (bd.moved) {
+      // potlač nasledujúci click (aby sa neotvoril detail úlohy po drag-u)
+      suppressClickRef.current = true;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 50);
+      void commitBlockDrag(bd);
+      e.stopPropagation();
+    }
+  };
 
   // Po otvorení Day view scrollni kontajner na aktuálny čas (nie na 00:00).
   const scrollWrapRef = useRef<HTMLDivElement>(null);
@@ -868,19 +967,40 @@ function DayView({
             // In personal mode all blocks span full width; in team mode keep mine/others split
             const left = splitView ? (mine ? "3rem" : "calc(50% + 2px)") : "3rem";
             const right = splitView ? (mine ? "calc(50% + 2px)" : "0.5rem") : "0.5rem";
+            const dragging = blockDrag?.taskId === task.id;
+            const renderStart = dragging ? blockDrag!.startSlot : startSlot;
+            const renderLen = dragging ? blockDrag!.lengthSlots : lengthSlots;
             return (
               <div
                 key={task.id}
                 data-task-block
-                className="group absolute flex gap-1 overflow-hidden rounded-md px-2 py-1 text-left text-[11px]"
+                className={cn(
+                  "group absolute flex gap-1 overflow-hidden rounded-md px-2 py-1 text-left text-[11px]",
+                  !readOnly && "cursor-grab touch-none active:cursor-grabbing",
+                  dragging && "z-20 cursor-grabbing shadow-lg ring-2 ring-primary",
+                )}
                 style={{
                   left,
                   right,
-                  top: startSlot * SLOT_PX + 1,
-                  height: lengthSlots * SLOT_PX - 2,
+                  top: renderStart * SLOT_PX + 1,
+                  height: renderLen * SLOT_PX - 2,
                   backgroundColor: `${accent}22`,
                   borderLeft: `3px solid ${accent}`,
                   opacity: isDone ? 0.6 : 1,
+                }}
+                onPointerDown={(ev) => {
+                  if ((ev.target as HTMLElement).closest("[data-resize-handle]")) return;
+                  if ((ev.target as HTMLElement).closest("button")) return;
+                  onBlockPointerDown(ev, task, startSlot, lengthSlots, "move");
+                }}
+                onPointerMove={onBlockPointerMove}
+                onPointerUp={onBlockPointerUp}
+                onPointerCancel={onBlockPointerUp}
+                onClickCapture={(ev) => {
+                  if (suppressClickRef.current) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                  }
                 }}
               >
                 <button
@@ -917,8 +1037,19 @@ function DayView({
                     </div>
                   )}
                   <div className="font-mono text-[10px] text-muted-foreground">
-                    {String(d.getHours()).padStart(2, "0")}:{String(d.getMinutes()).padStart(2, "0")}
-                    {e && ` – ${String(e.getHours()).padStart(2, "0")}:${String(e.getMinutes()).padStart(2, "0")}`}
+                    {(() => {
+                      if (dragging) {
+                        const sh = Math.floor(renderStart / 2);
+                        const sm = renderStart % 2 === 0 ? 0 : 30;
+                        const endSlotNow = renderStart + renderLen;
+                        const eh = Math.floor(endSlotNow / 2);
+                        const em = endSlotNow % 2 === 0 ? 0 : 30;
+                        return `${fmtTime(sh, sm)} – ${fmtTime(eh, em)}`;
+                      }
+                      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}${
+                        e ? ` – ${String(e.getHours()).padStart(2, "0")}:${String(e.getMinutes()).padStart(2, "0")}` : ""
+                      }`;
+                    })()}
                   </div>
                   <div className={cn("truncate font-semibold", isDone && "line-through")}>{task.title}</div>
                 </button>
@@ -931,6 +1062,19 @@ function DayView({
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
+                )}
+                {!readOnly && (
+                  <div
+                    data-resize-handle
+                    onPointerDown={(ev) => onBlockPointerDown(ev, task, startSlot, lengthSlots, "resize")}
+                    onPointerMove={onBlockPointerMove}
+                    onPointerUp={onBlockPointerUp}
+                    onPointerCancel={onBlockPointerUp}
+                    title="Potiahni pre úpravu dĺžky"
+                    className="absolute inset-x-0 bottom-0 flex h-2.5 cursor-ns-resize touch-none items-center justify-center"
+                  >
+                    <span className="h-1 w-8 rounded-full bg-foreground/30 group-hover:bg-foreground/60" />
+                  </div>
                 )}
               </div>
             );
