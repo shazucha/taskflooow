@@ -211,6 +211,7 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
     const body = text.trim();
     if (!body && !pendingFile) return;
     setSending(true);
+    setSendStep(null);
     try {
       let imageUrl: string | null = null;
       if (pendingFile) {
@@ -219,9 +220,11 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
           setSending(false);
           return;
         }
+        setSendStep("upload");
         console.log("[Chat] uploading image", pendingFile.name);
         imageUrl = await uploadChatImage(currentUserId, pendingFile);
       }
+      setSendStep("insert");
       console.log("[Chat] sending message", { scope, projectId, monthKey, hasImage: !!imageUrl });
       await sendChatMessage({
         scope,
@@ -231,12 +234,16 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
         image_url: imageUrl,
         month_key: scope === "project" ? monthKey : null,
       });
+      setSendStep("done");
+      toast.success(isNotes ? "Poznámka uložená ✓" : "Správa odoslaná ✓");
       console.log("[Chat] sent OK");
       setText("");
       setPendingFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       qc.invalidateQueries({ queryKey });
+      setTimeout(() => setSendStep((s) => (s === "done" ? null : s)), 1500);
     } catch (err) {
+      setSendStep("error");
       console.error("[Chat] send failed", err);
       toast.error(err instanceof Error ? err.message : "Nepodarilo sa odoslať");
     } finally {
