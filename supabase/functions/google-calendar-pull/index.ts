@@ -7,6 +7,7 @@
 // NOTE: verify_jwt = false (see supabase/config.toml). Auth validated in code
 // via getUserFromAuthHeader to avoid gateway 401 from stale deployed flag.
 // Redeploy nudge: ensure verify_jwt=false flag is applied on next deploy.
+// Bump 2026-05-19: force re-apply of verify_jwt=false (gateway returned 401).
 
 import { corsHeaders } from "../_shared/cors.ts";
 import {
