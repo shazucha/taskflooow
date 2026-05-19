@@ -738,6 +738,35 @@ function DayView({
         action: {
           label: "Späť",
           onClick: async () => {
+            // Validácia: bez pôvodného due_date sa nedá zmysluplne vrátiť.
+            if (!prevDueDate) {
+              toast.error("Nedá sa vrátiť: pôvodný čas nie je známy");
+              return;
+            }
+            const prevStart = new Date(prevDueDate).getTime();
+            if (Number.isNaN(prevStart)) {
+              toast.error("Nedá sa vrátiť: neplatný pôvodný čas");
+              return;
+            }
+            if (prevDueEnd) {
+              const prevEnd = new Date(prevDueEnd).getTime();
+              if (Number.isNaN(prevEnd) || prevEnd <= prevStart) {
+                toast.error("Nedá sa vrátiť: poškodený pôvodný interval");
+                return;
+              }
+            }
+            // Skontrolujeme, či úloha medzitým niekto neupravil/nezmazal.
+            const fresh = tasks.find((t) => t.id === task.id);
+            if (!fresh) {
+              toast.error("Nedá sa vrátiť: úloha už neexistuje");
+              return;
+            }
+            const freshStart = fresh.due_date ? new Date(fresh.due_date).getTime() : 0;
+            const expectedStart = startMs;
+            if (Math.abs(freshStart - expectedStart) > 60_000) {
+              toast.error("Nedá sa vrátiť: úloha bola medzitým zmenená");
+              return;
+            }
             try {
               await updateTask.mutateAsync({
                 id: task.id,
@@ -745,8 +774,19 @@ function DayView({
               });
               toast.success("Zmena vrátená");
             } catch (e: unknown) {
-              const m = e instanceof Error ? e.message : "Nepodarilo sa vrátiť zmenu";
-              toast.error(m);
+              const raw = e instanceof Error ? e.message : String(e);
+              const low = raw.toLowerCase();
+              let msg = "Nepodarilo sa vrátiť zmenu";
+              if (low.includes("permission") || low.includes("rls") || low.includes("not authorized")) {
+                msg = "Nedá sa vrátiť: chýbajú oprávnenia (RLS)";
+              } else if (low.includes("conflict") || low.includes("409") || low.includes("duplicate")) {
+                msg = "Nedá sa vrátiť: konflikt dát na serveri";
+              } else if (low.includes("network") || low.includes("failed to fetch")) {
+                msg = "Nedá sa vrátiť: problém so sieťou";
+              } else if (raw) {
+                msg = `Nepodarilo sa vrátiť: ${raw}`;
+              }
+              toast.error(msg);
             }
           },
         },
