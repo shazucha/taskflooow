@@ -52,7 +52,15 @@ export async function sendDirectMessage(input: {
       .select("full_name, email")
       .eq("id", input.sender_id)
       .maybeSingle();
-    const senderName = sender?.full_name?.trim() || sender?.email || "Niekto";
+    // Fallback na auth session, ak profile riadok neobsahuje meno/email
+    // (napr. starý účet bez vyplneného full_name a prázdnym email stĺpcom).
+    let fallbackEmail: string | null = null;
+    if (!sender?.full_name?.trim() && !sender?.email) {
+      const { data: auth } = await supabase.auth.getUser();
+      fallbackEmail = auth.user?.email ?? null;
+    }
+    const senderName =
+      sender?.full_name?.trim() || sender?.email || fallbackEmail || "Niekto";
     const preview = input.body?.trim() || (input.image_url ? "📷 Fotka" : "Nová správa");
     void notifyUsers({
       user_ids: [input.recipient_id],

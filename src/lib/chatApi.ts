@@ -44,7 +44,12 @@ export async function sendChatMessage(input: {
       .select("full_name, email")
       .eq("id", input.author_id)
       .maybeSingle();
-    const name = author?.full_name?.trim() || author?.email || "Niekto";
+    let fallbackEmail: string | null = null;
+    if (!author?.full_name?.trim() && !author?.email) {
+      const { data: auth } = await supabase.auth.getUser();
+      fallbackEmail = auth.user?.email ?? null;
+    }
+    const name = author?.full_name?.trim() || author?.email || fallbackEmail || "Niekto";
     const preview = input.body?.trim() || (input.image_url ? "📷 Fotka" : "Nová správa");
 
     if (input.scope === "team") {
