@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { SubscriptionPendingBadge } from "@/components/SubscriptionPendingBadge";
-import { useProjects, useTasks } from "@/lib/queries";
+import { useMySubscriptionPendingTotal, useProjects, useTasks } from "@/lib/queries";
 import { PROJECT_CATEGORIES, type Project, type ProjectCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,8 @@ const FILTER_LABEL: Record<Filter, string> = {
 export default function Projects() {
   const { data: projects = [], isLoading } = useProjects();
   const { data: tasks = [] } = useTasks();
+  const { data: pendingData } = useMySubscriptionPendingTotal();
+  const perProjectPending = pendingData?.perProject ?? {};
   const [filter, setFilter] = useState<Filter>("shazucha.sk");
 
   const groups = useMemo(() => {
@@ -28,8 +30,19 @@ export default function Projects() {
       const key: Filter = p.category && PROJECT_CATEGORIES.includes(p.category) ? p.category : "uncategorized";
       map.get(key)!.push(p);
     }
+    // Zoradenie: projekty s nedokončenými „náplňami predplatného" idú dopredu
+    // (najviac pending hore), zvyšok ostáva v pôvodnom poradí.
+    for (const [k, list] of map) {
+      const sorted = [...list].sort((a, b) => {
+        const pa = perProjectPending[a.id] ?? 0;
+        const pb = perProjectPending[b.id] ?? 0;
+        if (pa !== pb) return pb - pa;
+        return 0;
+      });
+      map.set(k, sorted);
+    }
     return map;
-  }, [projects]);
+  }, [projects, perProjectPending]);
 
   const filters: Filter[] = [...PROJECT_CATEGORIES, "uncategorized"];
 
