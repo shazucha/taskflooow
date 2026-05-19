@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { ChatMessage, ChatScope } from "./types";
+import { notifyUsers } from "./push";
 
 export async function fetchChatMessages(
   scope: ChatScope,
@@ -33,6 +34,25 @@ export async function sendChatMessage(input: {
     .select()
     .single();
   if (error) throw error;
+  // Push do tímového chatu — všetkým ostatným členom.
+  if (input.scope === "team") {
+    try {
+      const [{ data: author }, { data: others }] = await Promise.all([
+        supabase.from("profiles").select("full_name, email").eq("id", input.author_id).maybeSingle(),
+        supabase.from("profiles").select("id").neq("id", input.author_id),
+      ]);
+      const name = author?.full_name?.trim() || author?.email || "Niekto";
+      const preview = input.body?.trim() || (input.image_url ? "📷 Fotka" : "Nová správa v tíme");
+      const ids = (others ?? []).map((p) => p.id as string);
+      void notifyUsers({
+        user_ids: ids,
+        title: `${name} v tímovom chate`,
+        body: preview.length > 140 ? `${preview.slice(0, 140)}…` : preview,
+        url: "/chat",
+        tag: "team-chat",
+      });
+    } catch { /* ignore */ }
+  }
   return data as ChatMessage;
 }
 

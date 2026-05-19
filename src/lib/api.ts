@@ -197,6 +197,25 @@ export async function createTask(
       console.warn("Failed to insert watchers (non-fatal):", wErr);
     }
   }
+  // Push pre priradeného (ak ≠ tvorca).
+  if (input.assignee_id && input.assignee_id !== input.created_by) {
+    try {
+      const { notifyUsers } = await import("./push");
+      const { data: creator } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", input.created_by)
+        .maybeSingle();
+      const who = creator?.full_name?.trim() || creator?.email || "Niekto";
+      void notifyUsers({
+        user_ids: [input.assignee_id],
+        title: "Nová úloha pre teba",
+        body: `${who}: ${task.title}`,
+        url: "/tasks",
+        tag: `task-${task.id}`,
+      });
+    } catch { /* ignore */ }
+  }
   return task;
 }
 
@@ -272,7 +291,29 @@ export async function updateTask(id: string, patch: Partial<Task>) {
     .select()
     .single();
   if (error) throw error;
-  return data as Task;
+  const task = data as Task;
+  // Ak sa zmenil assignee a je odlišný od aktuálneho používateľa → push.
+  if ("assignee_id" in patch && patch.assignee_id) {
+    try {
+      const { notifyUsers } = await import("./push");
+      const { data: me } = await supabase.auth.getUser();
+      const actorId = me?.user?.id ?? null;
+      if (patch.assignee_id !== actorId) {
+        const { data: actor } = actorId
+          ? await supabase.from("profiles").select("full_name, email").eq("id", actorId).maybeSingle()
+          : { data: null };
+        const who = actor?.full_name?.trim() || actor?.email || "Niekto";
+        void notifyUsers({
+          user_ids: [patch.assignee_id],
+          title: "Bola ti priradená úloha",
+          body: `${who}: ${task.title}`,
+          url: "/tasks",
+          tag: `task-${task.id}`,
+        });
+      }
+    } catch { /* ignore */ }
+  }
+  return task;
 }
 
 export async function deleteTask(id: string) {

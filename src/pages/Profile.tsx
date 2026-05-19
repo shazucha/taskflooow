@@ -22,6 +22,7 @@ import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect";
 import { ServiceCatalogAdmin } from "@/components/ServiceCatalogAdmin";
 import { useTheme } from "@/lib/useTheme";
 import { useTeamPresence } from "@/lib/useTeamPresence";
+import { PushNotificationsCard } from "@/components/PushNotificationsCard";
 
 const COLOR_OPTIONS = [
   "#3b82f6", // blue
@@ -203,6 +204,8 @@ export default function Profile() {
       </div>
 
       <GoogleCalendarConnect />
+
+      <PushNotificationsCard userId={currentUserId ?? null} />
 
       <section className="card-elevated mt-4 flex items-center gap-3 p-4">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
