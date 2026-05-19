@@ -197,6 +197,25 @@ export async function createTask(
       console.warn("Failed to insert watchers (non-fatal):", wErr);
     }
   }
+  // Push pre priradeného (ak ≠ tvorca).
+  if (input.assignee_id && input.assignee_id !== input.created_by) {
+    try {
+      const { notifyUsers } = await import("./push");
+      const { data: creator } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", input.created_by)
+        .maybeSingle();
+      const who = creator?.full_name?.trim() || creator?.email || "Niekto";
+      void notifyUsers({
+        user_ids: [input.assignee_id],
+        title: "Nová úloha pre teba",
+        body: `${who}: ${task.title}`,
+        url: "/tasks",
+        tag: `task-${task.id}`,
+      });
+    } catch { /* ignore */ }
+  }
   return task;
 }
 
