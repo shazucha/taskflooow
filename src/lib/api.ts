@@ -291,7 +291,29 @@ export async function updateTask(id: string, patch: Partial<Task>) {
     .select()
     .single();
   if (error) throw error;
-  return data as Task;
+  const task = data as Task;
+  // Ak sa zmenil assignee a je odlišný od aktuálneho používateľa → push.
+  if ("assignee_id" in patch && patch.assignee_id) {
+    try {
+      const { notifyUsers } = await import("./push");
+      const { data: me } = await supabase.auth.getUser();
+      const actorId = me?.user?.id ?? null;
+      if (patch.assignee_id !== actorId) {
+        const { data: actor } = actorId
+          ? await supabase.from("profiles").select("full_name, email").eq("id", actorId).maybeSingle()
+          : { data: null };
+        const who = actor?.full_name?.trim() || actor?.email || "Niekto";
+        void notifyUsers({
+          user_ids: [patch.assignee_id],
+          title: "Bola ti priradená úloha",
+          body: `${who}: ${task.title}`,
+          url: "/tasks",
+          tag: `task-${task.id}`,
+        });
+      }
+    } catch { /* ignore */ }
+  }
+  return task;
 }
 
 export async function deleteTask(id: string) {
