@@ -389,6 +389,46 @@ export function Chat({ scope, projectId = null, title, className, variant = "cha
         </div>
       )}
 
+      {sendStep && (
+        <div
+          className={cn(
+            "flex items-center gap-2 border-t border-border/60 px-3 py-1.5 text-[11px] font-medium",
+            sendStep === "done"
+              ? "bg-success/10 text-success"
+              : sendStep === "error"
+              ? "bg-destructive/10 text-destructive"
+              : "bg-primary/5 text-muted-foreground"
+          )}
+          role="status"
+          aria-live="polite"
+        >
+          {sendStep === "upload" && (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>1/2 Nahrávam prílohu…</span>
+            </>
+          )}
+          {sendStep === "insert" && (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{pendingFile ? "2/2 " : ""}Ukladám {isNotes ? "poznámku" : "správu"}…</span>
+            </>
+          )}
+          {sendStep === "done" && (
+            <>
+              <Check className="h-3 w-3" />
+              <span>{isNotes ? "Poznámka uložená ✓" : "Správa odoslaná ✓"}</span>
+            </>
+          )}
+          {sendStep === "error" && (
+            <>
+              <X className="h-3 w-3" />
+              <span>Nepodarilo sa odoslať — skús znova</span>
+            </>
+          )}
+        </div>
+      )}
+
       <form onSubmit={send} className="relative flex items-center gap-2 border-t border-border/60 bg-card p-2.5">
         {mentionQuery !== null && mentionCandidates.length > 0 && (
           <div className="absolute bottom-full left-2 right-2 mb-1 max-h-56 overflow-y-auto rounded-xl border border-border/60 bg-popover p-1 shadow-lg">
