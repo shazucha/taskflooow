@@ -26,7 +26,7 @@ import {
   useDeleteProjectMaterial,
   useProjectMaterials,
 } from "@/lib/queries";
-import { cn } from "@/lib/utils";
+import { cn, formatMaterialDate, parseMaterialTimestamp } from "@/lib/utils";
 
 function normalizeUrl(raw: string): string | null {
   const trimmed = raw.trim();
@@ -246,6 +246,7 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
             const meta = KIND_META[kind];
             const Icon = meta.icon;
             const canDelete = m.created_by === currentUserId;
+            const dateText = formatMaterialDate(m.created_at);
             return (
               <li
                 key={m.id}
@@ -264,15 +265,22 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
                   href={m.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="flex flex-1 min-w-0 items-center gap-1.5 text-sm hover:text-primary"
+                  className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
                 >
-                  <span className="truncate">{m.label || hostOf(m.url)}</span>
-                  {m.label && (
-                    <span className="truncate text-[11px] text-muted-foreground">
-                      · {hostOf(m.url)}
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span className="truncate">{m.label || hostOf(m.url)}</span>
+                    {m.label && (
+                      <span className="truncate text-[11px] text-muted-foreground">
+                        · {hostOf(m.url)}
+                      </span>
+                    )}
+                    <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  </span>
+                  {dateText && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {dateText}
                     </span>
                   )}
-                  <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
                 </a>
                 {canDelete && (
                   <button

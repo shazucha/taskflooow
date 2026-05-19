@@ -24,7 +24,7 @@ import {
   useDeleteCompanyMaterial,
   useProfiles,
 } from "@/lib/queries";
-import { cn } from "@/lib/utils";
+import { cn, formatMaterialDate } from "@/lib/utils";
 
 function normalizeUrl(raw: string): string | null {
   const trimmed = raw.trim();
