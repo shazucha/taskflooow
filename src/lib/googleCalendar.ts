@@ -294,6 +294,8 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
     queueRetryUntilAuthenticated(() => { void pullGoogleEvents(); });
     return null;
   }
+  // Bez pripojeného Google účtu funkciu vôbec nevoláme.
+  if (!(await hasGoogleConnection())) return null;
   // Edge runtime občas vráti 503 (studený štart / dočasná nedostupnosť).
   // Skúsime až 5x s narastajúcim backoffom — ostatné chyby propagujeme hneď.
   let lastErr: unknown = null;
