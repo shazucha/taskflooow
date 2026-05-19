@@ -109,8 +109,26 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
   const [label, setLabel] = useState("");
   const PREVIEW_COUNT = 3;
   const [expanded, setExpanded] = useState(false);
-  const hasMore = materials.length > PREVIEW_COUNT;
-  const visible = expanded || !hasMore ? materials : materials.slice(0, PREVIEW_COUNT);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "az" | "za">("newest");
+
+  const sortedMaterials = useMemo(() => {
+    const arr = [...materials];
+    switch (sortBy) {
+      case "newest":
+        return arr.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+      case "oldest":
+        return arr.sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+      case "az":
+        return arr.sort((a, b) => (a.label || hostOf(a.url)).localeCompare(b.label || hostOf(b.url), "sk"));
+      case "za":
+        return arr.sort((a, b) => (b.label || hostOf(b.url)).localeCompare(a.label || hostOf(a.url), "sk"));
+      default:
+        return arr;
+    }
+  }, [materials, sortBy]);
+
+  const hasMore = sortedMaterials.length > PREVIEW_COUNT;
+  const visible = expanded || !hasMore ? sortedMaterials : sortedMaterials.slice(0, PREVIEW_COUNT);
 
   const submit = async () => {
     if (!currentUserId) return;
