@@ -81,11 +81,11 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      // Send the real user JWT in Authorization so both the Supabase gateway
-      // (if verify_jwt is still enabled on a stale deploy) AND our in-function
-      // validation accept the request. We also mirror it in the body and a
-      // custom header for redundancy.
-      Authorization: `Bearer ${accessToken}`,
+      // Gateway pri starom deployi môže stále overovať Authorization a ES256
+      // user JWT odmietnuť. Preto gateway dostane anon JWT a edge funkcia si
+      // reálneho používateľa overí z x-user-authorization / __user_jwt.
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-authorization": `Bearer ${accessToken}`,
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify(bodyPayload),
