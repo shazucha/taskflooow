@@ -57,8 +57,11 @@ export function DirectChatPanel({ peer, isOnline, onClose }: Props) {
   useEffect(() => {
     if (!currentUserId) return;
     const key = conversationKey(currentUserId, peer.id);
+    // Unikátny suffix zabráni reuse existujúceho (už subscribnutého) kanála
+    // pri StrictMode double-mount alebo paralelných inštanciách.
+    const channelName = `dm-${key}-${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel(`dm-${key}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
