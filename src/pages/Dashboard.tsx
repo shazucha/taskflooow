@@ -34,7 +34,6 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <NotificationsBell />
-          <PendingTasksBell count={pendingCount} overdue={overdueCount} />
           <Link to="/me"><UserAvatar profile={me} size="lg" /></Link>
         </div>
       </header>
@@ -47,7 +46,6 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <NotificationsBell />
-          <PendingTasksBell count={pendingCount} overdue={overdueCount} />
         </div>
       </header>
 
