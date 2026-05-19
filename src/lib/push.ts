@@ -102,6 +102,8 @@ export async function notifyUsers(input: {
   body: string;
   url?: string;
   tag?: string;
+  sender_id?: string;
+  title_template?: string;
 }): Promise<void> {
   try {
     const ids = Array.from(new Set((input.user_ids ?? []).filter(Boolean)));
