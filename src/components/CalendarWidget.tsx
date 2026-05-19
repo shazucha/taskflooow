@@ -723,6 +723,9 @@ function DayView({
     base.setHours(0, 0, 0, 0);
     const startMs = base.getTime() + bd.startSlot * 30 * 60_000;
     const endMs = startMs + bd.lengthSlots * 30 * 60_000;
+    // Zapamätáme si pôvodné hodnoty pre prípadné Undo.
+    const prevDueDate = task.due_date ?? null;
+    const prevDueEnd = task.due_end ?? null;
     try {
       await updateTask.mutateAsync({
         id: task.id,
@@ -731,7 +734,24 @@ function DayView({
           due_end: new Date(endMs).toISOString(),
         },
       });
-      toast.success(bd.kind === "move" ? "Termín presunutý" : "Trvanie upravené");
+      toast.success(bd.kind === "move" ? "Termín presunutý" : "Trvanie upravené", {
+        action: {
+          label: "Späť",
+          onClick: async () => {
+            try {
+              await updateTask.mutateAsync({
+                id: task.id,
+                patch: { due_date: prevDueDate, due_end: prevDueEnd },
+              });
+              toast.success("Zmena vrátená");
+            } catch (e: unknown) {
+              const m = e instanceof Error ? e.message : "Nepodarilo sa vrátiť zmenu";
+              toast.error(m);
+            }
+          },
+        },
+        duration: 8000,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Nepodarilo sa upraviť úlohu";
       toast.error(msg);
