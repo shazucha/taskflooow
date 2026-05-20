@@ -34,6 +34,7 @@ function fallbackResponse(body: Record<string, unknown>) {
 }
 
 const SPECIAL_EVENT_CONFLICT_RE = /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType|focus time event|out of office event|working location/i;
+const GOOGLE_RATE_LIMIT_RE = /rateLimitExceeded|userRateLimitExceeded|quotaExceeded|Rate Limit Exceeded/i;
 const GOOGLE_ERROR_STATUS_RE = /"code"\s*:\s*(\d{3})/;
 
 function effectiveGoogleStatus(responseStatus: number, detail: string) {
@@ -69,7 +70,9 @@ async function fetchWithRetry(
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const res = await fetch(url, init);
-      if (!retryOn.includes(res.status)) return res;
+      const retryableStatus = retryOn.includes(res.status);
+      const rateLimited = res.status === 403 && GOOGLE_RATE_LIMIT_RE.test(await res.clone().text());
+      if (!retryableStatus && !rateLimited) return res;
       lastRes = res;
     } catch (e) {
       if (attempt === retries) throw e;
