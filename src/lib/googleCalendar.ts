@@ -81,11 +81,13 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      // Gateway pri starom deployi môže stále overovať Authorization a ES256
-      // user JWT odmietnuť. Preto gateway dostane anon JWT a edge funkcia si
-      // reálneho používateľa overí z x-user-authorization / __user_jwt.
+      // Gateway dostane anon JWT (pre auth bránu). Reálneho používateľa si
+      // edge funkcia overí z __user_jwt v tele požiadavky.
+      // POZN: Nepridávame custom hlavičku ako `x-user-authorization`, lebo
+      // Supabase gateway pri OPTIONS preflight vracia vlastné CORS headers,
+      // ktoré túto hlavičku NEpovoľujú → prehliadač zablokuje POST
+      // ("Failed to fetch"). JWT teda chodí výlučne v JSON body.
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      "x-user-authorization": `Bearer ${accessToken}`,
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify(bodyPayload),
