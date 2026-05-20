@@ -103,6 +103,10 @@ function isSpecialTypeConflict(detail: string) {
   }
 }
 
+function isRateLimitError(detail: string) {
+  return GOOGLE_RATE_LIMIT_RE.test(detail);
+}
+
 async function clearGoogleMapping(admin: ReturnType<typeof adminClient>, taskId: string) {
   await admin
     .from("tasks")
@@ -318,13 +322,21 @@ Deno.serve(async (req) => {
       const t = await evRes.text();
       const googleStatus = effectiveGoogleStatus(evRes.status, t);
       console.error("Calendar API failed", evRes.status, t);
+      if (isRateLimitError(t)) {
+        return fallbackResponse({
+          error: "rate_limit_exceeded",
+          detail: t,
+          skipped: "rate_limit_exceeded",
+          status: googleStatus,
+        });
+      }
       if (isSpecialTypeConflict(t)) {
         await clearGoogleMapping(admin, task.id);
-        return jsonResponse({
-          ok: true,
-          fallback: true,
+        return fallbackResponse({
+          error: "special_event_conflict",
           skipped: "special_event_conflict",
           detail: t,
+          status: googleStatus,
         });
       }
       // If event was deleted on Google side, retry once as POST
