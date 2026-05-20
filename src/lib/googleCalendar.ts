@@ -222,12 +222,14 @@ export async function completeGoogleOAuth(code: string): Promise<{ email: string
     { body: { code, redirect_uri: callbackRedirectUri() } }
   );
   if (error) throw error;
+  invalidateGoogleConnectionCache();
   return { email: data?.email ?? null };
 }
 
 export async function disconnectGoogle(): Promise<void> {
   const { error } = await supabase.functions.invoke("google-calendar-disconnect", { body: {} });
   if (error) throw error;
+  invalidateGoogleConnectionCache();
 }
 
 export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<GoogleEvent[]> {
