@@ -67,10 +67,19 @@ Deno.serve(async (req) => {
     if (!res.ok) {
       const t = await res.text();
       console.error("calendar list failed", res.status, t);
-      return new Response(JSON.stringify({ error: "calendar_api_failed", detail: t }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      // Soft fallback — never propagate as 5xx so the client doesn't show a
+      // white screen on Google rate-limits / transient API errors.
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          fallback: true,
+          error: "calendar_api_failed",
+          detail: t,
+          status: res.status,
+          events: [],
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     const data = await res.json();
 
