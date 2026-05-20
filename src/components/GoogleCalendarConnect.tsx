@@ -5,11 +5,14 @@ import {
   disconnectGoogle,
   fixGoogleTaskStatuses,
   getGoogleConnectionStatus,
+  invalidateGoogleConnectionCache,
   pullGoogleEvents,
   rollbackGoogleTaskStatuses,
   startGoogleOAuth,
+  syncTaskToGoogle,
   type PullResult,
 } from "@/lib/googleCalendar";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export function GoogleCalendarConnect() {
@@ -135,6 +138,7 @@ export function GoogleCalendarConnect() {
     setRetrying(true);
     setAudit(null);
     try {
+      invalidateGoogleConnectionCache();
       const status = await getGoogleConnectionStatus();
       setConnected(status.connected);
       setEmail(status.email);
@@ -147,13 +151,42 @@ export function GoogleCalendarConnect() {
 
       const r = await pullGoogleEvents();
       if (!r) {
-        toast.error("Retry sync zlyhal");
-        return;
+        toast.error("Pull z Google zlyhal — pokračujem push-om");
+      } else {
+        setAudit(r);
       }
-      setAudit(r);
-      toast.success(
-        `Retry sync hotový: +${r.imported}, ✎${r.updated}, ✕${r.deleted}`
-      );
+
+      // Push: nájdi všetky moje úlohy s časom, ktoré ešte nemajú google_event_id
+      // a pošli ich do Google kalendára.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
+      let pushed = 0;
+      let pushFailed = 0;
+      if (userId) {
+        const { data: pending } = await supabase
+          .from("tasks")
+          .select("id, due_date, due_end, google_event_id, google_imported")
+          .eq("assignee_id", userId)
+          .not("due_date", "is", null)
+          .is("google_event_id", null)
+          .neq("google_imported", true)
+          .limit(200);
+        for (const t of pending ?? []) {
+          try {
+            const res = await syncTaskToGoogle(t.id, "upsert");
+            if (res?.ok && !res.skipped) pushed += 1;
+          } catch {
+            pushFailed += 1;
+          }
+        }
+      }
+      if (r) {
+        toast.success(
+          `Hotovo: pull +${r.imported}/✎${r.updated}/✕${r.deleted}, push ${pushed}${pushFailed ? ` (✕${pushFailed})` : ""}`
+        );
+      } else {
+        toast.success(`Push do Google: ${pushed}${pushFailed ? ` (✕${pushFailed})` : ""}`);
+      }
 
       const after = await getGoogleConnectionStatus();
       setConnected(after.connected);
