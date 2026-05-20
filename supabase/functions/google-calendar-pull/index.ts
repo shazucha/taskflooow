@@ -404,18 +404,24 @@ Deno.serve(async (req) => {
             const description = gt.notes ?? null;
             const initialStatus: "todo" | "done" = gt.status === "completed" ? "done" : "todo";
             if (existingTask) {
+              // DÔLEŽITÉ: nikdy nedegradujeme done → todo. Ak používateľ v TaskFlow
+              // označil úlohu ako hotovú, sync ju nesmie odškrtnúť späť, ani keď
+              // je v Google Tasks stále "needsAction". Status posúvame iba smerom
+              // todo → done (keď ju používateľ dokončil v Google).
+              const nextStatus: "todo" | "done" =
+                existingTask.status === "done" ? "done" : initialStatus;
               const changed =
                 existingTask.title !== title ||
                 existingTask.description !== description ||
                 existingTask.due_date !== dueIso ||
-                existingTask.status !== initialStatus;
+                existingTask.status !== nextStatus;
               if (changed) {
                 await admin
                   .from("tasks")
-                  .update({ title, description, due_date: dueIso, due_end: null, status: initialStatus })
+                  .update({ title, description, due_date: dueIso, due_end: null, status: nextStatus })
                   .eq("id", existingTask.id);
                 updated++;
-                console.log(`[gtasks] update ${gt.id} "${title}"`);
+                console.log(`[gtasks] update ${gt.id} "${title}" status=${nextStatus} (google=${initialStatus})`);
               }
             } else {
               const { error: insertErr } = await admin.from("tasks").insert({
