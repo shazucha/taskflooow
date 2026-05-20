@@ -102,7 +102,7 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
     // sometimes prefixes the body with "Error, " when wrapping a thrown
     // response, so strip that before inspecting/parsing.
     const cleanedBody = body.replace(/^\s*Error[,:]\s*/i, "");
-    if (isSpecialCalendarConflict(cleanedBody) || /calendar_api_failed/.test(cleanedBody)) {
+    if (isSpecialCalendarConflict(cleanedBody) || isGoogleRateLimit(cleanedBody) || /calendar_api_failed/.test(cleanedBody)) {
       let detail: unknown = cleanedBody;
       try {
         const parsed = JSON.parse(cleanedBody);
@@ -116,7 +116,11 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
       return ({
         ok: true,
         fallback: true,
-        skipped: isSpecialCalendarConflict(detail) ? "special_event_conflict" : "calendar_api_failed",
+        skipped: isSpecialCalendarConflict(detail)
+          ? "special_event_conflict"
+          : isGoogleRateLimit(detail)
+            ? "rate_limit_exceeded"
+            : "calendar_api_failed",
         detail: typeof detail === "string" ? detail : JSON.stringify(detail),
       }) as unknown as T;
     }
@@ -198,6 +202,12 @@ function isTransientFunctionError(error: unknown): boolean {
 
 function isSpecialCalendarConflict(value: unknown): boolean {
   return /malformedFocusTimeEvent|malformedOutOfOfficeEvent|malformedWorkingLocationEvent|cannotChangeOrganizer|invalidEventType|focus time event|out of office event|working location/i.test(
+    getErrorMessage(value)
+  );
+}
+
+function isGoogleRateLimit(value: unknown): boolean {
+  return /rateLimitExceeded|userRateLimitExceeded|quotaExceeded|Rate Limit Exceeded|rate_limit_exceeded/i.test(
     getErrorMessage(value)
   );
 }
@@ -395,6 +405,9 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
       return data ?? { ok: true };
     } catch (error) {
       const errorBody = await getFunctionErrorBody(error);
+      if (isGoogleRateLimit(errorBody || error)) {
+        return { ok: true, fallback: true, skipped: "rate_limit_exceeded", detail: errorBody || getErrorMessage(error) };
+      }
       if (isSpecialCalendarConflict(errorBody || error)) {
         return { ok: true, fallback: true, skipped: "special_event_conflict", detail: errorBody || getErrorMessage(error) };
       }
