@@ -193,10 +193,23 @@ Deno.serve(async (req) => {
       if (!res.ok) {
         const t = await res.text();
         console.error("calendar list failed", res.status, t);
-        return new Response(JSON.stringify({ error: "calendar_api_failed", detail: t }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        // Soft fallback — never propagate as 5xx, aby klient nevypisoval
+        // bielu obrazovku / "Retry sync zlyhal". Vrátime 200 s fallback
+        // signálom; pri špeciálnych event typoch (focusTime, OOO,
+        // workingLocation) tiež nepadáme.
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            fallback: true,
+            error: "calendar_api_failed",
+            detail: t,
+            status: res.status,
+            imported: 0,
+            updated: 0,
+            deleted: 0,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
       const data = await res.json();
       for (const item of data.items ?? []) events.push(item);
