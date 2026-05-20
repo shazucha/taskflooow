@@ -77,25 +77,22 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
     ? { ...(payload as Record<string, unknown>), __user_jwt: accessToken }
     : { value: payload, __user_jwt: accessToken };
 
+  // Gateway vyžaduje platný user JWT v Authorization hlavičke (inak 401).
+  // Posielame teda session token používateľa, nie anon. __user_jwt v body
+  // necháme ako fallback pre prípad, že by gateway header neprepustil.
   const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      // Gateway dostane anon JWT (pre auth bránu). Reálneho používateľa si
-      // edge funkcia overí z __user_jwt v tele požiadavky.
-      // POZN: Nepridávame custom hlavičku ako `x-user-authorization`, lebo
-      // Supabase gateway pri OPTIONS preflight vracia vlastné CORS headers,
-      // ktoré túto hlavičku NEpovoľujú → prehliadač zablokuje POST
-      // ("Failed to fetch"). JWT teda chodí výlučne v JSON body.
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      Authorization: `Bearer ${accessToken}`,
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify(bodyPayload),
   });
 
   if (!response.ok) {
-    if (response.status === 401) return unauthorizedFallback;
     const body = await response.text();
+    if (response.status === 401) return unauthorizedFallback;
     // Niektoré nasadenia gatewayu vracajú 401 s netypickým statusom
     // (napr. 500/403 + body "Unauthorized") — tiež považujeme za auth race.
     if (/"?Unauthorized"?/i.test(body)) return unauthorizedFallback;
