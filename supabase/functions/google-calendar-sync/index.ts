@@ -114,6 +114,14 @@ async function clearGoogleMapping(admin: ReturnType<typeof adminClient>, taskId:
     .eq("id", taskId);
 }
 
+async function safeClearGoogleMapping(admin: ReturnType<typeof adminClient>, taskId: string) {
+  try {
+    await clearGoogleMapping(admin, taskId);
+  } catch (e) {
+    console.warn("clearGoogleMapping failed", e);
+  }
+}
+
 function hasTime(iso: string) {
   // Pracujeme s reťazcom v UTC (z DB chodí "...Z"), aby sme nezáviseli od
   // timezone servera. Mobil aj desktop posielajú ISO; ak hodina/minúta
@@ -334,7 +342,7 @@ Deno.serve(async (req) => {
         });
       }
       if (isSpecialTypeConflict(t)) {
-        await clearGoogleMapping(admin, task.id);
+        await safeClearGoogleMapping(admin, task.id);
         return fallbackResponse({
           error: "special_event_conflict",
           skipped: "special_event_conflict",
@@ -362,7 +370,7 @@ Deno.serve(async (req) => {
       // Never propagate as a hard error — return 200 with fallback signal so
       // the client doesn't crash. Also clear stale event mapping for 4xx.
       if (googleStatus >= 400 && googleStatus < 500 && task.google_event_id) {
-        await clearGoogleMapping(admin, task.id);
+        await safeClearGoogleMapping(admin, task.id);
       }
       return fallbackResponse({
         error: "calendar_api_failed",
