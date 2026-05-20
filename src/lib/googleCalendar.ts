@@ -102,7 +102,7 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
     // sometimes prefixes the body with "Error, " when wrapping a thrown
     // response, so strip that before inspecting/parsing.
     const cleanedBody = body.replace(/^\s*Error[,:]\s*/i, "");
-    if (isSpecialCalendarConflict(cleanedBody) || /calendar_api_failed/.test(cleanedBody)) {
+    if (isSpecialCalendarConflict(cleanedBody) || isGoogleRateLimit(cleanedBody) || /calendar_api_failed/.test(cleanedBody)) {
       let detail: unknown = cleanedBody;
       try {
         const parsed = JSON.parse(cleanedBody);
@@ -116,7 +116,11 @@ async function callGoogleFunction<T>(functionName: string, payload: unknown, una
       return ({
         ok: true,
         fallback: true,
-        skipped: isSpecialCalendarConflict(detail) ? "special_event_conflict" : "calendar_api_failed",
+        skipped: isSpecialCalendarConflict(detail)
+          ? "special_event_conflict"
+          : isGoogleRateLimit(detail)
+            ? "rate_limit_exceeded"
+            : "calendar_api_failed",
         detail: typeof detail === "string" ? detail : JSON.stringify(detail),
       }) as unknown as T;
     }
