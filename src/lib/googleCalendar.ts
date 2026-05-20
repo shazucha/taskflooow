@@ -435,9 +435,13 @@ export async function getGoogleConnectionStatus(): Promise<{
     .from("google_calendar_tokens")
     .select("google_email, scope")
     .maybeSingle();
-  if (error || !data) return { connected: false, email: null, hasTasksScope: false };
+  if (error || !data) {
+    googleConnectedCache = { value: false, until: Date.now() + 60_000 };
+    return { connected: false, email: null, hasTasksScope: false };
+  }
   const scopes = data.scope?.split(/\s+/) ?? [];
   const connected = scopes.includes(REQUIRED_GOOGLE_SCOPE);
   const hasTasksScope = hasGoogleTasksScope(scopes);
+  googleConnectedCache = { value: connected, until: Date.now() + 60_000 };
   return { connected, email: connected ? (data.google_email ?? null) : null, hasTasksScope };
 }
