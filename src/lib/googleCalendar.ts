@@ -202,6 +202,12 @@ function isSpecialCalendarConflict(value: unknown): boolean {
   );
 }
 
+function isGoogleRateLimit(value: unknown): boolean {
+  return /rateLimitExceeded|userRateLimitExceeded|quotaExceeded|Rate Limit Exceeded|rate_limit_exceeded/i.test(
+    getErrorMessage(value)
+  );
+}
+
 function callbackRedirectUri() {
   return `${window.location.origin}/auth/google/callback`;
 }
@@ -395,6 +401,9 @@ export async function syncTaskToGoogle(taskId: string, action: "upsert" | "delet
       return data ?? { ok: true };
     } catch (error) {
       const errorBody = await getFunctionErrorBody(error);
+      if (isGoogleRateLimit(errorBody || error)) {
+        return { ok: true, fallback: true, skipped: "rate_limit_exceeded", detail: errorBody || getErrorMessage(error) };
+      }
       if (isSpecialCalendarConflict(errorBody || error)) {
         return { ok: true, fallback: true, skipped: "special_event_conflict", detail: errorBody || getErrorMessage(error) };
       }
