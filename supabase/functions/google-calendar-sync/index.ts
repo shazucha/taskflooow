@@ -147,8 +147,11 @@ Deno.serve(async (req) => {
     const task = taskData as TaskRow;
 
     // Determine which user's calendar should hold this event.
-    // Prefer existing owner mapping; otherwise the assignee.
-    let targetUserId = task.google_calendar_owner ?? task.assignee_id;
+    // Assignee je vždy autorita (vlastník úlohy). google_calendar_owner
+    // používame len ako fallback (napr. importovaná úloha bez assignee).
+    // Predtým sme uprednostňovali owner-a → ak ostal stale (napr. admin)
+    // po zmene assignee, eventy putovali do nesprávneho kalendára.
+    let targetUserId = task.assignee_id ?? task.google_calendar_owner;
 
     if (targetUserId) {
       const { data: tokenRow } = await admin
