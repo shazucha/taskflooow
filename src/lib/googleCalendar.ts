@@ -222,12 +222,14 @@ export async function completeGoogleOAuth(code: string): Promise<{ email: string
     { body: { code, redirect_uri: callbackRedirectUri() } }
   );
   if (error) throw error;
+  invalidateGoogleConnectionCache();
   return { email: data?.email ?? null };
 }
 
 export async function disconnectGoogle(): Promise<void> {
   const { error } = await supabase.functions.invoke("google-calendar-disconnect", { body: {} });
   if (error) throw error;
+  invalidateGoogleConnectionCache();
 }
 
 export async function fetchGoogleEvents(timeMin: Date, timeMax: Date): Promise<GoogleEvent[]> {
@@ -433,9 +435,13 @@ export async function getGoogleConnectionStatus(): Promise<{
     .from("google_calendar_tokens")
     .select("google_email, scope")
     .maybeSingle();
-  if (error || !data) return { connected: false, email: null, hasTasksScope: false };
+  if (error || !data) {
+    googleConnectedCache = { value: false, until: Date.now() + 60_000 };
+    return { connected: false, email: null, hasTasksScope: false };
+  }
   const scopes = data.scope?.split(/\s+/) ?? [];
   const connected = scopes.includes(REQUIRED_GOOGLE_SCOPE);
   const hasTasksScope = hasGoogleTasksScope(scopes);
+  googleConnectedCache = { value: connected, until: Date.now() + 60_000 };
   return { connected, email: connected ? (data.google_email ?? null) : null, hasTasksScope };
 }
