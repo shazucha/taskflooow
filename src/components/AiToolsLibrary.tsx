@@ -165,6 +165,9 @@ export function AiToolsLibrary() {
   const [editMode, setEditMode] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  // Vlastná (používateľská) kategória – inline pridanie v Selecte.
+  const [customCatOpen, setCustomCatOpen] = useState(false);
+  const [customCatInput, setCustomCatInput] = useState("");
 
   const profileById = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
