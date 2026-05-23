@@ -901,6 +901,58 @@ export function useDeleteCompanyMaterial() {
   });
 }
 
+// ---- AI knižnica nástrojov
+export function useAiTools() {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+
+  useEffect(() => {
+    if (!isReady || !user) return;
+    const channel = supabase
+      .channel(`ai-tools-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ai_tools" },
+        () => qc.invalidateQueries({ queryKey: ["ai_tools"] })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isReady, user, qc]);
+
+  return useQuery({
+    queryKey: ["ai_tools"],
+    queryFn: fetchAiTools,
+    enabled: isReady && !!user,
+  });
+}
+
+export function useCreateAiTool() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createAiTool,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ai_tools"] }),
+  });
+}
+
+export function useUpdateAiTool() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: string; patch: Parameters<typeof updateAiTool>[1] }) =>
+      updateAiTool(args.id, args.patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ai_tools"] }),
+  });
+}
+
+export function useDeleteAiTool() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteAiTool(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ai_tools"] }),
+  });
+}
+
 // ---- Service catalog (globálny cenník)
 export function useServiceCatalog(includeInactive = false) {
   const qc = useQueryClient();
