@@ -279,7 +279,7 @@ export function AiToolsLibrary() {
 
       {/* Filter chips */}
       <div className="mt-3 flex flex-wrap gap-1.5 rounded-xl bg-surface-muted p-1.5">
-        {(filtersExpanded ? filters : filters.slice(1, 6).concat("__expand__")).map((f) => {
+        {(filtersExpanded ? filters : filters.slice(0, 6).concat("__expand__")).map((f) => {
           if (f === "__expand__") {
             return (
               <button
