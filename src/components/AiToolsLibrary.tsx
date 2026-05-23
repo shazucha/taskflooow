@@ -543,7 +543,8 @@ function ToolForm({
 }
 
 function SectionsView({ sections }: { sections: Sections }) {
-  const filled = SECTION_KEYS.filter((k) => sections[k].trim().length > 0);
+  const [openKey, setOpenKey] = useState<SectionKey | null>(null);
+  const filled = SECTION_KEYS.filter((k) => sections[k].trim().length > 人0);
   if (filled.length === 0) {
     return (
       <p className="text-sm italic text-muted-foreground">
@@ -553,21 +554,29 @@ function SectionsView({ sections }: { sections: Sections }) {
   }
   return (
     <div className="space-y-2">
-      {filled.map((k) => (
-        <details
-          key={k}
-          open
-          className="group rounded-xl border border-border bg-surface-muted/40 p-3 open:bg-surface-muted/60"
-        >
-          <summary className="cursor-pointer list-none text-sm font-semibold text-foreground">
-            <span className="mr-2 text-muted-foreground transition group-open:rotate-90 inline-block">›</span>
-            {SECTION_LABEL[k]}
-          </summary>
-          <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
-            {sections[k]}
-          </p>
-        </details>
-      ))}
+      {filled.map((k) => {
+        const isOpen = openKey === k;
+        return (
+          <details
+            key={k}
+            open={isOpen}
+            onToggle={(e) => {
+              const d = e.currentTarget;
+              if (d.open) setOpenKey(k);
+              else if (openKey === k) setOpenKey(null);
+            }}
+            className="group rounded-xl border border-border bg-surface-muted/40 p-3 open:bg-surface-muted/60"
+          >
+            <summary className="cursor-pointer list-none text-sm font-semibold text-foreground">
+              <span className="mr-2 text-muted-foreground transition group-open:rotate-90 inline-block">›</span>
+              {SECTION_LABEL[k]}
+            </summary>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
+              {sections[k]}
+            </p>
+          </details>
+        );
+      })}
     </div>
   );
 }
