@@ -470,10 +470,14 @@ export function AiToolsLibrary() {
 function ToolForm({
   form,
   setForm,
+  tools,
 }: {
   form: FormState;
   setForm: (f: FormState) => void;
+  tools: AiTool[];
 }) {
+  const [customCatOpen, setCustomCatOpen] = useState(false);
+  const [customCatInput, setCustomCatInput] = useState("");
   return (
     <div className="space-y-3">
       <div>
