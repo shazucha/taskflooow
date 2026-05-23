@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ExternalLink, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ChevronDown, ExternalLink, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -165,6 +165,7 @@ export function AiToolsLibrary() {
   const [editMode, setEditMode] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   const profileById = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
@@ -277,8 +278,27 @@ export function AiToolsLibrary() {
       </div>
 
       {/* Filter chips */}
-      <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-xl bg-surface-muted p-1">
-        {filters.map((f) => {
+      <div className="mt-3 flex flex-wrap gap-1.5 rounded-xl bg-surface-muted p-1.5">
+        {(filtersExpanded
+          ? filters
+          : filters.length <= 7
+            ? filters
+            : filters.slice(0, 6).concat("__expand__")
+        ).map((f) => {
+          if (f === "__expand__") {
+            return (
+              <button
+                key="__expand__"
+                type="button"
+                onClick={() => setFiltersExpanded(true)}
+                className="shrink-1 flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+                title="Zobraziť viac kategórií"
+              >
+                <span>+{filters.length - 6} kategórií</span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            );
+          }
           const label = f === "all" ? "Všetko" : getAiToolCategoryLabel(f);
           const count = countByFilter(f);
           return (
@@ -297,6 +317,15 @@ export function AiToolsLibrary() {
             </button>
           );
         })}
+        {filtersExpanded && (
+          <button
+            type="button"
+            onClick={() => setFiltersExpanded(false)}
+            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+          >
+            Menej
+          </button>
+        )}
       </div>
 
       {/* Grid */}
