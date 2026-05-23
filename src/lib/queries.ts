@@ -34,6 +34,7 @@ import {
   createCompanyMaterial,
   deleteCompanyMaterial,
   fetchCompanyMaterials,
+  reorderCompanyMaterials,
   fetchAiTools,
   createAiTool,
   updateAiTool,
