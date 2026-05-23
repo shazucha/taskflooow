@@ -159,6 +159,49 @@ export interface CompanyMaterial {
   created_at: string;
 }
 
+export const AI_TOOL_CATEGORIES = [
+  "tvorba-textu",
+  "obrazky",
+  "video",
+  "audio",
+  "design",
+  "tvorba-webu",
+  "tvorba-loga",
+  "chatbot",
+  "produktivita",
+  "kod",
+  "marketing",
+  "ine",
+] as const;
+export type AiToolCategory = (typeof AI_TOOL_CATEGORIES)[number];
+
+export const AI_TOOL_CATEGORY_LABEL: Record<AiToolCategory, string> = {
+  "tvorba-textu": "Tvorba textu",
+  "obrazky": "Obrázky",
+  "video": "Video",
+  "audio": "Audio",
+  "design": "Design",
+  "tvorba-webu": "Tvorba webu a aplikácií",
+  "tvorba-loga": "Tvorba loga",
+  "chatbot": "Chatbot",
+  "produktivita": "Produktivita",
+  "kod": "Kód & dev",
+  "marketing": "Marketing & SEO",
+  "ine": "Iné",
+};
+
+export interface AiTool {
+  id: string;
+  name: string;
+  url: string;
+  description: string | null;
+  category: AiToolCategory;
+  image_url: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type ChatScope = "team" | "project";
 
 export interface ChatMessage {
