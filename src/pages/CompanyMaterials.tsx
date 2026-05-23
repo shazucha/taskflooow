@@ -11,11 +11,14 @@ import {
   Link as LinkIcon,
   Mail,
   Plus,
+  Sparkles,
   Trash2,
   Youtube,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { AiToolsLibrary } from "@/components/AiToolsLibrary";
 import { toast } from "sonner";
 import {
   useCompanyMaterials,
@@ -139,14 +142,27 @@ export default function CompanyMaterials() {
             Zdieľané odkazy pre celý tím – Google Disk, dokumenty, šablóny.
           </p>
         </div>
-        {!adding && (
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Pridať
-          </Button>
-        )}
       </header>
 
-      {adding && (
+      <Tabs defaultValue="materials" className="mt-4">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="materials" className="gap-1.5">
+            <FolderOpen className="h-4 w-4" /> Materiály
+          </TabsTrigger>
+          <TabsTrigger value="ai" className="gap-1.5">
+            <Sparkles className="h-4 w-4" /> AI knižnica nástrojov
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="materials">
+          <div className="mt-3 flex items-center justify-end">
+            {!adding && (
+              <Button size="sm" onClick={() => setAdding(true)}>
+                <Plus className="mr-1 h-4 w-4" /> Pridať materiál
+              </Button>
+            )}
+          </div>
+          {adding && (
         <div className="mt-4 space-y-2 rounded-2xl border border-border bg-card p-3">
           <Input
             value={url}
@@ -183,9 +199,9 @@ export default function CompanyMaterials() {
             </Button>
           </div>
         </div>
-      )}
+          )}
 
-      <div className="mt-5">
+          <div className="mt-5">
         {materials.length === 0 && !adding ? (
           <div className="rounded-2xl bg-surface-muted p-8 text-center">
             <FolderOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
@@ -250,7 +266,13 @@ export default function CompanyMaterials() {
             })}
           </ul>
         )}
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="ai">
+          <AiToolsLibrary />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
