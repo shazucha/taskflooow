@@ -37,6 +37,74 @@ import { cn, formatMaterialDate } from "@/lib/utils";
 
 type FilterKey = AiToolCategory | "all";
 
+const SECTION_KEYS = [
+  "what",
+  "uses",
+  "features",
+  "howto",
+  "scenarios",
+  "limits",
+  "prompts",
+  "examples",
+] as const;
+type SectionKey = (typeof SECTION_KEYS)[number];
+
+const SECTION_LABEL: Record<SectionKey, string> = {
+  what: "Čo to je?",
+  uses: "Čo s tým viem robiť?",
+  features: "Hlavné funkcie a schopnosti",
+  howto: "Ako to používať krok za krokom",
+  scenarios: "Kedy je to vhodný nástroj",
+  limits: "Na čo si dávať pozor",
+  prompts: "Tipy pre lepšie otázky (prompty)",
+  examples: "Príklady z praxe",
+};
+
+const SECTION_HINT: Record<SectionKey, string> = {
+  what: "Základný popis",
+  uses: "Hlavné použitia",
+  features: "Kľúčové funkcie",
+  howto: "Postup krok za krokom",
+  scenarios: "Typické scenáre použitia",
+  limits: "Limity + riziká",
+  prompts: "Príklady promptov",
+  examples: "Use-cases z firmy",
+};
+
+type Sections = Record<SectionKey, string>;
+const EMPTY_SECTIONS: Sections = {
+  what: "", uses: "", features: "", howto: "",
+  scenarios: "", limits: "", prompts: "", examples: "",
+};
+
+function parseSections(raw: string | null | undefined): Sections {
+  if (!raw) return { ...EMPTY_SECTIONS };
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === "object" && parsed.__v === "ai-tool-sections") {
+        const out: Sections = { ...EMPTY_SECTIONS };
+        for (const k of SECTION_KEYS) {
+          if (typeof parsed[k] === "string") out[k] = parsed[k];
+        }
+        return out;
+      }
+    } catch {
+      // fallthrough to legacy
+    }
+  }
+  return { ...EMPTY_SECTIONS, what: raw };
+}
+
+function serializeSections(s: Sections): string | null {
+  const hasAny = SECTION_KEYS.some((k) => s[k].trim().length > 0);
+  if (!hasAny) return null;
+  const payload: Record<string, string> = { __v: "ai-tool-sections" };
+  for (const k of SECTION_KEYS) payload[k] = s[k].trim();
+  return JSON.stringify(payload);
+}
+
 function normalizeUrl(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -70,7 +138,7 @@ function faviconFor(url: string) {
 type FormState = {
   name: string;
   url: string;
-  description: string;
+  sections: Sections;
   category: AiToolCategory;
   image_url: string;
 };
@@ -78,7 +146,7 @@ type FormState = {
 const EMPTY_FORM: FormState = {
   name: "",
   url: "",
-  description: "",
+  sections: { ...EMPTY_SECTIONS },
   category: "ine",
   image_url: "",
 };
@@ -129,7 +197,7 @@ export function AiToolsLibrary() {
       await create.mutateAsync({
         name,
         url: normalized,
-        description: form.description.trim() || null,
+        description: serializeSections(form.sections),
         category: form.category,
         image_url: form.image_url.trim() || null,
         created_by: currentUserId,
@@ -155,7 +223,7 @@ export function AiToolsLibrary() {
         patch: {
           name,
           url: normalized,
-          description: form.description.trim() || null,
+          description: serializeSections(form.sections),
           category: form.category,
           image_url: form.image_url.trim() || null,
         },
@@ -171,7 +239,7 @@ export function AiToolsLibrary() {
     setForm({
       name: t.name,
       url: t.url,
-      description: t.description ?? "",
+      sections: parseSections(t.description),
       category: t.category,
       image_url: t.image_url ?? "",
     });
@@ -321,20 +389,7 @@ export function AiToolsLibrary() {
                 <ExternalLink className="h-4 w-4 shrink-0" />
               </a>
 
-              {openTool.description ? (
-                <div className="rounded-xl border border-border bg-surface-muted/40 p-3">
-                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Popis & poznámky
-                  </p>
-                  <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
-                    {openTool.description}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm italic text-muted-foreground">
-                  Žiadny popis. Klikni na „Upraviť" a doplň ho.
-                </p>
-              )}
+              <SectionsView sections={parseSections(openTool.description)} />
 
               <div className="text-[11px] text-muted-foreground">
                 {openTool.created_by
@@ -452,16 +507,26 @@ function ToolForm({
           </SelectContent>
         </Select>
       </div>
-      <div>
-        <label className="mb-1 block text-xs font-semibold text-muted-foreground">
-          Popis / poznámky
-        </label>
-        <Textarea
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          placeholder="Na čo nástroj slúži, tipy, prihlasovacie info…"
-          rows={5}
-        />
+      <div className="space-y-3 rounded-xl border border-border bg-surface-muted/40 p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Štruktúrované sekcie
+        </p>
+        {SECTION_KEYS.map((k) => (
+          <div key={k}>
+            <label className="mb-1 block text-xs font-semibold text-foreground">
+              {SECTION_LABEL[k]}{" "}
+              <span className="font-normal text-muted-foreground">— {SECTION_HINT[k]}</span>
+            </label>
+            <Textarea
+              value={form.sections[k]}
+              onChange={(e) =>
+                setForm({ ...form, sections: { ...form.sections, [k]: e.target.value } })
+              }
+              placeholder={SECTION_HINT[k]}
+              rows={3}
+            />
+          </div>
+        ))}
       </div>
       <div>
         <label className="mb-1 block text-xs font-semibold text-muted-foreground">
@@ -473,6 +538,36 @@ function ToolForm({
           placeholder="https://…/logo.png"
         />
       </div>
+    </div>
+  );
+}
+
+function SectionsView({ sections }: { sections: Sections }) {
+  const filled = SECTION_KEYS.filter((k) => sections[k].trim().length > 0);
+  if (filled.length === 0) {
+    return (
+      <p className="text-sm italic text-muted-foreground">
+        Žiadny popis. Klikni na „Upraviť" a doplň jednotlivé sekcie.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {filled.map((k) => (
+        <details
+          key={k}
+          open
+          className="group rounded-xl border border-border bg-surface-muted/40 p-3 open:bg-surface-muted/60"
+        >
+          <summary className="cursor-pointer list-none text-sm font-semibold text-foreground">
+            <span className="mr-2 text-muted-foreground transition group-open:rotate-90 inline-block">›</span>
+            {SECTION_LABEL[k]}
+          </summary>
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
+            {sections[k]}
+          </p>
+        </details>
+      ))}
     </div>
   );
 }
