@@ -171,6 +171,7 @@ export const AI_TOOL_CATEGORIES = [
   "produktivita",
   "kod",
   "marketing",
+  "prezentacie",
   "ine",
 ] as const;
 export type AiToolCategory = (typeof AI_TOOL_CATEGORIES)[number];
@@ -187,6 +188,7 @@ export const AI_TOOL_CATEGORY_LABEL: Record<AiToolCategory, string> = {
   "produktivita": "Produktivita",
   "kod": "Kód & dev",
   "marketing": "Marketing & SEO",
+  "prezentacie": "Prezentácie",
   "ine": "Iné",
 };
 
