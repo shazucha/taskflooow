@@ -171,6 +171,7 @@ export const AI_TOOL_CATEGORIES = [
   "produktivita",
   "kod",
   "marketing",
+  "prezentacie",
   "ine",
 ] as const;
 export type AiToolCategory = (typeof AI_TOOL_CATEGORIES)[number];
