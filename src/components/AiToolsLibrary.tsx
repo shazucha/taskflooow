@@ -288,7 +288,7 @@ export function AiToolsLibrary() {
           }
         }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
           {openTool && !editMode && (
             <>
               <DialogHeader>
@@ -310,6 +310,7 @@ export function AiToolsLibrary() {
                 </div>
               </DialogHeader>
 
+              <div className="space-y-4">
               <a
                 href={openTool.url}
                 target="_blank"
@@ -321,9 +322,14 @@ export function AiToolsLibrary() {
               </a>
 
               {openTool.description ? (
-                <p className="whitespace-pre-wrap text-sm text-foreground/90">
-                  {openTool.description}
-                </p>
+                <div className="rounded-xl border border-border bg-surface-muted/40 p-3">
+                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Popis & poznámky
+                  </p>
+                  <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
+                    {openTool.description}
+                  </p>
+                </div>
               ) : (
                 <p className="text-sm italic text-muted-foreground">
                   Žiadny popis. Klikni na „Upraviť" a doplň ho.
@@ -335,6 +341,7 @@ export function AiToolsLibrary() {
                   ? `Pridal ${profileById.get(openTool.created_by)?.full_name ?? "—"}`
                   : ""}
                 {` · ${formatMaterialDate(openTool.created_at) ?? ""}`}
+              </div>
               </div>
 
               <DialogFooter className="gap-2 sm:gap-2">
@@ -382,7 +389,7 @@ export function AiToolsLibrary() {
           if (!o) setForm(EMPTY_FORM);
         }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nový AI nástroj</DialogTitle>
             <DialogDescription>Pridaj odkaz, popis a kategóriu.</DialogDescription>
