@@ -425,7 +425,7 @@ export function AiToolsLibrary() {
               <DialogHeader>
                 <DialogTitle>Upraviť nástroj</DialogTitle>
               </DialogHeader>
-              <ToolForm form={form} setForm={setForm} />
+              <ToolForm form={form} setForm={setForm} tools={tools} />
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setEditMode(false)}>
                   Zrušiť
