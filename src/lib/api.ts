@@ -735,7 +735,7 @@ export async function deleteProjectMaterial(id: string): Promise<void> {
 }
 
 // ---- Company materials (zdieľané pre celý tím)
-const COMPANY_MATERIAL_COLS = "id, url, label, created_by, created_at";
+const COMPANY_MATERIAL_COLS = "id, url, label, created_by, created_at, position";
 
 const COMPANY_MATERIALS_MISSING_MSG =
   "Tabuľka 'company_materials' ešte neexistuje v databáze. Spusti prosím SQL migráciu (pozri inštrukcie v aplikácii) a skús to znova.";
@@ -754,6 +754,7 @@ export async function fetchCompanyMaterials(): Promise<CompanyMaterial[]> {
   const { data, error } = await supabase
     .from("company_materials")
     .select(COMPANY_MATERIAL_COLS)
+    .order("position", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
   if (error) {
     if (isMissingCompanyMaterialsTable(error)) {
@@ -771,12 +772,21 @@ export async function createCompanyMaterial(input: {
   label: string | null;
   created_by: string;
 }): Promise<CompanyMaterial> {
+  // Vypočítame ďalšiu pozíciu (na koniec zoznamu)
+  const { data: maxRow } = await supabase
+    .from("company_materials")
+    .select("position")
+    .order("position", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  const nextPos = ((maxRow?.position as number | null) ?? 0) + 1;
   const { data, error } = await supabase
     .from("company_materials")
     .insert({
       url: input.url,
       label: input.label,
       created_by: input.created_by,
+      position: nextPos,
     })
     .select(COMPANY_MATERIAL_COLS)
     .single();
@@ -792,6 +802,17 @@ export async function createCompanyMaterial(input: {
 export async function deleteCompanyMaterial(id: string): Promise<void> {
   const { error } = await supabase.from("company_materials").delete().eq("id", id);
   if (error) throw error;
+}
+
+export async function reorderCompanyMaterials(
+  updates: { id: string; position: number }[],
+): Promise<void> {
+  // Aktualizujeme pozície paralelne, jednoduchý prístup bez upsertu (kvôli NOT NULL stĺpcom).
+  await Promise.all(
+    updates.map((u) =>
+      supabase.from("company_materials").update({ position: u.position }).eq("id", u.id),
+    ),
+  );
 }
 
 // ---- AI knižnica nástrojov (zdieľaná pre celý tím)
