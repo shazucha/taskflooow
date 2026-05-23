@@ -544,7 +544,7 @@ function ToolForm({
 
 function SectionsView({ sections }: { sections: Sections }) {
   const [openKey, setOpenKey] = useState<SectionKey | null>(null);
-  const filled = SECTION_KEYS.filter((k) => sections[k].trim().length > 人0);
+  const filled = SECTION_KEYS.filter((k) => sections[k].trim().length > 0);
   if (filled.length === 0) {
     return (
       <p className="text-sm italic text-muted-foreground">
