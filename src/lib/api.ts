@@ -794,6 +794,81 @@ export async function deleteCompanyMaterial(id: string): Promise<void> {
   if (error) throw error;
 }
 
+// ---- AI knižnica nástrojov (zdieľaná pre celý tím)
+const AI_TOOL_COLS =
+  "id, name, url, description, category, image_url, created_by, created_at, updated_at";
+
+const AI_TOOLS_MISSING_MSG =
+  "Tabuľka 'ai_tools' ešte neexistuje v databáze. Spusti prosím SQL migráciu (migrations/20260523_ai_tools_library.sql) a skús to znova.";
+
+function isMissingAiToolsTable(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  if (!e) return false;
+  if (e.code === "PGRST205" || e.code === "42P01") return true;
+  const msg = (e.message ?? "").toLowerCase();
+  return msg.includes("ai_tools") && (msg.includes("schema cache") || msg.includes("does not exist"));
+}
+
+export async function fetchAiTools(): Promise<import("./types").AiTool[]> {
+  const { data, error } = await supabase
+    .from("ai_tools")
+    .select(AI_TOOL_COLS)
+    .order("created_at", { ascending: false });
+  if (error) {
+    if (isMissingAiToolsTable(error)) {
+      console.warn(AI_TOOLS_MISSING_MSG);
+      return [];
+    }
+    throw error;
+  }
+  return (data ?? []) as import("./types").AiTool[];
+}
+
+export async function createAiTool(input: {
+  name: string;
+  url: string;
+  description: string | null;
+  category: import("./types").AiToolCategory;
+  image_url: string | null;
+  created_by: string;
+}): Promise<import("./types").AiTool> {
+  const { data, error } = await supabase
+    .from("ai_tools")
+    .insert(input)
+    .select(AI_TOOL_COLS)
+    .single();
+  if (error) {
+    if (isMissingAiToolsTable(error)) throw new Error(AI_TOOLS_MISSING_MSG);
+    throw error;
+  }
+  return data as import("./types").AiTool;
+}
+
+export async function updateAiTool(
+  id: string,
+  patch: Partial<{
+    name: string;
+    url: string;
+    description: string | null;
+    category: import("./types").AiToolCategory;
+    image_url: string | null;
+  }>
+): Promise<import("./types").AiTool> {
+  const { data, error } = await supabase
+    .from("ai_tools")
+    .update(patch)
+    .eq("id", id)
+    .select(AI_TOOL_COLS)
+    .single();
+  if (error) throw error;
+  return data as import("./types").AiTool;
+}
+
+export async function deleteAiTool(id: string): Promise<void> {
+  const { error } = await supabase.from("ai_tools").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ---- Monthly bonuses (per project + konkrétny mesiac, bez šablóny)
 const BONUS_COLS =
   "id, project_id, month_key, title, note, position, done, done_by, done_at, created_by, created_at, qty, unit_price, hours, hourly_rate, catalog_id, unit_type";
