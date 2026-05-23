@@ -173,6 +173,8 @@ export const AI_TOOL_CATEGORIES = [
   "marketing",
   "prezentacie",
   "ai-agenti",
+  "ai-avatari",
+  "prepis-hovoreneho-slova",
   "ine",
 ] as const;
 export type AiToolCategoryPreset = (typeof AI_TOOL_CATEGORIES)[number];
@@ -193,6 +195,8 @@ export const AI_TOOL_CATEGORY_LABEL: Record<AiToolCategoryPreset, string> = {
   "marketing": "Marketing & SEO",
   "prezentacie": "Prezentácie",
   "ai-agenti": "AI Agenti",
+  "ai-avatari": "AI Avatari",
+  "prepis-hovoreneho-slova": "Prepis hovoreného slova",
   "ine": "Iné",
 };
 

@@ -535,6 +535,12 @@ function ToolForm({
                 .filter((c) => !(AI_TOOL_CATEGORIES as readonly string[]).includes(c))
             )
           );
+          // Aktuálna vlastná kategória vo formulári, ktorá ešte nie je v zozname
+          const currentIsCustom =
+            !!form.category &&
+            !(AI_TOOL_CATEGORIES as readonly string[]).includes(form.category) &&
+            !usedCustom.includes(form.category);
+          if (currentIsCustom) usedCustom.push(form.category);
           return (
             <>
               <Select
