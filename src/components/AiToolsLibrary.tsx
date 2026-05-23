@@ -443,7 +443,7 @@ function ToolForm({
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-[300px]">
             {AI_TOOL_CATEGORIES.map((c) => (
               <SelectItem key={c} value={c}>
                 {AI_TOOL_CATEGORY_LABEL[c]}
