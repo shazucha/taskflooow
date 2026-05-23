@@ -188,6 +188,7 @@ export const AI_TOOL_CATEGORY_LABEL: Record<AiToolCategory, string> = {
   "produktivita": "Produktivita",
   "kod": "Kód & dev",
   "marketing": "Marketing & SEO",
+  "prezentacie": "Prezentácie",
   "ine": "Iné",
 };
 
