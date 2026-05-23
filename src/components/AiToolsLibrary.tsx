@@ -30,6 +30,7 @@ import {
 import {
   AI_TOOL_CATEGORIES,
   AI_TOOL_CATEGORY_LABEL,
+  getAiToolCategoryLabel,
   type AiTool,
   type AiToolCategory,
 } from "@/lib/types";
@@ -168,9 +169,11 @@ export function AiToolsLibrary() {
   const profileById = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
   const filters: FilterKey[] = useMemo(() => {
-    const used = new Set<AiToolCategory>();
+    const used = new Set<string>();
     for (const t of tools) used.add(t.category);
-    return ["all", ...AI_TOOL_CATEGORIES.filter((c) => used.has(c) || c === "ine")];
+    const presets = AI_TOOL_CATEGORIES.filter((c) => used.has(c) || c === "ine" || c === "ai-agenti");
+    const custom = [...used].filter((c) => !(AI_TOOL_CATEGORIES as readonly string[]).includes(c));
+    return ["all", ...presets, ...custom];
   }, [tools]);
 
   const countByFilter = (f: FilterKey) =>
@@ -276,7 +279,7 @@ export function AiToolsLibrary() {
       {/* Filter chips */}
       <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-xl bg-surface-muted p-1">
         {filters.map((f) => {
-          const label = f === "all" ? "Všetko" : AI_TOOL_CATEGORY_LABEL[f];
+          const label = f === "all" ? "Všetko" : getAiToolCategoryLabel(f);
           const count = countByFilter(f);
           return (
             <button
@@ -336,7 +339,7 @@ export function AiToolsLibrary() {
                   <div className="flex flex-1 flex-col gap-1 p-3">
                     <span className="line-clamp-1 text-sm font-semibold">{t.name}</span>
                     <span className="text-[11px] text-muted-foreground">
-                      {AI_TOOL_CATEGORY_LABEL[t.category]}
+                      {getAiToolCategoryLabel(t.category)}
                     </span>
                   </div>
                 </button>
@@ -372,7 +375,7 @@ export function AiToolsLibrary() {
                   <div className="min-w-0">
                     <DialogTitle className="truncate">{openTool.name}</DialogTitle>
                     <DialogDescription className="text-xs">
-                      {AI_TOOL_CATEGORY_LABEL[openTool.category]} · {hostOf(openTool.url)}
+                      {getAiToolCategoryLabel(openTool.category)} · {hostOf(openTool.url)}
                     </DialogDescription>
                   </div>
                 </div>
