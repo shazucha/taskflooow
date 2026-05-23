@@ -499,10 +499,10 @@ function ToolForm({
       <div>
         <label className="mb-1 block text-xs font-semibold text-muted-foreground">Kategória</label>
         {(() => {
-          const usedCustom = Array.from(
-            new Set(
+          const usedCustom: string[] = Array.from(
+            new Set<string>(
               tools
-                .map((t) => t.category)
+                .map((t) => String(t.category))
                 .filter((c) => !(AI_TOOL_CATEGORIES as readonly string[]).includes(c))
             )
           );
