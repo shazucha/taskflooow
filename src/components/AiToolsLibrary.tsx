@@ -452,7 +452,7 @@ export function AiToolsLibrary() {
             <DialogTitle>Nový AI nástroj</DialogTitle>
             <DialogDescription>Pridaj odkaz, popis a kategóriu.</DialogDescription>
           </DialogHeader>
-          <ToolForm form={form} setForm={setForm} />
+          <ToolForm form={form} setForm={setForm} tools={tools} />
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="ghost" size="sm" onClick={() => setAddOpen(false)}>
               Zrušiť
