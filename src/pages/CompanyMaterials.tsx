@@ -14,6 +14,7 @@ import {
   Sparkles,
   Trash2,
   Youtube,
+  GripVertical,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,8 +27,28 @@ import {
   useCurrentUserId,
   useDeleteCompanyMaterial,
   useProfiles,
+  useReorderCompanyMaterials,
 } from "@/lib/queries";
 import { cn, formatMaterialDate } from "@/lib/utils";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useEffect, useMemo } from "react";
+import type { CompanyMaterial } from "@/lib/types";
 
 function normalizeUrl(raw: string): string | null {
   const trimmed = raw.trim();
@@ -84,6 +105,49 @@ function detectKind(url: string): MaterialKind {
   if (url.startsWith("mailto:")) return "mail";
   return "web";
 }
+
+type MaterialGroup = "web" | "social" | "docs";
+
+const SOCIAL_HOSTS = [
+  "facebook.com",
+  "fb.com",
+  "instagram.com",
+  "twitter.com",
+  "x.com",
+  "linkedin.com",
+  "tiktok.com",
+  "youtube.com",
+  "youtu.be",
+  "threads.net",
+  "pinterest.com",
+  "snapchat.com",
+  "reddit.com",
+  "discord.com",
+  "discord.gg",
+  "t.me",
+  "telegram.me",
+  "telegram.org",
+  "whatsapp.com",
+];
+
+function detectGroup(url: string): MaterialGroup {
+  const h = hostOf(url).toLowerCase();
+  if (SOCIAL_HOSTS.some((s) => h === s || h.endsWith(`.${s}`) || h.includes(s))) {
+    return "social";
+  }
+  const kind = detectKind(url);
+  if (["docs", "drive", "notion", "dropbox", "pdf", "image", "figma"].includes(kind)) {
+    return "docs";
+  }
+  return "web";
+}
+
+const GROUP_LABEL: Record<MaterialGroup | "all", string> = {
+  all: "Všetko",
+  web: "Webstránky",
+  social: "Sociálne siete",
+  docs: "Dokumenty",
+};
 
 const KIND_META: Record<MaterialKind, { icon: typeof LinkIcon; label: string; cls: string }> = {
   drive: { icon: HardDrive, label: "Drive", cls: "text-emerald-600" },
