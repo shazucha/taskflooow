@@ -571,10 +571,62 @@ function SectionsView({ sections }: { sections: Sections }) {
               <span className="mr-2 text-muted-foreground transition group-open:rotate-90 inline-block">›</span>
               {SECTION_LABEL[k]}
             </summary>
-            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">
-              {sections[k]}
-            </p>
+            <RichText text={sections[k]} />
           </details>
+        );
+      })}
+    </div>
+  );
+}
+
+// Render plain text, ale rozozná číslované (1. 2)) a nečíslované (- * • –) zoznamy.
+function RichText({ text }: { text: string }) {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  type Block =
+    | { type: "ul"; items: string[] }
+    | { type: "ol"; items: string[]; start: number }
+    | { type: "p"; lines: string[] };
+  const blocks: Block[] = [];
+  const bulletRe = /^\s*([-*•–])\s+(.*)$/;
+  const numRe = /^\s*(\d+)[.)]\s+(.*)$/;
+  for (const raw of lines) {
+    const b = raw.match(bulletRe);
+    const n = raw.match(numRe);
+    const last = blocks[blocks.length - 1];
+    if (b) {
+      if (last && last.type === "ul") last.items.push(b[2]);
+      else blocks.push({ type: "ul", items: [b[2]] });
+    } else if (n) {
+      if (last && last.type === "ol") last.items.push(n[2]);
+      else blocks.push({ type: "ol", items: [n[2]], start: parseInt(n[1], 10) || 1 });
+    } else {
+      if (last && last.type === "p") last.lines.push(raw);
+      else blocks.push({ type: "p", lines: [raw] });
+    }
+  }
+  return (
+    <div className="mt-2 space-y-2 text-sm leading-relaxed text-foreground/90 break-words">
+      {blocks.map((b, i) => {
+        if (b.type === "ul")
+          return (
+            <ul key={i} className="ml-5 list-disc space-y-1">
+              {b.items.map((it, j) => (
+                <li key={j} className="whitespace-pre-wrap">{it}</li>
+              ))}
+            </ul>
+          );
+        if (b.type === "ol")
+          return (
+            <ol key={i} start={b.start} className="ml-5 list-decimal space-y-1">
+              {b.items.map((it, j) => (
+                <li key={j} className="whitespace-pre-wrap">{it}</li>
+              ))}
+            </ol>
+          );
+        const content = b.lines.join("\n").replace(/^\n+|\n+$/g, "");
+        if (!content) return null;
+        return (
+          <p key={i} className="whitespace-pre-wrap">{content}</p>
         );
       })}
     </div>
