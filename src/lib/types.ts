@@ -172,11 +172,14 @@ export const AI_TOOL_CATEGORIES = [
   "kod",
   "marketing",
   "prezentacie",
+  "ai-agenti",
   "ine",
 ] as const;
-export type AiToolCategory = (typeof AI_TOOL_CATEGORIES)[number];
+export type AiToolCategoryPreset = (typeof AI_TOOL_CATEGORIES)[number];
+// Povolíme aj vlastné (používateľské) kategórie – ukladajú sa ako voľný text.
+export type AiToolCategory = AiToolCategoryPreset | (string & {});
 
-export const AI_TOOL_CATEGORY_LABEL: Record<AiToolCategory, string> = {
+export const AI_TOOL_CATEGORY_LABEL: Record<AiToolCategoryPreset, string> = {
   "tvorba-textu": "Tvorba textu",
   "obrazky": "Obrázky",
   "video": "Video",
@@ -189,8 +192,20 @@ export const AI_TOOL_CATEGORY_LABEL: Record<AiToolCategory, string> = {
   "kod": "Kód & dev",
   "marketing": "Marketing & SEO",
   "prezentacie": "Prezentácie",
+  "ai-agenti": "AI Agenti",
   "ine": "Iné",
 };
+
+// Pomocná funkcia – vráti label pre prednastavenú alebo vlastnú kategóriu.
+export function getAiToolCategoryLabel(c: string): string {
+  if (c in AI_TOOL_CATEGORY_LABEL) return AI_TOOL_CATEGORY_LABEL[c as AiToolCategoryPreset];
+  // Vlastná kategória – odvodí pekný label zo slugu.
+  return c
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 export interface AiTool {
   id: string;

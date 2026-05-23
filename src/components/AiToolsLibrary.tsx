@@ -30,6 +30,7 @@ import {
 import {
   AI_TOOL_CATEGORIES,
   AI_TOOL_CATEGORY_LABEL,
+  getAiToolCategoryLabel,
   type AiTool,
   type AiToolCategory,
 } from "@/lib/types";
@@ -168,9 +169,11 @@ export function AiToolsLibrary() {
   const profileById = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
   const filters: FilterKey[] = useMemo(() => {
-    const used = new Set<AiToolCategory>();
+    const used = new Set<string>();
     for (const t of tools) used.add(t.category);
-    return ["all", ...AI_TOOL_CATEGORIES.filter((c) => used.has(c) || c === "ine")];
+    const presets = AI_TOOL_CATEGORIES.filter((c) => used.has(c) || c === "ine" || c === "ai-agenti");
+    const custom = [...used].filter((c) => !(AI_TOOL_CATEGORIES as readonly string[]).includes(c));
+    return ["all", ...presets, ...custom];
   }, [tools]);
 
   const countByFilter = (f: FilterKey) =>
@@ -276,7 +279,7 @@ export function AiToolsLibrary() {
       {/* Filter chips */}
       <div className="mt-3 flex gap-1.5 overflow-x-auto rounded-xl bg-surface-muted p-1">
         {filters.map((f) => {
-          const label = f === "all" ? "Všetko" : AI_TOOL_CATEGORY_LABEL[f];
+          const label = f === "all" ? "Všetko" : getAiToolCategoryLabel(f);
           const count = countByFilter(f);
           return (
             <button
@@ -336,7 +339,7 @@ export function AiToolsLibrary() {
                   <div className="flex flex-1 flex-col gap-1 p-3">
                     <span className="line-clamp-1 text-sm font-semibold">{t.name}</span>
                     <span className="text-[11px] text-muted-foreground">
-                      {AI_TOOL_CATEGORY_LABEL[t.category]}
+                      {getAiToolCategoryLabel(t.category)}
                     </span>
                   </div>
                 </button>
@@ -372,7 +375,7 @@ export function AiToolsLibrary() {
                   <div className="min-w-0">
                     <DialogTitle className="truncate">{openTool.name}</DialogTitle>
                     <DialogDescription className="text-xs">
-                      {AI_TOOL_CATEGORY_LABEL[openTool.category]} · {hostOf(openTool.url)}
+                      {getAiToolCategoryLabel(openTool.category)} · {hostOf(openTool.url)}
                     </DialogDescription>
                   </div>
                 </div>
@@ -422,7 +425,7 @@ export function AiToolsLibrary() {
               <DialogHeader>
                 <DialogTitle>Upraviť nástroj</DialogTitle>
               </DialogHeader>
-              <ToolForm form={form} setForm={setForm} />
+              <ToolForm form={form} setForm={setForm} tools={tools} />
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setEditMode(false)}>
                   Zrušiť
@@ -449,7 +452,7 @@ export function AiToolsLibrary() {
             <DialogTitle>Nový AI nástroj</DialogTitle>
             <DialogDescription>Pridaj odkaz, popis a kategóriu.</DialogDescription>
           </DialogHeader>
-          <ToolForm form={form} setForm={setForm} />
+          <ToolForm form={form} setForm={setForm} tools={tools} />
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="ghost" size="sm" onClick={() => setAddOpen(false)}>
               Zrušiť
@@ -467,10 +470,14 @@ export function AiToolsLibrary() {
 function ToolForm({
   form,
   setForm,
+  tools,
 }: {
   form: FormState;
   setForm: (f: FormState) => void;
+  tools: AiTool[];
 }) {
+  const [customCatOpen, setCustomCatOpen] = useState(false);
+  const [customCatInput, setCustomCatInput] = useState("");
   return (
     <div className="space-y-3">
       <div>
@@ -491,21 +498,94 @@ function ToolForm({
       </div>
       <div>
         <label className="mb-1 block text-xs font-semibold text-muted-foreground">Kategória</label>
-        <Select
-          value={form.category}
-          onValueChange={(v) => setForm({ ...form, category: v as AiToolCategory })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="max-h-[300px]">
-            {AI_TOOL_CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>
-                {AI_TOOL_CATEGORY_LABEL[c]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {(() => {
+          const usedCustom: string[] = Array.from(
+            new Set<string>(
+              tools
+                .map((t) => String(t.category))
+                .filter((c) => !(AI_TOOL_CATEGORIES as readonly string[]).includes(c))
+            )
+          );
+          return (
+            <>
+              <Select
+                value={form.category}
+                onValueChange={(v) => {
+                  if (v === "__new__") {
+                    setCustomCatInput("");
+                    setCustomCatOpen(true);
+                    return;
+                  }
+                  setForm({ ...form, category: v as AiToolCategory });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {AI_TOOL_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {AI_TOOL_CATEGORY_LABEL[c]}
+                    </SelectItem>
+                  ))}
+                  {usedCustom.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {getAiToolCategoryLabel(c)}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__new__">+ Pridať vlastnú kategóriu…</SelectItem>
+                </SelectContent>
+              </Select>
+              {customCatOpen && (
+                <div className="mt-2 flex gap-2">
+                  <Input
+                    autoFocus
+                    value={customCatInput}
+                    onChange={(e) => setCustomCatInput(e.target.value)}
+                    placeholder="Názov novej kategórie (napr. Hudba)"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const slug = customCatInput
+                          .trim()
+                          .toLowerCase()
+                          .normalize("NFD")
+                          .replace(/[\u0300-\u036f]/g, "")
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/(^-|-$)/g, "");
+                        if (slug) {
+                          setForm({ ...form, category: slug });
+                          setCustomCatOpen(false);
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      const slug = customCatInput
+                        .trim()
+                        .toLowerCase()
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/(^-|-$)/g, "");
+                      if (!slug) {
+                        toast.error("Zadaj názov kategórie");
+                        return;
+                      }
+                      setForm({ ...form, category: slug });
+                      setCustomCatOpen(false);
+                    }}
+                  >
+                    Použiť
+                  </Button>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
       <div className="space-y-3 rounded-xl border border-border bg-surface-muted/40 p-3">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
