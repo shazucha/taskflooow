@@ -497,21 +497,94 @@ function ToolForm({
       </div>
       <div>
         <label className="mb-1 block text-xs font-semibold text-muted-foreground">Kategória</label>
-        <Select
-          value={form.category}
-          onValueChange={(v) => setForm({ ...form, category: v as AiToolCategory })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="max-h-[300px]">
-            {AI_TOOL_CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>
-                {AI_TOOL_CATEGORY_LABEL[c]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {(() => {
+          const usedCustom = Array.from(
+            new Set(
+              tools
+                .map((t) => t.category)
+                .filter((c) => !(AI_TOOL_CATEGORIES as readonly string[]).includes(c))
+            )
+          );
+          return (
+            <>
+              <Select
+                value={form.category}
+                onValueChange={(v) => {
+                  if (v === "__new__") {
+                    setCustomCatInput("");
+                    setCustomCatOpen(true);
+                    return;
+                  }
+                  setForm({ ...form, category: v as AiToolCategory });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {AI_TOOL_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {AI_TOOL_CATEGORY_LABEL[c]}
+                    </SelectItem>
+                  ))}
+                  {usedCustom.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {getAiToolCategoryLabel(c)}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__new__">+ Pridať vlastnú kategóriu…</SelectItem>
+                </SelectContent>
+              </Select>
+              {customCatOpen && (
+                <div className="mt-2 flex gap-2">
+                  <Input
+                    autoFocus
+                    value={customCatInput}
+                    onChange={(e) => setCustomCatInput(e.target.value)}
+                    placeholder="Názov novej kategórie (napr. Hudba)"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const slug = customCatInput
+                          .trim()
+                          .toLowerCase()
+                          .normalize("NFD")
+                          .replace(/[\u0300-\u036f]/g, "")
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/(^-|-$)/g, "");
+                        if (slug) {
+                          setForm({ ...form, category: slug });
+                          setCustomCatOpen(false);
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      const slug = customCatInput
+                        .trim()
+                        .toLowerCase()
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/(^-|-$)/g, "");
+                      if (!slug) {
+                        toast.error("Zadaj názov kategórie");
+                        return;
+                      }
+                      setForm({ ...form, category: slug });
+                      setCustomCatOpen(false);
+                    }}
+                  >
+                    Použiť
+                  </Button>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
       <div className="space-y-3 rounded-xl border border-border bg-surface-muted/40 p-3">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
