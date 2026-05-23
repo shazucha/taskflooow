@@ -169,10 +169,69 @@ export default function CompanyMaterials() {
   const { data: profiles = [] } = useProfiles();
   const create = useCreateCompanyMaterial();
   const remove = useDeleteCompanyMaterial();
+  const reorder = useReorderCompanyMaterials();
 
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
+  const [filter, setFilter] = useState<MaterialGroup | "all">("all");
+  const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
+
+  // Synchronizujeme lokálne poradie s dátami zo servera.
+  useEffect(() => {
+    setOrderedIds(materials.map((m) => m.id));
+  }, [materials]);
+
+  const orderedMaterials = useMemo(() => {
+    if (!orderedIds) return materials;
+    const byId = new Map(materials.map((m) => [m.id, m] as const));
+    const list: CompanyMaterial[] = [];
+    for (const id of orderedIds) {
+      const m = byId.get(id);
+      if (m) list.push(m);
+    }
+    // pridáme nové, ktoré ešte nie sú v orderedIds
+    for (const m of materials) if (!orderedIds.includes(m.id)) list.push(m);
+    return list;
+  }, [materials, orderedIds]);
+
+  const visibleMaterials = useMemo(
+    () => (filter === "all" ? orderedMaterials : orderedMaterials.filter((m) => detectGroup(m.url) === filter)),
+    [orderedMaterials, filter],
+  );
+
+  const counts = useMemo(() => {
+    const c: Record<MaterialGroup, number> = { web: 0, social: 0, docs: 0 };
+    for (const m of orderedMaterials) c[detectGroup(m.url)]++;
+    return c;
+  }, [orderedMaterials]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    // Reorder iba v rámci aktuálne viditeľného (filtrovaného) zoznamu
+    const visibleIds = visibleMaterials.map((m) => m.id);
+    const oldIdx = visibleIds.indexOf(String(active.id));
+    const newIdx = visibleIds.indexOf(String(over.id));
+    if (oldIdx < 0 || newIdx < 0) return;
+    const newVisible = arrayMove(visibleIds, oldIdx, newIdx);
+    // zlúčime späť do celého poradia
+    const full = (orderedIds ?? materials.map((m) => m.id)).slice();
+    let vi = 0;
+    for (let i = 0; i < full.length; i++) {
+      if (visibleIds.includes(full[i])) {
+        full[i] = newVisible[vi++];
+      }
+    }
+    setOrderedIds(full);
+    const updates = full.map((id, idx) => ({ id, position: idx + 1 }));
+    reorder.mutate(updates);
+  };
 
   const submit = async () => {
     if (!currentUserId) return;
@@ -266,6 +325,30 @@ export default function CompanyMaterials() {
           )}
 
           <div className="mt-5">
+        {materials.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            {(["all", "web", "social", "docs"] as const).map((g) => {
+              const active = filter === g;
+              const count = g === "all" ? orderedMaterials.length : counts[g];
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setFilter(g)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-surface-muted text-muted-foreground hover:bg-surface-muted/70",
+                  )}
+                >
+                  {GROUP_LABEL[g]}
+                  <span className={cn("ml-1.5 text-[10px] font-bold opacity-70")}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         {materials.length === 0 && !adding ? (
           <div className="rounded-2xl bg-surface-muted p-8 text-center">
             <FolderOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
@@ -273,62 +356,31 @@ export default function CompanyMaterials() {
               Zatiaľ žiadne firemné materiály. Pridaj prvý odkaz.
             </p>
           </div>
+        ) : visibleMaterials.length === 0 ? (
+          <div className="rounded-2xl bg-surface-muted p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              Pre vybranú kategóriu zatiaľ nemáš žiadne materiály.
+            </p>
+          </div>
         ) : (
-          <ul className="space-y-2">
-            {materials.map((m) => {
-              const kind = detectKind(m.url);
-              const meta = KIND_META[kind];
-              const Icon = meta.icon;
-              const canDelete = m.created_by === currentUserId;
-              const author = m.created_by ? profileById.get(m.created_by) : null;
-              const dateText = formatMaterialDate(m.created_at);
-              return (
-                <li
-                  key={m.id}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5"
-                >
-                  <span
-                    className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted",
-                      meta.cls,
-                    )}
-                    title={meta.label}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <a
-                    href={m.url}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
-                  >
-                    <span className="flex items-center gap-1.5 truncate font-medium">
-                      <span className="truncate">{m.label || hostOf(m.url)}</span>
-                      <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
-                    </span>
-                    <span className="truncate text-[11px] text-muted-foreground">
-                      {m.label ? `${hostOf(m.url)}` : meta.label}
-                      {author?.full_name ? ` · pridal ${author.full_name}` : ""}
-                      {dateText ? ` · ${dateText}` : ""}
-                    </span>
-                  </a>
-                  {canDelete && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!confirm("Naozaj odstrániť tento materiál?")) return;
-                        remove.mutate(m.id);
-                      }}
-                      className="text-muted-foreground hover:text-destructive"
-                      aria-label="Odstrániť"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={visibleMaterials.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+              <ul className="space-y-2">
+                {visibleMaterials.map((m) => (
+                  <SortableMaterialRow
+                    key={m.id}
+                    material={m}
+                    canDelete={m.created_by === currentUserId}
+                    authorName={m.created_by ? profileById.get(m.created_by)?.full_name ?? null : null}
+                    onDelete={() => {
+                      if (!confirm("Naozaj odstrániť tento materiál?")) return;
+                      remove.mutate(m.id);
+                    }}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
           </div>
         </TabsContent>
@@ -338,5 +390,84 @@ export default function CompanyMaterials() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function SortableMaterialRow({
+  material,
+  canDelete,
+  authorName,
+  onDelete,
+}: {
+  material: CompanyMaterial;
+  canDelete: boolean;
+  authorName: string | null;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: material.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  const kind = detectKind(material.url);
+  const meta = KIND_META[kind];
+  const Icon = meta.icon;
+  const dateText = formatMaterialDate(material.created_at);
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5",
+        isDragging && "opacity-60 shadow-lg",
+      )}
+    >
+      <button
+        type="button"
+        className="flex h-7 w-5 shrink-0 cursor-grab items-center justify-center text-muted-foreground hover:text-foreground active:cursor-grabbing"
+        aria-label="Presunúť"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <span
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted",
+          meta.cls,
+        )}
+        title={meta.label}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <a
+        href={material.url}
+        target="_blank"
+        rel="noreferrer noopener"
+        className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
+      >
+        <span className="flex items-center gap-1.5 truncate font-medium">
+          <span className="truncate">{material.label || hostOf(material.url)}</span>
+          <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+        </span>
+        <span className="truncate text-[11px] text-muted-foreground">
+          {material.label ? `${hostOf(material.url)}` : meta.label}
+          {authorName ? ` · pridal ${authorName}` : ""}
+          {dateText ? ` · ${dateText}` : ""}
+        </span>
+      </a>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="text-muted-foreground hover:text-destructive"
+          aria-label="Odstrániť"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
+    </li>
   );
 }
