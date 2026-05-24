@@ -404,7 +404,7 @@ export default function CompanyMaterials() {
         </div>
         {materials.length > 0 && (
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
-            {(["all", "web", "social", "docs"] as const).map((g) => {
+            {(["all", "web", "social", "docs", "video"] as const).map((g) => {
               const active = filter === g;
               const count = g === "all" ? orderedMaterials.length : counts[g];
               return (
