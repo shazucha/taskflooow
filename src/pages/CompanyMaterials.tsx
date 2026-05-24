@@ -815,6 +815,7 @@ function SortableMaterialRow({
   const kind = detectKind(material.url);
   const meta = KIND_META[kind];
   const Icon = meta.icon;
+  const videoThumb = detectGroup(material.url) === "video" ? getVideoThumbnail(material.url) : null;
   const dateText = formatMaterialDate(material.created_at);
   const [editing, setEditing] = useState(false);
   const [editUrl, setEditUrl] = useState(material.url);
@@ -920,15 +921,37 @@ function SortableMaterialRow({
           title={COLOR_OPTIONS.find((c) => c.key === material.color)?.label ?? ""}
         />
       )}
-      <span
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted",
-          meta.cls,
-        )}
-        title={meta.label}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
+      {videoThumb ? (
+        <a
+          href={material.url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="group relative flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-muted"
+          title={meta.label}
+          aria-label="Otvoriť video v novom okne"
+        >
+          <img
+            src={videoThumb}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover transition group-hover:opacity-80"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+          <Icon className="absolute h-4 w-4 text-white drop-shadow" />
+        </a>
+      ) : (
+        <span
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted",
+            meta.cls,
+          )}
+          title={meta.label}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+      )}
       <a
         href={material.url}
         target="_blank"
