@@ -21,6 +21,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AiToolsLibrary } from "@/components/AiToolsLibrary";
 import { toast } from "sonner";
 import {
@@ -95,6 +102,106 @@ function ColorPicker({
           aria-label={c.label}
         />
       ))}
+    </div>
+  );
+}
+
+function slugifySubcategory(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function prettySubcategory(slug: string): string {
+  return slug
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function SubcategoryPicker({
+  value,
+  onChange,
+  existing,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  existing: string[];
+}) {
+  const [adding, setAdding] = useState(false);
+  const [input, setInput] = useState("");
+  const opts = Array.from(new Set([...(value ? [value] : []), ...existing])).filter(Boolean);
+  return (
+    <div className="space-y-2">
+      <Select
+        value={value ?? "__none__"}
+        onValueChange={(v) => {
+          if (v === "__new__") {
+            setInput("");
+            setAdding(true);
+            return;
+          }
+          if (v === "__none__") {
+            onChange(null);
+            return;
+          }
+          onChange(v);
+        }}
+      >
+        <SelectTrigger className="h-8 text-xs">
+          <SelectValue placeholder="Bez podkategórie" />
+        </SelectTrigger>
+        <SelectContent className="max-h-[260px]">
+          <SelectItem value="__none__">Bez podkategórie</SelectItem>
+          {opts.map((s) => (
+            <SelectItem key={s} value={s}>
+              {prettySubcategory(s)}
+            </SelectItem>
+          ))}
+          <SelectItem value="__new__">+ Pridať vlastnú podkategóriu…</SelectItem>
+        </SelectContent>
+      </Select>
+      {adding && (
+        <div className="flex gap-2">
+          <Input
+            autoFocus
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Názov podkategórie (napr. Newsletter)"
+            className="h-8 text-xs"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const slug = slugifySubcategory(input);
+                if (slug) {
+                  onChange(slug);
+                  setAdding(false);
+                }
+              }
+            }}
+          />
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              const slug = slugifySubcategory(input);
+              if (!slug) {
+                toast.error("Zadaj názov podkategórie");
+                return;
+              }
+              onChange(slug);
+              setAdding(false);
+            }}
+          >
+            Použiť
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -233,7 +340,9 @@ export default function CompanyMaterials() {
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
   const [color, setColor] = useState<string | null>(null);
+  const [subcategory, setSubcategory] = useState<string | null>(null);
   const [filter, setFilter] = useState<MaterialGroup | "all">("all");
+  const [subFilter, setSubFilter] = useState<string | "all">("all");
   const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
   const [showAll, setShowAll] = useState(false);
 
@@ -256,9 +365,38 @@ export default function CompanyMaterials() {
   }, [materials, orderedIds]);
 
   const visibleMaterials = useMemo(
-    () => (filter === "all" ? orderedMaterials : orderedMaterials.filter((m) => detectGroup(m.url) === filter)),
-    [orderedMaterials, filter],
+    () =>
+      orderedMaterials.filter((m) => {
+        if (filter !== "all" && detectGroup(m.url) !== filter) return false;
+        if (subFilter !== "all" && (m.subcategory ?? "") !== subFilter) return false;
+        return true;
+      }),
+    [orderedMaterials, filter, subFilter],
   );
+
+  // Existujúce podkategórie v rámci zvoleného hlavného filtra (na chip-y a do selectu).
+  const subcategoriesInScope = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of orderedMaterials) {
+      if (filter !== "all" && detectGroup(m.url) !== filter) continue;
+      if (m.subcategory) set.add(m.subcategory);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [orderedMaterials, filter]);
+
+  // Resetni filter podkategórie, ak v aktuálnom scope neexistuje.
+  useEffect(() => {
+    if (subFilter !== "all" && !subcategoriesInScope.includes(subFilter)) {
+      setSubFilter("all");
+    }
+  }, [subcategoriesInScope, subFilter]);
+
+  // Všetky existujúce podkategórie naprieč materiálmi (do formuláru pri pridávaní/úprave).
+  const allSubcategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of materials) if (m.subcategory) set.add(m.subcategory);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [materials]);
 
   const PREVIEW_LIMIT = 4;
   const canExpand = visibleMaterials.length > PREVIEW_LIMIT;
@@ -310,10 +448,12 @@ export default function CompanyMaterials() {
         label: label.trim() || null,
         created_by: currentUserId,
         color,
+        subcategory,
       });
       setUrl("");
       setLabel("");
       setColor(null);
+      setSubcategory(null);
       setAdding(false);
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa pridať");
@@ -379,6 +519,7 @@ export default function CompanyMaterials() {
                 setUrl("");
                 setLabel("");
                 setColor(null);
+                setSubcategory(null);
               }}
             >
               Zrušiť
@@ -392,6 +533,16 @@ export default function CompanyMaterials() {
             >
               {create.isPending ? "Pridávam…" : "Pridať"}
             </Button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 text-xs text-muted-foreground">Podkategória:</span>
+            <div className="min-w-[200px] flex-1">
+              <SubcategoryPicker
+                value={subcategory}
+                onChange={setSubcategory}
+                existing={allSubcategories}
+              />
             </div>
           </div>
         </div>
@@ -427,6 +578,48 @@ export default function CompanyMaterials() {
                 >
                   {GROUP_LABEL[g]}
                   <span className={cn("ml-1.5 text-[10px] font-bold opacity-70")}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {subcategoriesInScope.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+              Podkategórie:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSubFilter("all")}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                subFilter === "all"
+                  ? "bg-foreground text-background"
+                  : "bg-surface-muted text-muted-foreground hover:bg-surface-muted/70",
+              )}
+            >
+              Všetky
+            </button>
+            {subcategoriesInScope.map((s) => {
+              const active = subFilter === s;
+              const count = orderedMaterials.filter(
+                (m) =>
+                  (filter === "all" || detectGroup(m.url) === filter) && m.subcategory === s,
+              ).length;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSubFilter(s)}
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                    active
+                      ? "bg-foreground text-background"
+                      : "bg-surface-muted text-muted-foreground hover:bg-surface-muted/70",
+                  )}
+                >
+                  {prettySubcategory(s)}
+                  <span className="ml-1 text-[10px] font-bold opacity-70">{count}</span>
                 </button>
               );
             })}
@@ -472,9 +665,11 @@ export default function CompanyMaterials() {
                             url: normalized,
                             label: patch.label.trim() || null,
                             color: patch.color,
+                            subcategory: patch.subcategory,
                           },
                         });
                       }}
+                      existingSubcategories={allSubcategories}
                     />
                   ))}
                 </ul>
@@ -509,12 +704,19 @@ function SortableMaterialRow({
   authorName,
   onDelete,
   onSave,
+  existingSubcategories,
 }: {
   material: CompanyMaterial;
   canDelete: boolean;
   authorName: string | null;
   onDelete: () => void;
-  onSave: (patch: { url: string; label: string; color: string | null }) => Promise<void>;
+  onSave: (patch: {
+    url: string;
+    label: string;
+    color: string | null;
+    subcategory: string | null;
+  }) => Promise<void>;
+  existingSubcategories: string[];
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: material.id,
@@ -531,6 +733,7 @@ function SortableMaterialRow({
   const [editUrl, setEditUrl] = useState(material.url);
   const [editLabel, setEditLabel] = useState(material.label ?? "");
   const [editColor, setEditColor] = useState<string | null>(material.color ?? null);
+  const [editSubcategory, setEditSubcategory] = useState<string | null>(material.subcategory ?? null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -538,8 +741,9 @@ function SortableMaterialRow({
       setEditUrl(material.url);
       setEditLabel(material.label ?? "");
       setEditColor(material.color ?? null);
+      setEditSubcategory(material.subcategory ?? null);
     }
-  }, [material.url, material.label, material.color, editing]);
+  }, [material.url, material.label, material.color, material.subcategory, editing]);
 
   if (editing) {
     return (
@@ -570,7 +774,12 @@ function SortableMaterialRow({
             onClick={async () => {
               setSaving(true);
               try {
-                await onSave({ url: editUrl, label: editLabel, color: editColor });
+                await onSave({
+                  url: editUrl,
+                  label: editLabel,
+                  color: editColor,
+                  subcategory: editSubcategory,
+                });
                 setEditing(false);
               } catch {
                 // toast riešený v onSave
@@ -581,6 +790,16 @@ function SortableMaterialRow({
           >
             {saving ? "Ukladám…" : "Uložiť"}
           </Button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 text-xs text-muted-foreground">Podkategória:</span>
+          <div className="min-w-[200px] flex-1">
+            <SubcategoryPicker
+              value={editSubcategory}
+              onChange={setEditSubcategory}
+              existing={existingSubcategories}
+            />
           </div>
         </div>
       </li>
@@ -632,6 +851,11 @@ function SortableMaterialRow({
         <span className="flex items-center gap-1.5 truncate font-medium">
           <span className="truncate">{material.label || hostOf(material.url)}</span>
           <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+          {material.subcategory && (
+            <span className="ml-1 shrink-0 rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {prettySubcategory(material.subcategory)}
+            </span>
+          )}
         </span>
         <span className="truncate text-[11px] text-muted-foreground">
           {material.label ? `${hostOf(material.url)}` : meta.label}
