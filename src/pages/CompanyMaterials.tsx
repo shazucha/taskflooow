@@ -650,20 +650,38 @@ export default function CompanyMaterials() {
                   (filter === "all" || detectGroup(m.url) === filter) && m.subcategory === s,
               ).length;
               return (
-                <button
+                <span
                   key={s}
-                  type="button"
-                  onClick={() => setSubFilter(s)}
                   className={cn(
-                    "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                    "group inline-flex items-center gap-1 rounded-full pl-2.5 pr-1 py-0.5 text-[11px] font-medium transition-colors",
                     active
                       ? "bg-foreground text-background"
                       : "bg-surface-muted text-muted-foreground hover:bg-surface-muted/70",
                   )}
                 >
-                  {prettySubcategory(s)}
-                  <span className="ml-1 text-[10px] font-bold opacity-70">{count}</span>
-                </button>
+                  <button type="button" onClick={() => setSubFilter(s)} className="inline-flex items-center">
+                    {prettySubcategory(s)}
+                    <span className="ml-1 text-[10px] font-bold opacity-70">{count}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRenameSubcategory(s)}
+                    className="ml-1 rounded-full p-0.5 opacity-60 hover:opacity-100 hover:bg-background/20"
+                    title="Premenovať podkategóriu"
+                    aria-label="Premenovať podkategóriu"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteSubcategory(s)}
+                    className="rounded-full p-0.5 opacity-60 hover:opacity-100 hover:bg-background/20"
+                    title="Odstrániť podkategóriu"
+                    aria-label="Odstrániť podkategóriu"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
               );
             })}
           </div>
