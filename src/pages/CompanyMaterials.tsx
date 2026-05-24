@@ -583,6 +583,48 @@ export default function CompanyMaterials() {
             })}
           </div>
         )}
+        {subcategoriesInScope.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+              Podkategórie:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSubFilter("all")}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                subFilter === "all"
+                  ? "bg-foreground text-background"
+                  : "bg-surface-muted text-muted-foreground hover:bg-surface-muted/70",
+              )}
+            >
+              Všetky
+            </button>
+            {subcategoriesInScope.map((s) => {
+              const active = subFilter === s;
+              const count = orderedMaterials.filter(
+                (m) =>
+                  (filter === "all" || detectGroup(m.url) === filter) && m.subcategory === s,
+              ).length;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSubFilter(s)}
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                    active
+                      ? "bg-foreground text-background"
+                      : "bg-surface-muted text-muted-foreground hover:bg-surface-muted/70",
+                  )}
+                >
+                  {prettySubcategory(s)}
+                  <span className="ml-1 text-[10px] font-bold opacity-70">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         {materials.length === 0 && !adding ? (
           <div className="rounded-2xl bg-surface-muted p-8 text-center">
             <FolderOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
