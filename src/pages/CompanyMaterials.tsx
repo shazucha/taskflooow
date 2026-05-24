@@ -488,7 +488,7 @@ function SortableMaterialRow({
   canDelete: boolean;
   authorName: string | null;
   onDelete: () => void;
-  onSave: (patch: { url: string; label: string }) => Promise<void>;
+  onSave: (patch: { url: string; label: string; color: string | null }) => Promise<void>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: material.id,
@@ -504,14 +504,16 @@ function SortableMaterialRow({
   const [editing, setEditing] = useState(false);
   const [editUrl, setEditUrl] = useState(material.url);
   const [editLabel, setEditLabel] = useState(material.label ?? "");
+  const [editColor, setEditColor] = useState<string | null>(material.color ?? null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!editing) {
       setEditUrl(material.url);
       setEditLabel(material.label ?? "");
+      setEditColor(material.color ?? null);
     }
-  }, [material.url, material.label, editing]);
+  }, [material.url, material.label, material.color, editing]);
 
   if (editing) {
     return (
@@ -526,7 +528,12 @@ function SortableMaterialRow({
           placeholder="Názov (voliteľné)"
           onChange={(e) => setEditLabel(e.target.value)}
         />
-        <div className="flex justify-end gap-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Farba:</span>
+            <ColorPicker value={editColor} onChange={setEditColor} />
+          </div>
+          <div className="flex gap-1.5">
           <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
             Zrušiť
           </Button>
@@ -537,7 +544,7 @@ function SortableMaterialRow({
             onClick={async () => {
               setSaving(true);
               try {
-                await onSave({ url: editUrl, label: editLabel });
+                await onSave({ url: editUrl, label: editLabel, color: editColor });
                 setEditing(false);
               } catch {
                 // toast riešený v onSave
@@ -548,6 +555,7 @@ function SortableMaterialRow({
           >
             {saving ? "Ukladám…" : "Uložiť"}
           </Button>
+          </div>
         </div>
       </li>
     );
@@ -571,6 +579,15 @@ function SortableMaterialRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
+      {material.color && (
+        <span
+          className={cn(
+            "h-2.5 w-2.5 shrink-0 rounded-full",
+            COLOR_OPTIONS.find((c) => c.key === material.color)?.dot ?? "bg-muted",
+          )}
+          title={COLOR_OPTIONS.find((c) => c.key === material.color)?.label ?? ""}
+        />
+      )}
       <span
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted",
