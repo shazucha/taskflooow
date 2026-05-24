@@ -234,6 +234,7 @@ export default function CompanyMaterials() {
   const [color, setColor] = useState<string | null>(null);
   const [filter, setFilter] = useState<MaterialGroup | "all">("all");
   const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   // Synchronizujeme lokálne poradie s dátami zo servera.
   useEffect(() => {
