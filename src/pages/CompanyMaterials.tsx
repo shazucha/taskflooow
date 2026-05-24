@@ -306,6 +306,32 @@ function detectGroup(url: string): MaterialGroup {
   return "web";
 }
 
+// Náhľad (thumbnail) pre video odkazy – YouTube / Vimeo.
+function getVideoThumbnail(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const h = u.hostname.replace(/^www\./, "").toLowerCase();
+    if (h === "youtu.be") {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
+    }
+    if (h.includes("youtube.com")) {
+      const v = u.searchParams.get("v");
+      if (v) return `https://img.youtube.com/vi/${v}/mqdefault.jpg`;
+      const parts = u.pathname.split("/").filter(Boolean);
+      const i = parts.findIndex((p) => p === "shorts" || p === "embed" || p === "live");
+      if (i >= 0 && parts[i + 1]) return `https://img.youtube.com/vi/${parts[i + 1]}/mqdefault.jpg`;
+    }
+    if (h.includes("vimeo.com")) {
+      const id = u.pathname.split("/").filter(Boolean).find((p) => /^\d+$/.test(p));
+      if (id) return `https://vumbnail.com/${id}.jpg`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 const GROUP_LABEL: Record<MaterialGroup | "all", string> = {
   all: "Všetko",
   web: "Webstránky",
