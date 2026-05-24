@@ -340,7 +340,9 @@ export default function CompanyMaterials() {
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
   const [color, setColor] = useState<string | null>(null);
+  const [subcategory, setSubcategory] = useState<string | null>(null);
   const [filter, setFilter] = useState<MaterialGroup | "all">("all");
+  const [subFilter, setSubFilter] = useState<string | "all">("all");
   const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
   const [showAll, setShowAll] = useState(false);
 
@@ -363,9 +365,38 @@ export default function CompanyMaterials() {
   }, [materials, orderedIds]);
 
   const visibleMaterials = useMemo(
-    () => (filter === "all" ? orderedMaterials : orderedMaterials.filter((m) => detectGroup(m.url) === filter)),
-    [orderedMaterials, filter],
+    () =>
+      orderedMaterials.filter((m) => {
+        if (filter !== "all" && detectGroup(m.url) !== filter) return false;
+        if (subFilter !== "all" && (m.subcategory ?? "") !== subFilter) return false;
+        return true;
+      }),
+    [orderedMaterials, filter, subFilter],
   );
+
+  // Existujúce podkategórie v rámci zvoleného hlavného filtra (na chip-y a do selectu).
+  const subcategoriesInScope = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of orderedMaterials) {
+      if (filter !== "all" && detectGroup(m.url) !== filter) continue;
+      if (m.subcategory) set.add(m.subcategory);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [orderedMaterials, filter]);
+
+  // Resetni filter podkategórie, ak v aktuálnom scope neexistuje.
+  useEffect(() => {
+    if (subFilter !== "all" && !subcategoriesInScope.includes(subFilter)) {
+      setSubFilter("all");
+    }
+  }, [subcategoriesInScope, subFilter]);
+
+  // Všetky existujúce podkategórie naprieč materiálmi (do formuláru pri pridávaní/úprave).
+  const allSubcategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of materials) if (m.subcategory) set.add(m.subcategory);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [materials]);
 
   const PREVIEW_LIMIT = 4;
   const canExpand = visibleMaterials.length > PREVIEW_LIMIT;
@@ -417,10 +448,12 @@ export default function CompanyMaterials() {
         label: label.trim() || null,
         created_by: currentUserId,
         color,
+        subcategory,
       });
       setUrl("");
       setLabel("");
       setColor(null);
+      setSubcategory(null);
       setAdding(false);
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa pridať");
