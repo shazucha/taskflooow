@@ -158,6 +158,7 @@ export interface CompanyMaterial {
   created_by: string | null;
   created_at: string;
   position: number | null;
+  color: string | null;
 }
 
 export const AI_TOOL_CATEGORIES = [
