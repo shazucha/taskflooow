@@ -453,7 +453,11 @@ export default function CompanyMaterials() {
                       }
                       await update.mutateAsync({
                         id: m.id,
-                        patch: { url: normalized, label: patch.label.trim() || null },
+                        patch: {
+                          url: normalized,
+                          label: patch.label.trim() || null,
+                          color: patch.color,
+                        },
                       });
                     }}
                   />
