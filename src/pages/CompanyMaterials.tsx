@@ -154,7 +154,7 @@ function detectKind(url: string): MaterialKind {
   return "web";
 }
 
-type MaterialGroup = "web" | "social" | "docs";
+type MaterialGroup = "web" | "social" | "docs" | "video";
 
 const SOCIAL_HOSTS = [
   "facebook.com",
