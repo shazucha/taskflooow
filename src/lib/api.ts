@@ -804,6 +804,20 @@ export async function deleteCompanyMaterial(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function updateCompanyMaterial(
+  id: string,
+  patch: { url?: string; label?: string | null },
+): Promise<CompanyMaterial> {
+  const { data, error } = await supabase
+    .from("company_materials")
+    .update(patch)
+    .eq("id", id)
+    .select(COMPANY_MATERIAL_COLS)
+    .single();
+  if (error) throw error;
+  return data as CompanyMaterial;
+}
+
 export async function reorderCompanyMaterials(
   updates: { id: string; position: number }[],
 ): Promise<void> {

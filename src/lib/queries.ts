@@ -35,6 +35,7 @@ import {
   deleteCompanyMaterial,
   fetchCompanyMaterials,
   reorderCompanyMaterials,
+  updateCompanyMaterial,
   fetchAiTools,
   createAiTool,
   updateAiTool,
@@ -907,6 +908,15 @@ export function useReorderCompanyMaterials() {
   return useMutation({
     mutationFn: (updates: { id: string; position: number }[]) =>
       reorderCompanyMaterials(updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["company_materials"] }),
+  });
+}
+
+export function useUpdateCompanyMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: { url?: string; label?: string | null } }) =>
+      updateCompanyMaterial(id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["company_materials"] }),
   });
 }

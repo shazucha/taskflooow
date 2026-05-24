@@ -15,6 +15,7 @@ import {
   Trash2,
   Youtube,
   GripVertical,
+  Pencil,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import {
   useDeleteCompanyMaterial,
   useProfiles,
   useReorderCompanyMaterials,
+  useUpdateCompanyMaterial,
 } from "@/lib/queries";
 import { cn, formatMaterialDate } from "@/lib/utils";
 import {
@@ -169,6 +171,7 @@ export default function CompanyMaterials() {
   const create = useCreateCompanyMaterial();
   const remove = useDeleteCompanyMaterial();
   const reorder = useReorderCompanyMaterials();
+  const update = useUpdateCompanyMaterial();
 
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
@@ -375,6 +378,17 @@ export default function CompanyMaterials() {
                       if (!confirm("Naozaj odstrániť tento materiál?")) return;
                       remove.mutate(m.id);
                     }}
+                    onSave={async (patch) => {
+                      const normalized = normalizeUrl(patch.url);
+                      if (!normalized) {
+                        toast.error("Zadaj platný odkaz");
+                        throw new Error("invalid url");
+                      }
+                      await update.mutateAsync({
+                        id: m.id,
+                        patch: { url: normalized, label: patch.label.trim() || null },
+                      });
+                    }}
                   />
                 ))}
               </ul>
@@ -397,11 +411,13 @@ function SortableMaterialRow({
   canDelete,
   authorName,
   onDelete,
+  onSave,
 }: {
   material: CompanyMaterial;
   canDelete: boolean;
   authorName: string | null;
   onDelete: () => void;
+  onSave: (patch: { url: string; label: string }) => Promise<void>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: material.id,
@@ -414,6 +430,58 @@ function SortableMaterialRow({
   const meta = KIND_META[kind];
   const Icon = meta.icon;
   const dateText = formatMaterialDate(material.created_at);
+  const [editing, setEditing] = useState(false);
+  const [editUrl, setEditUrl] = useState(material.url);
+  const [editLabel, setEditLabel] = useState(material.label ?? "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!editing) {
+      setEditUrl(material.url);
+      setEditLabel(material.label ?? "");
+    }
+  }, [material.url, material.label, editing]);
+
+  if (editing) {
+    return (
+      <li
+        ref={setNodeRef}
+        style={style}
+        className="space-y-2 rounded-xl border border-border bg-card p-3"
+      >
+        <Input value={editUrl} onChange={(e) => setEditUrl(e.target.value)} autoFocus />
+        <Input
+          value={editLabel}
+          placeholder="Názov (voliteľné)"
+          onChange={(e) => setEditLabel(e.target.value)}
+        />
+        <div className="flex justify-end gap-1.5">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
+            Zrušiť
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            disabled={saving || !editUrl.trim()}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await onSave({ url: editUrl, label: editLabel });
+                setEditing(false);
+              } catch {
+                // toast riešený v onSave
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            {saving ? "Ukladám…" : "Uložiť"}
+          </Button>
+        </div>
+      </li>
+    );
+  }
+
   return (
     <li
       ref={setNodeRef}
@@ -457,6 +525,14 @@ function SortableMaterialRow({
           {dateText ? ` · ${dateText}` : ""}
         </span>
       </a>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="text-muted-foreground hover:text-foreground"
+        aria-label="Upraviť"
+      >
+        <Pencil className="h-4 w-4" />
+      </button>
       {canDelete && (
         <button
           type="button"
