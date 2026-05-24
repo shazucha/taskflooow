@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import {
+  ChevronDown,
   ExternalLink,
   FileText,
   Figma,
@@ -234,6 +235,7 @@ export default function CompanyMaterials() {
   const [color, setColor] = useState<string | null>(null);
   const [filter, setFilter] = useState<MaterialGroup | "all">("all");
   const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   // Synchronizujeme lokálne poradie s dátami zo servera.
   useEffect(() => {
@@ -257,6 +259,10 @@ export default function CompanyMaterials() {
     () => (filter === "all" ? orderedMaterials : orderedMaterials.filter((m) => detectGroup(m.url) === filter)),
     [orderedMaterials, filter],
   );
+
+  const PREVIEW_LIMIT = 4;
+  const canExpand = visibleMaterials.length > PREVIEW_LIMIT;
+  const displayedMaterials = showAll ? visibleMaterials : visibleMaterials.slice(0, PREVIEW_LIMIT);
 
   const counts = useMemo(() => {
     const c: Record<MaterialGroup, number> = { web: 0, social: 0, docs: 0, video: 0 };
@@ -440,39 +446,51 @@ export default function CompanyMaterials() {
             </p>
           </div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={visibleMaterials.map((m) => m.id)} strategy={verticalListSortingStrategy}>
-              <ul className="space-y-2">
-                {visibleMaterials.map((m) => (
-                  <SortableMaterialRow
-                    key={m.id}
-                    material={m}
-                    canDelete={m.created_by === currentUserId}
-                    authorName={m.created_by ? profileById.get(m.created_by)?.full_name ?? null : null}
-                    onDelete={() => {
-                      if (!confirm("Naozaj odstrániť tento materiál?")) return;
-                      remove.mutate(m.id);
-                    }}
-                    onSave={async (patch) => {
-                      const normalized = normalizeUrl(patch.url);
-                      if (!normalized) {
-                        toast.error("Zadaj platný odkaz");
-                        throw new Error("invalid url");
-                      }
-                      await update.mutateAsync({
-                        id: m.id,
-                        patch: {
-                          url: normalized,
-                          label: patch.label.trim() || null,
-                          color: patch.color,
-                        },
-                      });
-                    }}
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
+          <>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={displayedMaterials.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+                <ul className="space-y-2">
+                  {displayedMaterials.map((m) => (
+                    <SortableMaterialRow
+                      key={m.id}
+                      material={m}
+                      canDelete={m.created_by === currentUserId}
+                      authorName={m.created_by ? profileById.get(m.created_by)?.full_name ?? null : null}
+                      onDelete={() => {
+                        if (!confirm("Naozaj odstrániť tento materiál?")) return;
+                        remove.mutate(m.id);
+                      }}
+                      onSave={async (patch) => {
+                        const normalized = normalizeUrl(patch.url);
+                        if (!normalized) {
+                          toast.error("Zadaj platný odkaz");
+                          throw new Error("invalid url");
+                        }
+                        await update.mutateAsync({
+                          id: m.id,
+                          patch: {
+                            url: normalized,
+                            label: patch.label.trim() || null,
+                            color: patch.color,
+                          },
+                        });
+                      }}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+            {canExpand && (
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl border border-border bg-card py-2 text-xs font-medium text-muted-foreground transition hover:bg-surface-muted"
+              >
+                {showAll ? "Zobraziť menej" : `Zobraziť viac (${visibleMaterials.length - PREVIEW_LIMIT})`}
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showAll && "rotate-180")} />
+              </button>
+            )}
+          </>
         )}
           </div>
         </TabsContent>
