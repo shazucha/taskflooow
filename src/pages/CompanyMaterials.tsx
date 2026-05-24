@@ -259,7 +259,7 @@ export default function CompanyMaterials() {
   );
 
   const counts = useMemo(() => {
-    const c: Record<MaterialGroup, number> = { web: 0, social: 0, docs: 0 };
+    const c: Record<MaterialGroup, number> = { web: 0, social: 0, docs: 0, video: 0 };
     for (const m of orderedMaterials) c[detectGroup(m.url)]++;
     return c;
   }, [orderedMaterials]);
