@@ -310,7 +310,7 @@ const GROUP_LABEL: Record<MaterialGroup | "all", string> = {
   web: "Webstránky",
   social: "Sociálne siete",
   docs: "Dokumenty",
-  video: "Videá",
+  video: "Video návody",
 };
 
 const KIND_META: Record<MaterialKind, { icon: typeof LinkIcon; label: string; cls: string }> = {
