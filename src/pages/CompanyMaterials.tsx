@@ -306,6 +306,32 @@ function detectGroup(url: string): MaterialGroup {
   return "web";
 }
 
+// Náhľad (thumbnail) pre video odkazy – YouTube / Vimeo.
+function getVideoThumbnail(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const h = u.hostname.replace(/^www\./, "").toLowerCase();
+    if (h === "youtu.be") {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
+    }
+    if (h.includes("youtube.com")) {
+      const v = u.searchParams.get("v");
+      if (v) return `https://img.youtube.com/vi/${v}/mqdefault.jpg`;
+      const parts = u.pathname.split("/").filter(Boolean);
+      const i = parts.findIndex((p) => p === "shorts" || p === "embed" || p === "live");
+      if (i >= 0 && parts[i + 1]) return `https://img.youtube.com/vi/${parts[i + 1]}/mqdefault.jpg`;
+    }
+    if (h.includes("vimeo.com")) {
+      const id = u.pathname.split("/").filter(Boolean).find((p) => /^\d+$/.test(p));
+      if (id) return `https://vumbnail.com/${id}.jpg`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 const GROUP_LABEL: Record<MaterialGroup | "all", string> = {
   all: "Všetko",
   web: "Webstránky",
@@ -789,6 +815,7 @@ function SortableMaterialRow({
   const kind = detectKind(material.url);
   const meta = KIND_META[kind];
   const Icon = meta.icon;
+  const videoThumb = detectGroup(material.url) === "video" ? getVideoThumbnail(material.url) : null;
   const dateText = formatMaterialDate(material.created_at);
   const [editing, setEditing] = useState(false);
   const [editUrl, setEditUrl] = useState(material.url);
@@ -894,15 +921,37 @@ function SortableMaterialRow({
           title={COLOR_OPTIONS.find((c) => c.key === material.color)?.label ?? ""}
         />
       )}
-      <span
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted",
-          meta.cls,
-        )}
-        title={meta.label}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
+      {videoThumb ? (
+        <a
+          href={material.url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="group relative flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-muted"
+          title={meta.label}
+          aria-label="Otvoriť video v novom okne"
+        >
+          <img
+            src={videoThumb}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover transition group-hover:opacity-80"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+          <Icon className="absolute h-4 w-4 text-white drop-shadow" />
+        </a>
+      ) : (
+        <span
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted",
+            meta.cls,
+          )}
+          title={meta.label}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+      )}
       <a
         href={material.url}
         target="_blank"
