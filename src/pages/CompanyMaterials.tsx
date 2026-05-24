@@ -21,6 +21,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AiToolsLibrary } from "@/components/AiToolsLibrary";
 import { toast } from "sonner";
 import {
@@ -95,6 +102,106 @@ function ColorPicker({
           aria-label={c.label}
         />
       ))}
+    </div>
+  );
+}
+
+function slugifySubcategory(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function prettySubcategory(slug: string): string {
+  return slug
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function SubcategoryPicker({
+  value,
+  onChange,
+  existing,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  existing: string[];
+}) {
+  const [adding, setAdding] = useState(false);
+  const [input, setInput] = useState("");
+  const opts = Array.from(new Set([...(value ? [value] : []), ...existing])).filter(Boolean);
+  return (
+    <div className="space-y-2">
+      <Select
+        value={value ?? "__none__"}
+        onValueChange={(v) => {
+          if (v === "__new__") {
+            setInput("");
+            setAdding(true);
+            return;
+          }
+          if (v === "__none__") {
+            onChange(null);
+            return;
+          }
+          onChange(v);
+        }}
+      >
+        <SelectTrigger className="h-8 text-xs">
+          <SelectValue placeholder="Bez podkategórie" />
+        </SelectTrigger>
+        <SelectContent className="max-h-[260px]">
+          <SelectItem value="__none__">Bez podkategórie</SelectItem>
+          {opts.map((s) => (
+            <SelectItem key={s} value={s}>
+              {prettySubcategory(s)}
+            </SelectItem>
+          ))}
+          <SelectItem value="__new__">+ Pridať vlastnú podkategóriu…</SelectItem>
+        </SelectContent>
+      </Select>
+      {adding && (
+        <div className="flex gap-2">
+          <Input
+            autoFocus
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Názov podkategórie (napr. Newsletter)"
+            className="h-8 text-xs"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const slug = slugifySubcategory(input);
+                if (slug) {
+                  onChange(slug);
+                  setAdding(false);
+                }
+              }
+            }}
+          />
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              const slug = slugifySubcategory(input);
+              if (!slug) {
+                toast.error("Zadaj názov podkategórie");
+                return;
+              }
+              onChange(slug);
+              setAdding(false);
+            }}
+          >
+            Použiť
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
