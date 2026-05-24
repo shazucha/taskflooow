@@ -260,6 +260,10 @@ export default function CompanyMaterials() {
     [orderedMaterials, filter],
   );
 
+  const PREVIEW_LIMIT = 4;
+  const canExpand = visibleMaterials.length > PREVIEW_LIMIT;
+  const displayedMaterials = showAll ? visibleMaterials : visibleMaterials.slice(0, PREVIEW_LIMIT);
+
   const counts = useMemo(() => {
     const c: Record<MaterialGroup, number> = { web: 0, social: 0, docs: 0, video: 0 };
     for (const m of orderedMaterials) c[detectGroup(m.url)]++;
