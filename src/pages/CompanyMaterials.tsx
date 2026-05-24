@@ -154,7 +154,13 @@ function detectKind(url: string): MaterialKind {
   return "web";
 }
 
-type MaterialGroup = "web" | "social" | "docs";
+type MaterialGroup = "web" | "social" | "docs" | "video";
+
+const VIDEO_HOSTS = [
+  "youtube.com",
+  "youtu.be",
+  "vimeo.com",
+];
 
 const SOCIAL_HOSTS = [
   "facebook.com",
@@ -164,8 +170,6 @@ const SOCIAL_HOSTS = [
   "x.com",
   "linkedin.com",
   "tiktok.com",
-  "youtube.com",
-  "youtu.be",
   "threads.net",
   "pinterest.com",
   "snapchat.com",
@@ -180,6 +184,9 @@ const SOCIAL_HOSTS = [
 
 function detectGroup(url: string): MaterialGroup {
   const h = hostOf(url).toLowerCase();
+  if (VIDEO_HOSTS.some((s) => h === s || h.endsWith(`.${s}`) || h.includes(s))) {
+    return "video";
+  }
   if (SOCIAL_HOSTS.some((s) => h === s || h.endsWith(`.${s}`) || h.includes(s))) {
     return "social";
   }
@@ -195,6 +202,7 @@ const GROUP_LABEL: Record<MaterialGroup | "all", string> = {
   web: "Webstránky",
   social: "Sociálne siete",
   docs: "Dokumenty",
+  video: "Videá",
 };
 
 const KIND_META: Record<MaterialKind, { icon: typeof LinkIcon; label: string; cls: string }> = {
@@ -251,7 +259,7 @@ export default function CompanyMaterials() {
   );
 
   const counts = useMemo(() => {
-    const c: Record<MaterialGroup, number> = { web: 0, social: 0, docs: 0 };
+    const c: Record<MaterialGroup, number> = { web: 0, social: 0, docs: 0, video: 0 };
     for (const m of orderedMaterials) c[detectGroup(m.url)]++;
     return c;
   }, [orderedMaterials]);
@@ -396,7 +404,7 @@ export default function CompanyMaterials() {
         </div>
         {materials.length > 0 && (
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
-            {(["all", "web", "social", "docs"] as const).map((g) => {
+            {(["all", "web", "social", "docs", "video"] as const).map((g) => {
               const active = filter === g;
               const count = g === "all" ? orderedMaterials.length : counts[g];
               return (
