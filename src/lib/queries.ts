@@ -920,7 +920,12 @@ export function useUpdateCompanyMaterial() {
       patch,
     }: {
       id: string;
-      patch: { url?: string; label?: string | null; color?: string | null };
+      patch: {
+        url?: string;
+        label?: string | null;
+        color?: string | null;
+        subcategory?: string | null;
+      };
     }) =>
       updateCompanyMaterial(id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["company_materials"] }),
