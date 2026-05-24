@@ -15,6 +15,7 @@ import {
   Trash2,
   Youtube,
   GripVertical,
+  Pencil,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import {
   useDeleteCompanyMaterial,
   useProfiles,
   useReorderCompanyMaterials,
+  useUpdateCompanyMaterial,
 } from "@/lib/queries";
 import { cn, formatMaterialDate } from "@/lib/utils";
 import {
