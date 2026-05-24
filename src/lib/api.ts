@@ -735,7 +735,7 @@ export async function deleteProjectMaterial(id: string): Promise<void> {
 }
 
 // ---- Company materials (zdieľané pre celý tím)
-const COMPANY_MATERIAL_COLS = "id, url, label, created_by, created_at, position";
+const COMPANY_MATERIAL_COLS = "id, url, label, created_by, created_at, position, color";
 
 const COMPANY_MATERIALS_MISSING_MSG =
   "Tabuľka 'company_materials' ešte neexistuje v databáze. Spusti prosím SQL migráciu (pozri inštrukcie v aplikácii) a skús to znova.";
@@ -771,6 +771,7 @@ export async function createCompanyMaterial(input: {
   url: string;
   label: string | null;
   created_by: string;
+  color?: string | null;
 }): Promise<CompanyMaterial> {
   // Vypočítame ďalšiu pozíciu (na koniec zoznamu)
   const { data: maxRow } = await supabase
@@ -787,6 +788,7 @@ export async function createCompanyMaterial(input: {
       label: input.label,
       created_by: input.created_by,
       position: nextPos,
+      color: input.color ?? null,
     })
     .select(COMPANY_MATERIAL_COLS)
     .single();
@@ -806,7 +808,7 @@ export async function deleteCompanyMaterial(id: string): Promise<void> {
 
 export async function updateCompanyMaterial(
   id: string,
-  patch: { url?: string; label?: string | null },
+  patch: { url?: string; label?: string | null; color?: string | null },
 ): Promise<CompanyMaterial> {
   const { data, error } = await supabase
     .from("company_materials")
