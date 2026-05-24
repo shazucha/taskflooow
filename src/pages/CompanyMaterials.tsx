@@ -51,6 +51,53 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { CompanyMaterial } from "@/lib/types";
 
+// Farebné označenia materiálov + ich význam (zobrazené aj v legende).
+const COLOR_OPTIONS = [
+  { key: "red", label: "Google Ads", dot: "bg-red-500", ring: "ring-red-500" },
+  { key: "blue", label: "Facebook", dot: "bg-blue-500", ring: "ring-blue-500" },
+  { key: "green", label: "Prompty", dot: "bg-green-500", ring: "ring-green-500" },
+  { key: "orange", label: "Webstránky", dot: "bg-orange-500", ring: "ring-orange-500" },
+] as const;
+type ColorKey = (typeof COLOR_OPTIONS)[number]["key"];
+
+function ColorPicker({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        className={cn(
+          "h-5 w-5 rounded-full border border-dashed border-muted-foreground/50 transition",
+          !value && "ring-2 ring-offset-1 ring-foreground/40",
+        )}
+        title="Bez označenia"
+        aria-label="Bez označenia"
+      />
+      {COLOR_OPTIONS.map((c) => (
+        <button
+          key={c.key}
+          type="button"
+          onClick={() => onChange(c.key)}
+          className={cn(
+            "h-5 w-5 rounded-full transition",
+            c.dot,
+            value === c.key && "ring-2 ring-offset-1",
+            value === c.key && c.ring,
+          )}
+          title={c.label}
+          aria-label={c.label}
+        />
+      ))}
+    </div>
+  );
+}
+
 function normalizeUrl(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
