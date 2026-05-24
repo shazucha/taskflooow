@@ -51,6 +51,53 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { CompanyMaterial } from "@/lib/types";
 
+// Farebné označenia materiálov + ich význam (zobrazené aj v legende).
+const COLOR_OPTIONS = [
+  { key: "red", label: "Google Ads", dot: "bg-red-500", ring: "ring-red-500" },
+  { key: "blue", label: "Facebook", dot: "bg-blue-500", ring: "ring-blue-500" },
+  { key: "green", label: "Prompty", dot: "bg-green-500", ring: "ring-green-500" },
+  { key: "orange", label: "Webstránky", dot: "bg-orange-500", ring: "ring-orange-500" },
+] as const;
+type ColorKey = (typeof COLOR_OPTIONS)[number]["key"];
+
+function ColorPicker({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        className={cn(
+          "h-5 w-5 rounded-full border border-dashed border-muted-foreground/50 transition",
+          !value && "ring-2 ring-offset-1 ring-foreground/40",
+        )}
+        title="Bez označenia"
+        aria-label="Bez označenia"
+      />
+      {COLOR_OPTIONS.map((c) => (
+        <button
+          key={c.key}
+          type="button"
+          onClick={() => onChange(c.key)}
+          className={cn(
+            "h-5 w-5 rounded-full transition",
+            c.dot,
+            value === c.key && "ring-2 ring-offset-1",
+            value === c.key && c.ring,
+          )}
+          title={c.label}
+          aria-label={c.label}
+        />
+      ))}
+    </div>
+  );
+}
+
 function normalizeUrl(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -176,6 +223,7 @@ export default function CompanyMaterials() {
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
+  const [color, setColor] = useState<string | null>(null);
   const [filter, setFilter] = useState<MaterialGroup | "all">("all");
   const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
 
@@ -247,9 +295,11 @@ export default function CompanyMaterials() {
         url: normalized,
         label: label.trim() || null,
         created_by: currentUserId,
+        color,
       });
       setUrl("");
       setLabel("");
+      setColor(null);
       setAdding(false);
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa pridať");
@@ -300,7 +350,12 @@ export default function CompanyMaterials() {
             placeholder="Názov (voliteľné)"
             onChange={(e) => setLabel(e.target.value)}
           />
-          <div className="flex justify-end gap-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Farba:</span>
+              <ColorPicker value={color} onChange={setColor} />
+            </div>
+            <div className="flex gap-1.5">
             <Button
               type="button"
               variant="ghost"
@@ -309,6 +364,7 @@ export default function CompanyMaterials() {
                 setAdding(false);
                 setUrl("");
                 setLabel("");
+                setColor(null);
               }}
             >
               Zrušiť
@@ -322,11 +378,22 @@ export default function CompanyMaterials() {
             >
               {create.isPending ? "Pridávam…" : "Pridať"}
             </Button>
+            </div>
           </div>
         </div>
           )}
 
           <div className="mt-5">
+        {/* Legenda farebných označení */}
+        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-surface-muted px-3 py-2 text-[11px] text-muted-foreground">
+          <span className="font-medium text-foreground">Legenda:</span>
+          {COLOR_OPTIONS.map((c) => (
+            <span key={c.key} className="inline-flex items-center gap-1.5">
+              <span className={cn("h-2.5 w-2.5 rounded-full", c.dot)} />
+              {c.label}
+            </span>
+          ))}
+        </div>
         {materials.length > 0 && (
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
             {(["all", "web", "social", "docs"] as const).map((g) => {
@@ -386,7 +453,11 @@ export default function CompanyMaterials() {
                       }
                       await update.mutateAsync({
                         id: m.id,
-                        patch: { url: normalized, label: patch.label.trim() || null },
+                        patch: {
+                          url: normalized,
+                          label: patch.label.trim() || null,
+                          color: patch.color,
+                        },
                       });
                     }}
                   />
@@ -417,7 +488,7 @@ function SortableMaterialRow({
   canDelete: boolean;
   authorName: string | null;
   onDelete: () => void;
-  onSave: (patch: { url: string; label: string }) => Promise<void>;
+  onSave: (patch: { url: string; label: string; color: string | null }) => Promise<void>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: material.id,
@@ -433,14 +504,16 @@ function SortableMaterialRow({
   const [editing, setEditing] = useState(false);
   const [editUrl, setEditUrl] = useState(material.url);
   const [editLabel, setEditLabel] = useState(material.label ?? "");
+  const [editColor, setEditColor] = useState<string | null>(material.color ?? null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!editing) {
       setEditUrl(material.url);
       setEditLabel(material.label ?? "");
+      setEditColor(material.color ?? null);
     }
-  }, [material.url, material.label, editing]);
+  }, [material.url, material.label, material.color, editing]);
 
   if (editing) {
     return (
@@ -455,7 +528,12 @@ function SortableMaterialRow({
           placeholder="Názov (voliteľné)"
           onChange={(e) => setEditLabel(e.target.value)}
         />
-        <div className="flex justify-end gap-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Farba:</span>
+            <ColorPicker value={editColor} onChange={setEditColor} />
+          </div>
+          <div className="flex gap-1.5">
           <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
             Zrušiť
           </Button>
@@ -466,7 +544,7 @@ function SortableMaterialRow({
             onClick={async () => {
               setSaving(true);
               try {
-                await onSave({ url: editUrl, label: editLabel });
+                await onSave({ url: editUrl, label: editLabel, color: editColor });
                 setEditing(false);
               } catch {
                 // toast riešený v onSave
@@ -477,6 +555,7 @@ function SortableMaterialRow({
           >
             {saving ? "Ukladám…" : "Uložiť"}
           </Button>
+          </div>
         </div>
       </li>
     );
@@ -500,6 +579,15 @@ function SortableMaterialRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
+      {material.color && (
+        <span
+          className={cn(
+            "h-2.5 w-2.5 shrink-0 rounded-full",
+            COLOR_OPTIONS.find((c) => c.key === material.color)?.dot ?? "bg-muted",
+          )}
+          title={COLOR_OPTIONS.find((c) => c.key === material.color)?.label ?? ""}
+        />
+      )}
       <span
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted",
