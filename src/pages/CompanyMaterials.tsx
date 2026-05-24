@@ -17,6 +17,7 @@ import {
   Youtube,
   GripVertical,
   Pencil,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -310,7 +311,7 @@ const GROUP_LABEL: Record<MaterialGroup | "all", string> = {
   web: "Webstránky",
   social: "Sociálne siete",
   docs: "Dokumenty",
-  video: "Videá",
+  video: "Video návody",
 };
 
 const KIND_META: Record<MaterialKind, { icon: typeof LinkIcon; label: string; cls: string }> = {
@@ -401,6 +402,48 @@ export default function CompanyMaterials() {
   const PREVIEW_LIMIT = 4;
   const canExpand = visibleMaterials.length > PREVIEW_LIMIT;
   const displayedMaterials = showAll ? visibleMaterials : visibleMaterials.slice(0, PREVIEW_LIMIT);
+
+  // Premenovanie podkategórie – hromadná aktualizácia všetkých materiálov.
+  const handleRenameSubcategory = async (old: string) => {
+    const next = window.prompt("Premenovať podkategóriu:", prettySubcategory(old));
+    if (next === null) return;
+    const slug = slugifySubcategory(next);
+    if (!slug) {
+      toast.error("Zadaj platný názov podkategórie");
+      return;
+    }
+    if (slug === old) return;
+    const targets = materials.filter((m) => m.subcategory === old);
+    try {
+      await Promise.all(
+        targets.map((m) => update.mutateAsync({ id: m.id, patch: { subcategory: slug } })),
+      );
+      if (subFilter === old) setSubFilter(slug);
+      toast.success("Podkategória premenovaná");
+    } catch (e: any) {
+      toast.error(e.message ?? "Nepodarilo sa premenovať");
+    }
+  };
+
+  // Odstránenie podkategórie – materiálom sa iba zruší priradenie (nezmažú sa).
+  const handleDeleteSubcategory = async (old: string) => {
+    if (
+      !confirm(
+        `Odstrániť podkategóriu „${prettySubcategory(old)}"? Materiály ostanú, len sa im zruší priradenie.`,
+      )
+    )
+      return;
+    const targets = materials.filter((m) => m.subcategory === old);
+    try {
+      await Promise.all(
+        targets.map((m) => update.mutateAsync({ id: m.id, patch: { subcategory: null } })),
+      );
+      if (subFilter === old) setSubFilter("all");
+      toast.success("Podkategória odstránená");
+    } catch (e: any) {
+      toast.error(e.message ?? "Nepodarilo sa odstrániť");
+    }
+  };
 
   const counts = useMemo(() => {
     const c: Record<MaterialGroup, number> = { web: 0, social: 0, docs: 0, video: 0 };
@@ -607,20 +650,38 @@ export default function CompanyMaterials() {
                   (filter === "all" || detectGroup(m.url) === filter) && m.subcategory === s,
               ).length;
               return (
-                <button
+                <span
                   key={s}
-                  type="button"
-                  onClick={() => setSubFilter(s)}
                   className={cn(
-                    "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                    "group inline-flex items-center gap-1 rounded-full pl-2.5 pr-1 py-0.5 text-[11px] font-medium transition-colors",
                     active
                       ? "bg-foreground text-background"
                       : "bg-surface-muted text-muted-foreground hover:bg-surface-muted/70",
                   )}
                 >
-                  {prettySubcategory(s)}
-                  <span className="ml-1 text-[10px] font-bold opacity-70">{count}</span>
-                </button>
+                  <button type="button" onClick={() => setSubFilter(s)} className="inline-flex items-center">
+                    {prettySubcategory(s)}
+                    <span className="ml-1 text-[10px] font-bold opacity-70">{count}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRenameSubcategory(s)}
+                    className="ml-1 rounded-full p-0.5 opacity-60 hover:opacity-100 hover:bg-background/20"
+                    title="Premenovať podkategóriu"
+                    aria-label="Premenovať podkategóriu"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteSubcategory(s)}
+                    className="rounded-full p-0.5 opacity-60 hover:opacity-100 hover:bg-background/20"
+                    title="Odstrániť podkategóriu"
+                    aria-label="Odstrániť podkategóriu"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
               );
             })}
           </div>
