@@ -223,6 +223,7 @@ export default function CompanyMaterials() {
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
+  const [color, setColor] = useState<string | null>(null);
   const [filter, setFilter] = useState<MaterialGroup | "all">("all");
   const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
 
@@ -294,9 +295,11 @@ export default function CompanyMaterials() {
         url: normalized,
         label: label.trim() || null,
         created_by: currentUserId,
+        color,
       });
       setUrl("");
       setLabel("");
+      setColor(null);
       setAdding(false);
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa pridať");
@@ -347,7 +350,12 @@ export default function CompanyMaterials() {
             placeholder="Názov (voliteľné)"
             onChange={(e) => setLabel(e.target.value)}
           />
-          <div className="flex justify-end gap-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Farba:</span>
+              <ColorPicker value={color} onChange={setColor} />
+            </div>
+            <div className="flex gap-1.5">
             <Button
               type="button"
               variant="ghost"
@@ -356,6 +364,7 @@ export default function CompanyMaterials() {
                 setAdding(false);
                 setUrl("");
                 setLabel("");
+                setColor(null);
               }}
             >
               Zrušiť
@@ -369,11 +378,22 @@ export default function CompanyMaterials() {
             >
               {create.isPending ? "Pridávam…" : "Pridať"}
             </Button>
+            </div>
           </div>
         </div>
           )}
 
           <div className="mt-5">
+        {/* Legenda farebných označení */}
+        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-surface-muted px-3 py-2 text-[11px] text-muted-foreground">
+          <span className="font-medium text-foreground">Legenda:</span>
+          {COLOR_OPTIONS.map((c) => (
+            <span key={c.key} className="inline-flex items-center gap-1.5">
+              <span className={cn("h-2.5 w-2.5 rounded-full", c.dot)} />
+              {c.label}
+            </span>
+          ))}
+        </div>
         {materials.length > 0 && (
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
             {(["all", "web", "social", "docs"] as const).map((g) => {
