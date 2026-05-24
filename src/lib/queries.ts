@@ -915,7 +915,13 @@ export function useReorderCompanyMaterials() {
 export function useUpdateCompanyMaterial() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: { url?: string; label?: string | null } }) =>
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: { url?: string; label?: string | null; color?: string | null };
+    }) =>
       updateCompanyMaterial(id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["company_materials"] }),
   });
