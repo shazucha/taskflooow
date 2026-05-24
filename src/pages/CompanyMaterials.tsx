@@ -171,6 +171,7 @@ export default function CompanyMaterials() {
   const create = useCreateCompanyMaterial();
   const remove = useDeleteCompanyMaterial();
   const reorder = useReorderCompanyMaterials();
+  const update = useUpdateCompanyMaterial();
 
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
@@ -376,6 +377,17 @@ export default function CompanyMaterials() {
                     onDelete={() => {
                       if (!confirm("Naozaj odstrániť tento materiál?")) return;
                       remove.mutate(m.id);
+                    }}
+                    onSave={async (patch) => {
+                      const normalized = normalizeUrl(patch.url);
+                      if (!normalized) {
+                        toast.error("Zadaj platný odkaz");
+                        throw new Error("invalid url");
+                      }
+                      await update.mutateAsync({
+                        id: m.id,
+                        patch: { url: normalized, label: patch.label.trim() || null },
+                      });
                     }}
                   />
                 ))}
