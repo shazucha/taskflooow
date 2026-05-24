@@ -156,6 +156,12 @@ function detectKind(url: string): MaterialKind {
 
 type MaterialGroup = "web" | "social" | "docs" | "video";
 
+const VIDEO_HOSTS = [
+  "youtube.com",
+  "youtu.be",
+  "vimeo.com",
+];
+
 const SOCIAL_HOSTS = [
   "facebook.com",
   "fb.com",
@@ -164,8 +170,6 @@ const SOCIAL_HOSTS = [
   "x.com",
   "linkedin.com",
   "tiktok.com",
-  "youtube.com",
-  "youtu.be",
   "threads.net",
   "pinterest.com",
   "snapchat.com",
@@ -180,6 +184,9 @@ const SOCIAL_HOSTS = [
 
 function detectGroup(url: string): MaterialGroup {
   const h = hostOf(url).toLowerCase();
+  if (VIDEO_HOSTS.some((s) => h === s || h.endsWith(`.${s}`) || h.includes(s))) {
+    return "video";
+  }
   if (SOCIAL_HOSTS.some((s) => h === s || h.endsWith(`.${s}`) || h.includes(s))) {
     return "social";
   }
@@ -195,6 +202,7 @@ const GROUP_LABEL: Record<MaterialGroup | "all", string> = {
   web: "Webstránky",
   social: "Sociálne siete",
   docs: "Dokumenty",
+  video: "Videá",
 };
 
 const KIND_META: Record<MaterialKind, { icon: typeof LinkIcon; label: string; cls: string }> = {
