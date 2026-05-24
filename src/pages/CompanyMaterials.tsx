@@ -665,9 +665,11 @@ export default function CompanyMaterials() {
                             url: normalized,
                             label: patch.label.trim() || null,
                             color: patch.color,
+                            subcategory: patch.subcategory,
                           },
                         });
                       }}
+                      existingSubcategories={allSubcategories}
                     />
                   ))}
                 </ul>
