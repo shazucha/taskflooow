@@ -912,6 +912,15 @@ export function useReorderCompanyMaterials() {
   });
 }
 
+export function useUpdateCompanyMaterial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: { url?: string; label?: string | null } }) =>
+      updateCompanyMaterial(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["company_materials"] }),
+  });
+}
+
 // ---- AI knižnica nástrojov
 export function useAiTools() {
   const qc = useQueryClient();
