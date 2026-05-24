@@ -519,6 +519,7 @@ export default function CompanyMaterials() {
                 setUrl("");
                 setLabel("");
                 setColor(null);
+                setSubcategory(null);
               }}
             >
               Zrušiť
@@ -532,6 +533,16 @@ export default function CompanyMaterials() {
             >
               {create.isPending ? "Pridávam…" : "Pridať"}
             </Button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 text-xs text-muted-foreground">Podkategória:</span>
+            <div className="min-w-[200px] flex-1">
+              <SubcategoryPicker
+                value={subcategory}
+                onChange={setSubcategory}
+                existing={allSubcategories}
+              />
             </div>
           </div>
         </div>
