@@ -851,6 +851,11 @@ function SortableMaterialRow({
         <span className="flex items-center gap-1.5 truncate font-medium">
           <span className="truncate">{material.label || hostOf(material.url)}</span>
           <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+          {material.subcategory && (
+            <span className="ml-1 shrink-0 rounded-full bg-surface-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {prettySubcategory(material.subcategory)}
+            </span>
+          )}
         </span>
         <span className="truncate text-[11px] text-muted-foreground">
           {material.label ? `${hostOf(material.url)}` : meta.label}
