@@ -403,6 +403,48 @@ export default function CompanyMaterials() {
   const canExpand = visibleMaterials.length > PREVIEW_LIMIT;
   const displayedMaterials = showAll ? visibleMaterials : visibleMaterials.slice(0, PREVIEW_LIMIT);
 
+  // Premenovanie podkategórie – hromadná aktualizácia všetkých materiálov.
+  const handleRenameSubcategory = async (old: string) => {
+    const next = window.prompt("Premenovať podkategóriu:", prettySubcategory(old));
+    if (next === null) return;
+    const slug = slugifySubcategory(next);
+    if (!slug) {
+      toast.error("Zadaj platný názov podkategórie");
+      return;
+    }
+    if (slug === old) return;
+    const targets = materials.filter((m) => m.subcategory === old);
+    try {
+      await Promise.all(
+        targets.map((m) => update.mutateAsync({ id: m.id, patch: { subcategory: slug } })),
+      );
+      if (subFilter === old) setSubFilter(slug);
+      toast.success("Podkategória premenovaná");
+    } catch (e: any) {
+      toast.error(e.message ?? "Nepodarilo sa premenovať");
+    }
+  };
+
+  // Odstránenie podkategórie – materiálom sa iba zruší priradenie (nezmažú sa).
+  const handleDeleteSubcategory = async (old: string) => {
+    if (
+      !confirm(
+        `Odstrániť podkategóriu „${prettySubcategory(old)}"? Materiály ostanú, len sa im zruší priradenie.`,
+      )
+    )
+      return;
+    const targets = materials.filter((m) => m.subcategory === old);
+    try {
+      await Promise.all(
+        targets.map((m) => update.mutateAsync({ id: m.id, patch: { subcategory: null } })),
+      );
+      if (subFilter === old) setSubFilter("all");
+      toast.success("Podkategória odstránená");
+    } catch (e: any) {
+      toast.error(e.message ?? "Nepodarilo sa odstrániť");
+    }
+  };
+
   const counts = useMemo(() => {
     const c: Record<MaterialGroup, number> = { web: 0, social: 0, docs: 0, video: 0 };
     for (const m of orderedMaterials) c[detectGroup(m.url)]++;
