@@ -704,12 +704,19 @@ function SortableMaterialRow({
   authorName,
   onDelete,
   onSave,
+  existingSubcategories,
 }: {
   material: CompanyMaterial;
   canDelete: boolean;
   authorName: string | null;
   onDelete: () => void;
-  onSave: (patch: { url: string; label: string; color: string | null }) => Promise<void>;
+  onSave: (patch: {
+    url: string;
+    label: string;
+    color: string | null;
+    subcategory: string | null;
+  }) => Promise<void>;
+  existingSubcategories: string[];
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: material.id,
@@ -726,6 +733,7 @@ function SortableMaterialRow({
   const [editUrl, setEditUrl] = useState(material.url);
   const [editLabel, setEditLabel] = useState(material.label ?? "");
   const [editColor, setEditColor] = useState<string | null>(material.color ?? null);
+  const [editSubcategory, setEditSubcategory] = useState<string | null>(material.subcategory ?? null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -733,8 +741,9 @@ function SortableMaterialRow({
       setEditUrl(material.url);
       setEditLabel(material.label ?? "");
       setEditColor(material.color ?? null);
+      setEditSubcategory(material.subcategory ?? null);
     }
-  }, [material.url, material.label, material.color, editing]);
+  }, [material.url, material.label, material.color, material.subcategory, editing]);
 
   if (editing) {
     return (
@@ -765,7 +774,12 @@ function SortableMaterialRow({
             onClick={async () => {
               setSaving(true);
               try {
-                await onSave({ url: editUrl, label: editLabel, color: editColor });
+                await onSave({
+                  url: editUrl,
+                  label: editLabel,
+                  color: editColor,
+                  subcategory: editSubcategory,
+                });
                 setEditing(false);
               } catch {
                 // toast riešený v onSave
@@ -776,6 +790,16 @@ function SortableMaterialRow({
           >
             {saving ? "Ukladám…" : "Uložiť"}
           </Button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 text-xs text-muted-foreground">Podkategória:</span>
+          <div className="min-w-[200px] flex-1">
+            <SubcategoryPicker
+              value={editSubcategory}
+              onChange={setEditSubcategory}
+              existing={existingSubcategories}
+            />
           </div>
         </div>
       </li>
