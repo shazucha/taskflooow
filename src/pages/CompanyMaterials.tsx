@@ -18,6 +18,7 @@ import {
   GripVertical,
   Pencil,
   X,
+  BookOpen,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AiToolsLibrary } from "@/components/AiToolsLibrary";
+import { GuidesLibrary } from "@/components/GuidesLibrary";
 import { toast } from "sonner";
 import {
   useCompanyMaterials,
@@ -550,6 +552,9 @@ export default function CompanyMaterials() {
           <TabsTrigger value="ai" className="gap-1.5">
             <Sparkles className="h-4 w-4" /> AI knižnica nástrojov
           </TabsTrigger>
+          <TabsTrigger value="guides" className="gap-1.5">
+            <BookOpen className="h-4 w-4" /> Návody
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="materials">
@@ -779,6 +784,10 @@ export default function CompanyMaterials() {
 
         <TabsContent value="ai">
           <AiToolsLibrary />
+        </TabsContent>
+
+        <TabsContent value="guides">
+          <GuidesLibrary />
         </TabsContent>
       </Tabs>
     </div>

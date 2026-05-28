@@ -40,6 +40,10 @@ import {
   createAiTool,
   updateAiTool,
   deleteAiTool,
+  fetchGuides,
+  createGuide,
+  updateGuide,
+  deleteGuide,
   fetchRecurringWorkCompletions,
   fetchServiceCatalog,
   fetchTaskActivity,
@@ -981,6 +985,58 @@ export function useDeleteAiTool() {
   return useMutation({
     mutationFn: (id: string) => deleteAiTool(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ai_tools"] }),
+  });
+}
+
+// ---- Knižnica návodov
+export function useGuides() {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+
+  useEffect(() => {
+    if (!isReady || !user) return;
+    const channel = supabase
+      .channel(`guides-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "guides" },
+        () => qc.invalidateQueries({ queryKey: ["guides"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isReady, user, qc]);
+
+  return useQuery({
+    queryKey: ["guides"],
+    queryFn: fetchGuides,
+    enabled: isReady && !!user,
+  });
+}
+
+export function useCreateGuide() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createGuide,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["guides"] }),
+  });
+}
+
+export function useUpdateGuide() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: string; patch: Parameters<typeof updateGuide>[1] }) =>
+      updateGuide(args.id, args.patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["guides"] }),
+  });
+}
+
+export function useDeleteGuide() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteGuide(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["guides"] }),
   });
 }
 

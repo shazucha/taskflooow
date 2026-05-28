@@ -914,6 +914,88 @@ export async function deleteAiTool(id: string): Promise<void> {
   if (error) throw error;
 }
 
+// ---- Knižnica návodov (zdieľaná pre celý tím)
+const GUIDE_COLS =
+  "id, name, description, category, image_url, attachments, created_by, created_at, updated_at";
+
+const GUIDES_MISSING_MSG =
+  "Tabuľka 'guides' ešte neexistuje v databáze. Spusti prosím SQL migráciu (migrations/20260528_guides_library.sql) a skús to znova.";
+
+function isMissingGuidesTable(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  if (!e) return false;
+  if (e.code === "PGRST205" || e.code === "42P01") return true;
+  const msg = (e.message ?? "").toLowerCase();
+  return msg.includes("guides") && (msg.includes("schema cache") || msg.includes("does not exist"));
+}
+
+function normalizeGuide(row: any): import("./types").Guide {
+  return {
+    ...row,
+    attachments: Array.isArray(row?.attachments) ? row.attachments : [],
+  } as import("./types").Guide;
+}
+
+export async function fetchGuides(): Promise<import("./types").Guide[]> {
+  const { data, error } = await supabase
+    .from("guides")
+    .select(GUIDE_COLS)
+    .order("created_at", { ascending: false });
+  if (error) {
+    if (isMissingGuidesTable(error)) {
+      console.warn(GUIDES_MISSING_MSG);
+      return [];
+    }
+    throw error;
+  }
+  return (data ?? []).map(normalizeGuide);
+}
+
+export async function createGuide(input: {
+  name: string;
+  description: string | null;
+  category: string;
+  image_url: string | null;
+  attachments: import("./types").GuideAttachment[];
+  created_by: string;
+}): Promise<import("./types").Guide> {
+  const { data, error } = await supabase
+    .from("guides")
+    .insert(input)
+    .select(GUIDE_COLS)
+    .single();
+  if (error) {
+    if (isMissingGuidesTable(error)) throw new Error(GUIDES_MISSING_MSG);
+    throw error;
+  }
+  return normalizeGuide(data);
+}
+
+export async function updateGuide(
+  id: string,
+  patch: Partial<{
+    name: string;
+    description: string | null;
+    category: string;
+    image_url: string | null;
+    attachments: import("./types").GuideAttachment[];
+  }>,
+): Promise<import("./types").Guide> {
+  const { data, error } = await supabase
+    .from("guides")
+    .update(patch)
+    .eq("id", id)
+    .select(GUIDE_COLS)
+    .single();
+  if (error) throw error;
+  return normalizeGuide(data);
+}
+
+export async function deleteGuide(id: string): Promise<void> {
+  const { error } = await supabase.from("guides").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ---- Monthly bonuses (per project + konkrétny mesiac, bez šablóny)
 const BONUS_COLS =
   "id, project_id, month_key, title, note, position, done, done_by, done_at, created_by, created_at, qty, unit_price, hours, hourly_rate, catalog_id, unit_type";
