@@ -226,6 +226,23 @@ export interface AiTool {
   updated_at: string;
 }
 
+export interface GuideAttachment {
+  url: string;
+  label: string | null;
+}
+
+export interface Guide {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  image_url: string | null;
+  attachments: GuideAttachment[];
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type ChatScope = "team" | "project";
 
 export interface ChatMessage {
