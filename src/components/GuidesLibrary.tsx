@@ -449,7 +449,7 @@ export function GuidesLibrary() {
               <DialogHeader>
                 <DialogTitle>Upraviť návod</DialogTitle>
               </DialogHeader>
-              <GuideForm form={form} setForm={setForm} guides={guides} />
+              <GuideForm form={form} setForm={setForm} guides={guides} extraCats={extraCats} />
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setEditMode(false)}>Zrušiť</Button>
                 <Button size="sm" onClick={submitUpdate} disabled={update.isPending}>
@@ -468,7 +468,7 @@ export function GuidesLibrary() {
             <DialogTitle>Nový návod</DialogTitle>
             <DialogDescription>Pridaj názov, popis, kategóriu a prílohy.</DialogDescription>
           </DialogHeader>
-          <GuideForm form={form} setForm={setForm} guides={guides} />
+          <GuideForm form={form} setForm={setForm} guides={guides} extraCats={extraCats} />
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="ghost" size="sm" onClick={() => setAddOpen(false)}>Zrušiť</Button>
             <Button size="sm" onClick={submitCreate} disabled={create.isPending}>
@@ -485,10 +485,12 @@ function GuideForm({
   form,
   setForm,
   guides,
+  extraCats = [],
 }: {
   form: FormState;
   setForm: (f: FormState) => void;
   guides: Guide[];
+  extraCats?: string[];
 }) {
   const [customCatOpen, setCustomCatOpen] = useState(false);
   const [customCatInput, setCustomCatInput] = useState("");
@@ -498,9 +500,10 @@ function GuideForm({
   const allCategories = useMemo(() => {
     const s = new Set<string>(["ine"]);
     for (const g of guides) s.add(g.category);
+    for (const c of extraCats) s.add(c);
     s.add(form.category || "ine");
     return Array.from(s);
-  }, [guides, form.category]);
+  }, [guides, form.category, extraCats]);
 
   const addAttachment = () => {
     const normalized = normalizeUrl(newAttUrl);
