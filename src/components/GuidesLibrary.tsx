@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { BookOpen, ExternalLink, FileText, Link as LinkIcon, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, ChevronDown, ExternalLink, FileText, Link as LinkIcon, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,18 +130,41 @@ export function GuidesLibrary() {
   const [editMode, setEditMode] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [extraCats, setExtraCats] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem("guides:extraCategories");
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch { return []; }
+  });
+  const [newCatOpen, setNewCatOpen] = useState(false);
+  const [newCatInput, setNewCatInput] = useState("");
+
+  useEffect(() => {
+    try { localStorage.setItem("guides:extraCategories", JSON.stringify(extraCats)); } catch {}
+  }, [extraCats]);
 
   const profileById = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
   const categories = useMemo(() => {
     const s = new Set<string>(["ine"]);
     for (const g of guides) s.add(g.category);
+    for (const c of extraCats) s.add(c);
     return Array.from(s);
-  }, [guides]);
+  }, [guides, extraCats]);
 
   const filters = useMemo(() => ["all", ...categories], [categories]);
   const countByFilter = (f: string) =>
     f === "all" ? guides.length : guides.filter((g) => g.category === f).length;
+
+  const addCategoryFromFilter = () => {
+    const slug = slugify(newCatInput);
+    if (!slug) { toast.error("Zadaj názov kategórie"); return; }
+    setExtraCats((prev) => (prev.includes(slug) ? prev : [...prev, slug]));
+    setFilter(slug);
+    setNewCatInput("");
+    setNewCatOpen(false);
+  };
 
   const visible = useMemo(
     () => (filter === "all" ? guides : guides.filter((g) => g.category === filter)),
@@ -235,7 +258,25 @@ export function GuidesLibrary() {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5 rounded-xl bg-surface-muted p-1.5">
-        {filters.map((f) => {
+        {(filtersExpanded
+          ? filters
+          : filters.length <= 7
+            ? filters
+            : filters.slice(0, 6).concat("__expand__")
+        ).map((f) => {
+          if (f === "__expand__") {
+            return (
+              <button
+                key="__expand__"
+                type="button"
+                onClick={() => setFiltersExpanded(true)}
+                className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+              >
+                <span>+{filters.length - 6} kategórií</span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            );
+          }
           const label = f === "all" ? "Všetko" : prettyCategory(f);
           return (
             <button
@@ -253,6 +294,42 @@ export function GuidesLibrary() {
             </button>
           );
         })}
+        {filtersExpanded && filters.length > 7 && (
+          <button
+            type="button"
+            onClick={() => setFiltersExpanded(false)}
+            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+          >
+            Menej
+          </button>
+        )}
+        {newCatOpen ? (
+          <span className="flex items-center gap-1">
+            <Input
+              autoFocus
+              value={newCatInput}
+              onChange={(e) => setNewCatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); addCategoryFromFilter(); }
+                if (e.key === "Escape") { setNewCatOpen(false); setNewCatInput(""); }
+              }}
+              placeholder="Názov kategórie"
+              className="h-7 w-40 text-xs"
+            />
+            <Button type="button" size="sm" className="h-7 px-2 text-xs" onClick={addCategoryFromFilter}>
+              OK
+            </Button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setNewCatOpen(true)}
+            className="flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+            title="Pridať novú kategóriu"
+          >
+            <Plus className="h-3.5 w-3.5" /> Kategória
+          </button>
+        )}
       </div>
 
       <div className="mt-4">
