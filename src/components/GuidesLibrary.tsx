@@ -394,33 +394,10 @@ export function GuidesLibrary() {
               </DialogHeader>
 
               <div className="space-y-4">
-                <SectionsView sections={parseSections(openGuide.description)} />
-
-                {openGuide.attachments?.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Prílohy ({openGuide.attachments.length})
-                    </p>
-                    <ul className="space-y-1.5">
-                      {openGuide.attachments.map((a, i) => (
-                        <li key={i}>
-                          <a
-                            href={a.url}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                            className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted px-3 py-2 text-sm hover:text-primary"
-                          >
-                            <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <span className="flex-1 truncate">
-                              {a.label?.trim() || hostOf(a.url)}
-                            </span>
-                            <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                <SectionsView
+                  sections={parseSections(openGuide.description)}
+                  attachments={openGuide.attachments ?? []}
+                />
 
                 <div className="text-[11px] text-muted-foreground">
                   {openGuide.created_by
