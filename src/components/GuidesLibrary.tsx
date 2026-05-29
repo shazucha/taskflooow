@@ -29,6 +29,7 @@ import {
 } from "@/lib/queries";
 import type { Guide, GuideAttachment } from "@/lib/types";
 import { cn, formatMaterialDate } from "@/lib/utils";
+import { ImageUploadField } from "@/components/ImageUploadField";
 
 const SECTION_KEYS = ["what", "steps", "tips", "notes"] as const;
 type SectionKey = (typeof SECTION_KEYS)[number];
@@ -351,16 +352,22 @@ export function GuidesLibrary() {
                 onClick={() => { setEditMode(false); setOpenGuide(g); }}
                 className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
               >
-                <div className="flex h-24 items-center justify-center overflow-hidden bg-surface-muted">
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-surface-muted">
                   {g.image_url ? (
-                    <img src={g.image_url} alt={g.name} loading="lazy"
-                      className="h-12 w-12 object-contain transition-transform group-hover:scale-110" />
+                    <img
+                      src={g.image_url}
+                      alt={g.name}
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
                   ) : (
-                    <BookOpen className="h-8 w-8 text-muted-foreground" />
+                    <div className="flex h-full w-full items-center justify-center">
+                      <BookOpen className="h-8 w-8 text-muted-foreground" />
+                    </div>
                   )}
                 </div>
                 <div className="flex flex-1 flex-col gap-1 p-3">
-                  <span className="line-clamp-1 text-sm font-semibold">{g.name}</span>
+                  <span className="text-sm font-semibold leading-snug break-words">{g.name}</span>
                   <span className="text-[11px] text-muted-foreground">
                     {prettyCategory(g.category)}
                     {g.attachments?.length > 0 && ` · ${g.attachments.length} príloh`}
@@ -597,13 +604,11 @@ function GuideForm({
         </div>
       </div>
 
-      <div>
-        <label className="mb-1 block text-xs font-semibold text-muted-foreground">
-          Obrázok / ikona (URL, voliteľné)
-        </label>
-        <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-          placeholder="https://…/icon.png" />
-      </div>
+      <ImageUploadField
+        value={form.image_url}
+        onChange={(v) => setForm({ ...form, image_url: v })}
+        label="Obrázok náhľadu (voliteľné)"
+      />
     </div>
   );
 }
