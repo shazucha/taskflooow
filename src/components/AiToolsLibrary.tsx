@@ -399,21 +399,21 @@ export function AiToolsLibrary() {
           }
         }}
       >
-        <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+        <DialogContent className="max-h-[85vh] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto">
           {openTool && !editMode && (
             <>
               <DialogHeader>
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3 pr-8">
                   {(() => {
                     const img = openTool.image_url || faviconFor(openTool.url);
                     return img ? (
-                      <img src={img} alt="" className="h-10 w-10 rounded-lg object-contain" />
+                      <img src={img} alt="" className="h-10 w-10 shrink-0 rounded-lg object-contain" />
                     ) : (
-                      <Sparkles className="h-10 w-10 text-muted-foreground" />
+                      <Sparkles className="h-10 w-10 shrink-0 text-muted-foreground" />
                     );
                   })()}
-                  <div className="min-w-0">
-                    <DialogTitle className="truncate">{openTool.name}</DialogTitle>
+                  <div className="min-w-0 flex-1">
+                    <DialogTitle className="break-words text-left leading-snug">{openTool.name}</DialogTitle>
                     <DialogDescription className="text-xs">
                       {getAiToolCategoryLabel(openTool.category)} · {hostOf(openTool.url)}
                     </DialogDescription>
@@ -487,7 +487,7 @@ export function AiToolsLibrary() {
           if (!o) setForm(EMPTY_FORM);
         }}
       >
-        <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+        <DialogContent className="max-h-[85vh] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nový AI nástroj</DialogTitle>
             <DialogDescription>Pridaj odkaz, popis a kategóriu.</DialogDescription>

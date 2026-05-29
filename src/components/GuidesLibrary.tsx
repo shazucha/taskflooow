@@ -381,18 +381,18 @@ export function GuidesLibrary() {
 
       {/* Detail / Edit dialog */}
       <Dialog open={!!openGuide} onOpenChange={(o) => { if (!o) { setOpenGuide(null); setEditMode(false); } }}>
-        <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+        <DialogContent className="max-h-[85vh] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto">
           {openGuide && !editMode && (
             <>
               <DialogHeader>
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3 pr-8">
                   {openGuide.image_url ? (
-                    <img src={openGuide.image_url} alt="" className="h-10 w-10 rounded-lg object-contain" />
+                    <img src={openGuide.image_url} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
                   ) : (
-                    <BookOpen className="h-10 w-10 text-muted-foreground" />
+                    <BookOpen className="h-10 w-10 shrink-0 text-muted-foreground" />
                   )}
-                  <div className="min-w-0">
-                    <DialogTitle className="truncate">{openGuide.name}</DialogTitle>
+                  <div className="min-w-0 flex-1">
+                    <DialogTitle className="break-words text-left leading-snug">{openGuide.name}</DialogTitle>
                     <DialogDescription className="text-xs">
                       {prettyCategory(openGuide.category)}
                     </DialogDescription>
@@ -447,7 +447,7 @@ export function GuidesLibrary() {
 
       {/* Add dialog */}
       <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm(EMPTY_FORM); }}>
-        <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+        <DialogContent className="max-h-[85vh] w-[calc(100vw-2rem)] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nový návod</DialogTitle>
             <DialogDescription>Pridaj názov, popis, kategóriu a prílohy.</DialogDescription>
