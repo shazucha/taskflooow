@@ -9,7 +9,7 @@ export async function uploadLibraryImage(userId: string, file: File): Promise<st
     throw new Error("Obrázok je príliš veľký (max 5 MB)");
   }
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-  const path = `library/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const path = `${userId}/library/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage.from("chat-attachments").upload(path, file, {
     cacheControl: "3600",
     upsert: false,
