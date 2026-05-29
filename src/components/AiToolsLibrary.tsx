@@ -343,6 +343,7 @@ export function AiToolsLibrary() {
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {visible.map((t) => {
+              const customImg = !!t.image_url;
               const img = t.image_url || faviconFor(t.url);
               return (
                 <button
@@ -354,14 +355,23 @@ export function AiToolsLibrary() {
                   }}
                   className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  <div className="flex h-24 items-center justify-center overflow-hidden bg-surface-muted">
+                  <div className="relative flex aspect-[16/10] w-full items-center justify-center overflow-hidden bg-surface-muted">
                     {img ? (
-                      <img
-                        src={img}
-                        alt={t.name}
-                        className="h-12 w-12 object-contain transition-transform group-hover:scale-110"
-                        loading="lazy"
-                      />
+                      customImg ? (
+                        <img
+                          src={img}
+                          alt={t.name}
+                          loading="lazy"
+                          className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      ) : (
+                        <img
+                          src={img}
+                          alt={t.name}
+                          loading="lazy"
+                          className="h-12 w-12 object-contain transition-transform group-hover:scale-110"
+                        />
+                      )
                     ) : (
                       <Sparkles className="h-8 w-8 text-muted-foreground" />
                     )}
