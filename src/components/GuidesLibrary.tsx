@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, ChevronDown, ExternalLink, FileText, Link as LinkIcon, Pencil, Plus, Trash2, X } from "lucide-react";
+import { BookOpen, ChevronDown, ExternalLink, FileText, GripVertical, Link as LinkIcon, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -507,6 +507,25 @@ function GuideForm({
     setForm({ ...form, attachments: form.attachments.filter((_, idx) => idx !== i) });
   };
 
+  const updateAttachmentLabel = (i: number, label: string) => {
+    setForm({
+      ...form,
+      attachments: form.attachments.map((a, idx) =>
+        idx === i ? { ...a, label: label.trim() ? label : null } : a,
+      ),
+    });
+  };
+
+  const moveAttachment = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    const next = [...form.attachments];
+    const [it] = next.splice(from, 1);
+    next.splice(to, 0, it);
+    setForm({ ...form, attachments: next });
+  };
+
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
   return (
     <div className="space-y-3">
       <div>
@@ -577,11 +596,34 @@ function GuideForm({
         {form.attachments.length > 0 && (
           <ul className="space-y-1.5">
             {form.attachments.map((a, i) => (
-              <li key={i} className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs">
+              <li
+                key={i}
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => { e.preventDefault(); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIndex !== null) moveAttachment(dragIndex, i);
+                  setDragIndex(null);
+                }}
+                onDragEnd={() => setDragIndex(null)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border border-border bg-card px-2 py-1.5 text-xs",
+                  dragIndex === i && "opacity-50",
+                )}
+              >
+                <span className="cursor-grab text-muted-foreground active:cursor-grabbing" title="Presunúť">
+                  <GripVertical className="h-3.5 w-3.5" />
+                </span>
                 <LinkIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-medium">{a.label?.trim() || hostOf(a.url)}</span>
-                  <span className="truncate text-muted-foreground">{a.url}</span>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <Input
+                    value={a.label ?? ""}
+                    onChange={(e) => updateAttachmentLabel(i, e.target.value)}
+                    placeholder={hostOf(a.url)}
+                    className="h-7 px-2 text-xs"
+                  />
+                  <span className="truncate text-[10px] text-muted-foreground">{a.url}</span>
                 </div>
                 <button type="button" onClick={() => removeAttachment(i)}
                   className="rounded-md p-1 text-muted-foreground hover:bg-surface-muted hover:text-destructive"
