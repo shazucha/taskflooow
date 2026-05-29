@@ -35,6 +35,7 @@ import {
   type AiToolCategory,
 } from "@/lib/types";
 import { cn, formatMaterialDate } from "@/lib/utils";
+import { ImageUploadField } from "@/components/ImageUploadField";
 
 type FilterKey = AiToolCategory | "all";
 
@@ -643,16 +644,11 @@ function ToolForm({
           </div>
         ))}
       </div>
-      <div>
-        <label className="mb-1 block text-xs font-semibold text-muted-foreground">
-          Obrázok (URL, voliteľné)
-        </label>
-        <Input
-          value={form.image_url}
-          onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-          placeholder="https://…/logo.png"
-        />
-      </div>
+      <ImageUploadField
+        value={form.image_url}
+        onChange={(v) => setForm({ ...form, image_url: v })}
+        label="Obrázok / logo (voliteľné)"
+      />
     </div>
   );
 }
