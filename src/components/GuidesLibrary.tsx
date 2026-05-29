@@ -29,7 +29,6 @@ import {
 } from "@/lib/queries";
 import type { Guide, GuideAttachment } from "@/lib/types";
 import { cn, formatMaterialDate } from "@/lib/utils";
-import { uploadLibraryImage } from "@/lib/libraryImageUpload";
 import { ImageUploadField } from "@/components/ImageUploadField";
 
 const SECTION_KEYS = ["what", "steps", "tips", "notes"] as const;
