@@ -126,6 +126,8 @@ export function GuidesLibrary() {
   const create = useCreateGuide();
   const update = useUpdateGuide();
   const remove = useDeleteGuide();
+  const reorder = useReorderGuides();
+  const [dragId, setDragId] = useState<string | null>(null);
 
   const [filter, setFilter] = useState<string>("all");
   const [openGuide, setOpenGuide] = useState<Guide | null>(null);
