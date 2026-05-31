@@ -916,7 +916,7 @@ export async function deleteAiTool(id: string): Promise<void> {
 
 // ---- Knižnica návodov (zdieľaná pre celý tím)
 const GUIDE_COLS =
-  "id, name, description, category, image_url, attachments, created_by, created_at, updated_at";
+  "id, name, description, category, image_url, attachments, created_by, created_at, updated_at, position";
 
 const GUIDES_MISSING_MSG =
   "Tabuľka 'guides' ešte neexistuje v databáze. Spusti prosím SQL migráciu (migrations/20260528_guides_library.sql) a skús to znova.";
@@ -940,6 +940,7 @@ export async function fetchGuides(): Promise<import("./types").Guide[]> {
   const { data, error } = await supabase
     .from("guides")
     .select(GUIDE_COLS)
+    .order("position", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) {
     if (isMissingGuidesTable(error)) {
@@ -979,6 +980,7 @@ export async function updateGuide(
     category: string;
     image_url: string | null;
     attachments: import("./types").GuideAttachment[];
+    position: number | null;
   }>,
 ): Promise<import("./types").Guide> {
   const { data, error } = await supabase
@@ -994,6 +996,17 @@ export async function updateGuide(
 export async function deleteGuide(id: string): Promise<void> {
   const { error } = await supabase.from("guides").delete().eq("id", id);
   if (error) throw error;
+}
+
+export async function reorderGuides(
+  items: { id: string; position: number }[],
+): Promise<void> {
+  if (items.length === 0) return;
+  await Promise.all(
+    items.map((it) =>
+      supabase.from("guides").update({ position: it.position }).eq("id", it.id),
+    ),
+  );
 }
 
 // ---- Monthly bonuses (per project + konkrétny mesiac, bez šablóny)
