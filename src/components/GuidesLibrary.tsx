@@ -373,7 +373,14 @@ export function GuidesLibrary() {
                   const next = [...visible];
                   const [moved] = next.splice(from, 1);
                   next.splice(to, 0, moved);
-                  const payload = next.map((it, idx) => ({ id: it.id, position: idx + 1 }));
+                  // Použijeme existujúce pozície práve viditeľných položiek
+                  // (zoradené vzostupne) a priradíme ich novému poradiu,
+                  // aby sa neovplyvnili položky mimo filtra.
+                  const slots = visible
+                    .map((it, idx) => it.position ?? idx + 1)
+                    .slice()
+                    .sort((a, b) => a - b);
+                  const payload = next.map((it, idx) => ({ id: it.id, position: slots[idx] }));
                   reorder.mutate(payload);
                   setDragId(null);
                 }}
