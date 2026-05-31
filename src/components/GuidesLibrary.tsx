@@ -352,8 +352,37 @@ export function GuidesLibrary() {
               <button
                 key={g.id}
                 type="button"
+                draggable
+                onDragStart={(e) => {
+                  setDragId(g.id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  if (dragId && dragId !== g.id) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (!dragId || dragId === g.id) return;
+                  const ids = visible.map((x) => x.id);
+                  const from = ids.indexOf(dragId);
+                  const to = ids.indexOf(g.id);
+                  if (from < 0 || to < 0) return;
+                  const next = [...visible];
+                  const [moved] = next.splice(from, 1);
+                  next.splice(to, 0, moved);
+                  const payload = next.map((it, idx) => ({ id: it.id, position: idx + 1 }));
+                  reorder.mutate(payload);
+                  setDragId(null);
+                }}
+                onDragEnd={() => setDragId(null)}
                 onClick={() => { setEditMode(false); setOpenGuide(g); }}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                className={cn(
+                  "group flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md cursor-grab active:cursor-grabbing",
+                  dragId === g.id && "opacity-50",
+                )}
               >
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-surface-muted">
                   {g.image_url ? (
