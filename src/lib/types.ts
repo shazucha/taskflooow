@@ -241,6 +241,7 @@ export interface Guide {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  position: number | null;
 }
 
 export type ChatScope = "team" | "project";
