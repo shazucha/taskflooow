@@ -44,6 +44,7 @@ import {
   createGuide,
   updateGuide,
   deleteGuide,
+  reorderGuides,
   fetchRecurringWorkCompletions,
   fetchServiceCatalog,
   fetchTaskActivity,
