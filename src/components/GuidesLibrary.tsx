@@ -26,6 +26,7 @@ import {
   useDeleteGuide,
   useProfiles,
   useUpdateGuide,
+  useReorderGuides,
 } from "@/lib/queries";
 import type { Guide, GuideAttachment } from "@/lib/types";
 import { cn, formatMaterialDate } from "@/lib/utils";
