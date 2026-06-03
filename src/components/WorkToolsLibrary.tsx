@@ -541,7 +541,7 @@ function ToolView({ tool }: { tool: WorkTool }) {
       {tool.password && (
         <div>
           <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Prihlasovacie údaje / heslo
+            Heslo
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted p-2">
             <KeyRound className="h-4 w-4 shrink-0 text-muted-foreground" />
