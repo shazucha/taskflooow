@@ -689,20 +689,35 @@ function ToolForm({
 
       <div>
         <label className="mb-1 block text-xs font-semibold text-muted-foreground">
-          Prihlasovacie údaje / heslo (voliteľné)
+          Email (voliteľné)
+        </label>
+        <Input
+          type="email"
+          value={form.email}
+          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          placeholder="napr. team@firma.sk"
+          autoComplete="off"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+          Heslo (voliteľné)
         </label>
         <div className="relative">
           <Input
             type={showPass ? "text" : "password"}
             value={form.password}
             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-            placeholder="email + heslo, API kľúč, atď."
+            placeholder="••••••••"
+            autoComplete="new-password"
             className="pr-10"
           />
           <button
             type="button"
             onClick={() => setShowPass((v) => !v)}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+            aria-label={showPass ? "Skryť heslo" : "Zobraziť heslo"}
           >
             {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
