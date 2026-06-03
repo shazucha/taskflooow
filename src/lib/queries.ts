@@ -1074,6 +1074,86 @@ export function useReorderGuides() {
   });
 }
 
+// ---- Knižnica pracovných nástrojov
+export function useWorkTools() {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+
+  useEffect(() => {
+    if (!isReady || !user) return;
+    const channel = supabase
+      .channel(`work-tools-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "work_tools" },
+        () => qc.invalidateQueries({ queryKey: ["work_tools"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isReady, user, qc]);
+
+  return useQuery({
+    queryKey: ["work_tools"],
+    queryFn: fetchWorkTools,
+    enabled: isReady && !!user,
+  });
+}
+
+export function useCreateWorkTool() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createWorkTool,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["work_tools"] }),
+  });
+}
+
+export function useUpdateWorkTool() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: string; patch: Parameters<typeof updateWorkTool>[1] }) =>
+      updateWorkTool(args.id, args.patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["work_tools"] }),
+  });
+}
+
+export function useDeleteWorkTool() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteWorkTool(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["work_tools"] }),
+  });
+}
+
+export function useReorderWorkTools() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items: { id: string; position: number }[]) => reorderWorkTools(items),
+    onMutate: async (items) => {
+      await qc.cancelQueries({ queryKey: ["work_tools"] });
+      const prev = qc.getQueryData<import("./types").WorkTool[]>(["work_tools"]);
+      if (prev) {
+        const map = new Map(items.map((i) => [i.id, i.position]));
+        const next = prev
+          .map((t) => (map.has(t.id) ? { ...t, position: map.get(t.id)! } : t))
+          .sort((a, b) => {
+            const ap = a.position ?? Number.POSITIVE_INFINITY;
+            const bp = b.position ?? Number.POSITIVE_INFINITY;
+            if (ap !== bp) return ap - bp;
+            return (b.created_at ?? "").localeCompare(a.created_at ?? "");
+          });
+        qc.setQueryData(["work_tools"], next);
+      }
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["work_tools"], ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["work_tools"] }),
+  });
+}
+
 // ---- Service catalog (globálny cenník)
 export function useServiceCatalog(includeInactive = false) {
   const qc = useQueryClient();
