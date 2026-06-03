@@ -538,6 +538,26 @@ function ToolView({ tool }: { tool: WorkTool }) {
         </div>
       )}
 
+      {tool.email && (
+        <div>
+          <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Email
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted p-2">
+            <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 truncate text-sm">{tool.email}</span>
+            <button
+              type="button"
+              onClick={() => copy(tool.email!, "Email")}
+              className="rounded-md p-1 text-muted-foreground hover:bg-card hover:text-foreground"
+              title="Skopírovať email"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {tool.password && (
         <div>
           <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
