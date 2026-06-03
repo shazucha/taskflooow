@@ -19,6 +19,7 @@ import {
   Pencil,
   X,
   BookOpen,
+  Wrench,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { AiToolsLibrary } from "@/components/AiToolsLibrary";
 import { GuidesLibrary } from "@/components/GuidesLibrary";
+import { WorkToolsLibrary } from "@/components/WorkToolsLibrary";
 import { toast } from "sonner";
 import {
   useCompanyMaterials,
@@ -555,6 +557,9 @@ export default function CompanyMaterials() {
           <TabsTrigger value="guides" className="gap-1.5">
             <BookOpen className="h-4 w-4" /> Návody
           </TabsTrigger>
+          <TabsTrigger value="worktools" className="gap-1.5">
+            <Wrench className="h-4 w-4" /> Pracovné nástroje
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="materials">
@@ -788,6 +793,10 @@ export default function CompanyMaterials() {
 
         <TabsContent value="guides">
           <GuidesLibrary />
+        </TabsContent>
+
+        <TabsContent value="worktools">
+          <WorkToolsLibrary />
         </TabsContent>
       </Tabs>
     </div>

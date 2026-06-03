@@ -1009,6 +1009,105 @@ export async function reorderGuides(
   );
 }
 
+// ---- Knižnica pracovných nástrojov (zdieľaná pre celý tím)
+const WORK_TOOL_COLS =
+  "id, name, url, password, description, category, image_url, guides, position, created_by, created_at, updated_at";
+
+const WORK_TOOLS_MISSING_MSG =
+  "Tabuľka 'work_tools' ešte neexistuje v databáze. Spusti prosím SQL migráciu (migrations/20260603_work_tools.sql) a skús to znova.";
+
+function isMissingWorkToolsTable(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  if (!e) return false;
+  if (e.code === "PGRST205" || e.code === "42P01") return true;
+  const msg = (e.message ?? "").toLowerCase();
+  return msg.includes("work_tools") && (msg.includes("schema cache") || msg.includes("does not exist"));
+}
+
+function normalizeWorkTool(row: any): import("./types").WorkTool {
+  return {
+    ...row,
+    guides: Array.isArray(row?.guides) ? row.guides : [],
+  } as import("./types").WorkTool;
+}
+
+export async function fetchWorkTools(): Promise<import("./types").WorkTool[]> {
+  const { data, error } = await supabase
+    .from("work_tools")
+    .select(WORK_TOOL_COLS)
+    .order("position", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) {
+    if (isMissingWorkToolsTable(error)) {
+      console.warn(WORK_TOOLS_MISSING_MSG);
+      return [];
+    }
+    throw error;
+  }
+  return (data ?? []).map(normalizeWorkTool);
+}
+
+export async function createWorkTool(input: {
+  name: string;
+  url: string | null;
+  password: string | null;
+  description: string | null;
+  category: string;
+  image_url: string | null;
+  guides: import("./types").WorkToolGuide[];
+  created_by: string;
+}): Promise<import("./types").WorkTool> {
+  const { data, error } = await supabase
+    .from("work_tools")
+    .insert(input)
+    .select(WORK_TOOL_COLS)
+    .single();
+  if (error) {
+    if (isMissingWorkToolsTable(error)) throw new Error(WORK_TOOLS_MISSING_MSG);
+    throw error;
+  }
+  return normalizeWorkTool(data);
+}
+
+export async function updateWorkTool(
+  id: string,
+  patch: Partial<{
+    name: string;
+    url: string | null;
+    password: string | null;
+    description: string | null;
+    category: string;
+    image_url: string | null;
+    guides: import("./types").WorkToolGuide[];
+    position: number | null;
+  }>,
+): Promise<import("./types").WorkTool> {
+  const { data, error } = await supabase
+    .from("work_tools")
+    .update(patch)
+    .eq("id", id)
+    .select(WORK_TOOL_COLS)
+    .single();
+  if (error) throw error;
+  return normalizeWorkTool(data);
+}
+
+export async function deleteWorkTool(id: string): Promise<void> {
+  const { error } = await supabase.from("work_tools").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function reorderWorkTools(
+  items: { id: string; position: number }[],
+): Promise<void> {
+  if (items.length === 0) return;
+  await Promise.all(
+    items.map((it) =>
+      supabase.from("work_tools").update({ position: it.position }).eq("id", it.id),
+    ),
+  );
+}
+
 // ---- Monthly bonuses (per project + konkrétny mesiac, bez šablóny)
 const BONUS_COLS =
   "id, project_id, month_key, title, note, position, done, done_by, done_at, created_by, created_at, qty, unit_price, hours, hourly_rate, catalog_id, unit_type";

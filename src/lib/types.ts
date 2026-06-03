@@ -244,6 +244,26 @@ export interface Guide {
   position: number | null;
 }
 
+export interface WorkToolGuide {
+  url: string;
+  label: string | null;
+}
+
+export interface WorkTool {
+  id: string;
+  name: string;
+  url: string | null;
+  password: string | null;
+  description: string | null;
+  category: string;
+  image_url: string | null;
+  guides: WorkToolGuide[];
+  position: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type ChatScope = "team" | "project";
 
 export interface ChatMessage {
