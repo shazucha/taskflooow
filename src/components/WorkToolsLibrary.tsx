@@ -7,6 +7,7 @@ import {
   EyeOff,
   GripVertical,
   KeyRound,
+  Mail,
   Pencil,
   Plus,
   Trash2,
@@ -82,6 +83,7 @@ function prettyCategory(slug: string): string {
 type FormState = {
   name: string;
   url: string;
+  email: string;
   password: string;
   description: string;
   category: string;
@@ -92,6 +94,7 @@ type FormState = {
 const EMPTY_FORM: FormState = {
   name: "",
   url: "",
+  email: "",
   password: "",
   description: "",
   category: "ine",
@@ -177,6 +180,7 @@ export function WorkToolsLibrary() {
       await create.mutateAsync({
         name,
         url: normalizedUrl,
+        email: form.email.trim() || null,
         password: form.password.trim() || null,
         description: form.description.trim() || null,
         category: form.category || "ine",
@@ -209,6 +213,7 @@ export function WorkToolsLibrary() {
         patch: {
           name,
           url: normalizedUrl,
+          email: form.email.trim() || null,
           password: form.password.trim() || null,
           description: form.description.trim() || null,
           category: form.category || "ine",
@@ -227,6 +232,7 @@ export function WorkToolsLibrary() {
     setForm({
       name: t.name,
       url: t.url ?? "",
+      email: t.email ?? "",
       password: t.password ?? "",
       description: t.description ?? "",
       category: t.category,
@@ -532,10 +538,30 @@ function ToolView({ tool }: { tool: WorkTool }) {
         </div>
       )}
 
+      {tool.email && (
+        <div>
+          <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Email
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted p-2">
+            <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 truncate text-sm">{tool.email}</span>
+            <button
+              type="button"
+              onClick={() => copy(tool.email!, "Email")}
+              className="rounded-md p-1 text-muted-foreground hover:bg-card hover:text-foreground"
+              title="Skopírovať email"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {tool.password && (
         <div>
           <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Prihlasovacie údaje / heslo
+            Heslo
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-muted p-2">
             <KeyRound className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -663,20 +689,35 @@ function ToolForm({
 
       <div>
         <label className="mb-1 block text-xs font-semibold text-muted-foreground">
-          Prihlasovacie údaje / heslo (voliteľné)
+          Email (voliteľné)
+        </label>
+        <Input
+          type="email"
+          value={form.email}
+          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          placeholder="napr. team@firma.sk"
+          autoComplete="off"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+          Heslo (voliteľné)
         </label>
         <div className="relative">
           <Input
             type={showPass ? "text" : "password"}
             value={form.password}
             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-            placeholder="email + heslo, API kľúč, atď."
+            placeholder="••••••••"
+            autoComplete="new-password"
             className="pr-10"
           />
           <button
             type="button"
             onClick={() => setShowPass((v) => !v)}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+            aria-label={showPass ? "Skryť heslo" : "Zobraziť heslo"}
           >
             {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>

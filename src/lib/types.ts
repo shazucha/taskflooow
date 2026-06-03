@@ -253,6 +253,7 @@ export interface WorkTool {
   id: string;
   name: string;
   url: string | null;
+  email: string | null;
   password: string | null;
   description: string | null;
   category: string;
