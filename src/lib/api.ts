@@ -1011,7 +1011,7 @@ export async function reorderGuides(
 
 // ---- Knižnica pracovných nástrojov (zdieľaná pre celý tím)
 const WORK_TOOL_COLS =
-  "id, name, url, password, description, category, image_url, guides, position, created_by, created_at, updated_at";
+  "id, name, url, email, password, description, category, image_url, guides, position, created_by, created_at, updated_at";
 
 const WORK_TOOLS_MISSING_MSG =
   "Tabuľka 'work_tools' ešte neexistuje v databáze. Spusti prosím SQL migráciu (migrations/20260603_work_tools.sql) a skús to znova.";
@@ -1050,6 +1050,7 @@ export async function fetchWorkTools(): Promise<import("./types").WorkTool[]> {
 export async function createWorkTool(input: {
   name: string;
   url: string | null;
+  email: string | null;
   password: string | null;
   description: string | null;
   category: string;
@@ -1074,6 +1075,7 @@ export async function updateWorkTool(
   patch: Partial<{
     name: string;
     url: string | null;
+    email: string | null;
     password: string | null;
     description: string | null;
     category: string;
