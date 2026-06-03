@@ -7,6 +7,7 @@ import {
   EyeOff,
   GripVertical,
   KeyRound,
+  Mail,
   Pencil,
   Plus,
   Trash2,
@@ -82,6 +83,7 @@ function prettyCategory(slug: string): string {
 type FormState = {
   name: string;
   url: string;
+  email: string;
   password: string;
   description: string;
   category: string;
@@ -92,6 +94,7 @@ type FormState = {
 const EMPTY_FORM: FormState = {
   name: "",
   url: "",
+  email: "",
   password: "",
   description: "",
   category: "ine",
@@ -177,6 +180,7 @@ export function WorkToolsLibrary() {
       await create.mutateAsync({
         name,
         url: normalizedUrl,
+        email: form.email.trim() || null,
         password: form.password.trim() || null,
         description: form.description.trim() || null,
         category: form.category || "ine",
@@ -209,6 +213,7 @@ export function WorkToolsLibrary() {
         patch: {
           name,
           url: normalizedUrl,
+          email: form.email.trim() || null,
           password: form.password.trim() || null,
           description: form.description.trim() || null,
           category: form.category || "ine",
@@ -227,6 +232,7 @@ export function WorkToolsLibrary() {
     setForm({
       name: t.name,
       url: t.url ?? "",
+      email: t.email ?? "",
       password: t.password ?? "",
       description: t.description ?? "",
       category: t.category,
