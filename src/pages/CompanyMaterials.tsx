@@ -372,6 +372,7 @@ export default function CompanyMaterials() {
   const [label, setLabel] = useState("");
   const [color, setColor] = useState<string | null>(null);
   const [subcategory, setSubcategory] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("materials");
   const [filter, setFilter] = useState<MaterialGroup | "all">("all");
   const [subFilter, setSubFilter] = useState<string | "all">("all");
   const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
@@ -546,18 +547,32 @@ export default function CompanyMaterials() {
         </div>
       </header>
 
-      <Tabs defaultValue="materials" className="mt-4">
-        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:inline-flex sm:h-10 sm:w-auto sm:grid-cols-none">
-          <TabsTrigger value="materials" className="w-full justify-start gap-1.5 whitespace-nowrap sm:w-auto sm:justify-center">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+        <div className="sm:hidden">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Vyber záložku" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="materials">Materiály</SelectItem>
+              <SelectItem value="ai">AI knižnica nástrojov</SelectItem>
+              <SelectItem value="guides">Návody</SelectItem>
+              <SelectItem value="worktools">Pracovné nástroje</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <TabsList className="hidden sm:inline-flex sm:h-10 sm:w-auto">
+          <TabsTrigger value="materials" className="gap-1.5 whitespace-nowrap">
             <FolderOpen className="h-4 w-4" /> Materiály
           </TabsTrigger>
-          <TabsTrigger value="ai" className="w-full justify-start gap-1.5 whitespace-nowrap sm:w-auto sm:justify-center">
+          <TabsTrigger value="ai" className="gap-1.5 whitespace-nowrap">
             <Sparkles className="h-4 w-4" /> AI knižnica nástrojov
           </TabsTrigger>
-          <TabsTrigger value="guides" className="w-full justify-start gap-1.5 whitespace-nowrap sm:w-auto sm:justify-center">
+          <TabsTrigger value="guides" className="gap-1.5 whitespace-nowrap">
             <BookOpen className="h-4 w-4" /> Návody
           </TabsTrigger>
-          <TabsTrigger value="worktools" className="w-full justify-start gap-1.5 whitespace-nowrap sm:w-auto sm:justify-center">
+          <TabsTrigger value="worktools" className="gap-1.5 whitespace-nowrap">
             <Wrench className="h-4 w-4" /> Pracovné nástroje
           </TabsTrigger>
         </TabsList>
