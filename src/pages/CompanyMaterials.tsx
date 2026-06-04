@@ -547,17 +547,17 @@ export default function CompanyMaterials() {
       </header>
 
       <Tabs defaultValue="materials" className="mt-4">
-        <TabsList className="flex w-full flex-col gap-1 sm:inline-flex sm:w-auto">
-          <TabsTrigger value="materials" className="w-full shrink-0 gap-1.5 whitespace-nowrap sm:w-auto">
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:inline-flex sm:h-10 sm:w-auto sm:grid-cols-none">
+          <TabsTrigger value="materials" className="w-full justify-start gap-1.5 whitespace-nowrap sm:w-auto sm:justify-center">
             <FolderOpen className="h-4 w-4" /> Materiály
           </TabsTrigger>
-          <TabsTrigger value="ai" className="w-full shrink-0 gap-1.5 whitespace-nowrap sm:w-auto">
+          <TabsTrigger value="ai" className="w-full justify-start gap-1.5 whitespace-nowrap sm:w-auto sm:justify-center">
             <Sparkles className="h-4 w-4" /> AI knižnica nástrojov
           </TabsTrigger>
-          <TabsTrigger value="guides" className="w-full shrink-0 gap-1.5 whitespace-nowrap sm:w-auto">
+          <TabsTrigger value="guides" className="w-full justify-start gap-1.5 whitespace-nowrap sm:w-auto sm:justify-center">
             <BookOpen className="h-4 w-4" /> Návody
           </TabsTrigger>
-          <TabsTrigger value="worktools" className="w-full shrink-0 gap-1.5 whitespace-nowrap sm:w-auto">
+          <TabsTrigger value="worktools" className="w-full justify-start gap-1.5 whitespace-nowrap sm:w-auto sm:justify-center">
             <Wrench className="h-4 w-4" /> Pracovné nástroje
           </TabsTrigger>
         </TabsList>
