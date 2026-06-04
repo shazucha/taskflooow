@@ -547,26 +547,20 @@ export default function CompanyMaterials() {
       </header>
 
       <Tabs defaultValue="materials" className="mt-4">
-        <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0">
-          <TabsList className="inline-flex w-max gap-1 sm:w-auto">
-            <TabsTrigger value="materials" className="shrink-0 gap-1.5 whitespace-nowrap">
-              <FolderOpen className="h-4 w-4" /> Materiály
-            </TabsTrigger>
-            <TabsTrigger value="ai" className="shrink-0 gap-1.5 whitespace-nowrap">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden xs:inline sm:inline">AI knižnica nástrojov</span>
-              <span className="xs:hidden sm:hidden">AI nástroje</span>
-            </TabsTrigger>
-            <TabsTrigger value="guides" className="shrink-0 gap-1.5 whitespace-nowrap">
-              <BookOpen className="h-4 w-4" /> Návody
-            </TabsTrigger>
-            <TabsTrigger value="worktools" className="shrink-0 gap-1.5 whitespace-nowrap">
-              <Wrench className="h-4 w-4" />
-              <span className="hidden sm:inline">Pracovné nástroje</span>
-              <span className="sm:hidden">Nástroje</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="flex w-full flex-col gap-1 sm:inline-flex sm:w-auto">
+          <TabsTrigger value="materials" className="w-full shrink-0 gap-1.5 whitespace-nowrap sm:w-auto">
+            <FolderOpen className="h-4 w-4" /> Materiály
+          </TabsTrigger>
+          <TabsTrigger value="ai" className="w-full shrink-0 gap-1.5 whitespace-nowrap sm:w-auto">
+            <Sparkles className="h-4 w-4" /> AI knižnica nástrojov
+          </TabsTrigger>
+          <TabsTrigger value="guides" className="w-full shrink-0 gap-1.5 whitespace-nowrap sm:w-auto">
+            <BookOpen className="h-4 w-4" /> Návody
+          </TabsTrigger>
+          <TabsTrigger value="worktools" className="w-full shrink-0 gap-1.5 whitespace-nowrap sm:w-auto">
+            <Wrench className="h-4 w-4" /> Pracovné nástroje
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent value="materials">
           <div className="mt-3 flex items-center justify-end">
