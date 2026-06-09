@@ -1215,8 +1215,8 @@ function DayView({
                 data-task-block
                 className="absolute overflow-hidden rounded-md border border-dashed border-border/70 bg-surface-muted/60 px-1 py-1 text-left text-[10px] text-muted-foreground hover:bg-surface-muted"
                 style={{
-                  left: "calc(100% - 70px)",
-                  right: "2px",
+                  left: splitOwnership ? "calc(50% - 72px)" : "calc(100% - 70px)",
+                  right: splitOwnership ? "calc(50% + 2px)" : "2px",
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
                 }}
