@@ -919,26 +919,27 @@ function DayView({
           <div className="grid gap-2 sm:grid-cols-2">
             <div>
               <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Moje</p>
-              {allDayMine.length === 0 ? (
+              {allDayMine.length === 0 && (!splitOwnership || googleAllDay.length === 0) ? (
                 <p className="text-[11px] text-muted-foreground/70">—</p>
               ) : (
                 <ul className="space-y-1">
                   {allDayMine.map((t) => (
                     <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} owner={null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />
                   ))}
+                  {splitOwnership && googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
                 </ul>
               )}
             </div>
             <div>
-              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Ostatní</p>
-              {allDayOthers.length === 0 && googleAllDay.length === 0 ? (
+              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Od iných</p>
+              {allDayOthers.length === 0 && (splitOwnership || googleAllDay.length === 0) ? (
                 <p className="text-[11px] text-muted-foreground/70">—</p>
               ) : (
                 <ul className="space-y-1">
                   {allDayOthers.map((t) => (
                     <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} owner={t.assignee_id ? profilesById.get(t.assignee_id) ?? null : null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />
                   ))}
-                  {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
+                  {!splitOwnership && googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
                 </ul>
               )}
             </div>
