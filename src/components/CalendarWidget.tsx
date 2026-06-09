@@ -1170,7 +1170,7 @@ function DayView({
                       return `${fmtTime(sh, sm)}\u2013${fmtTime(eh, em)}`;
                     })()}
                   </div>
-                  <div className={cn("truncate font-semibold", isDone && "line-through")}>{task.title}</div>
+                  {/* Názov úlohy v bloku skrytý — viditeľný po rozkliknutí a v agende pod kalendárom. */}
                 </button>
                 {!readOnly && (
                   <button
