@@ -147,8 +147,14 @@ export function CalendarWidget({
       }
       return tasks.filter((t) => t.due_date && !!t.assignee_id);
     }
-    // Personal mode: ONLY tasks where I am the assignee (no watcher leak, no others)
-    return tasks.filter((t) => t.due_date && t.assignee_id === targetUserId);
+    // Personal mode: tasks where I am the assignee OR tasks shared with me (watcher).
+    const watchedIds = new Set(
+      watchers.filter((w) => w.user_id === targetUserId).map((w) => w.task_id),
+    );
+    return tasks.filter(
+      (t) =>
+        t.due_date && (t.assignee_id === targetUserId || watchedIds.has(t.id)),
+    );
   }, [tasks, watchers, targetUserId, mode, teamFocusUserId, projectId]);
 
   const tasksByDay = useMemo(() => {
