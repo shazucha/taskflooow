@@ -147,8 +147,14 @@ export function CalendarWidget({
       }
       return tasks.filter((t) => t.due_date && !!t.assignee_id);
     }
-    // Personal mode: ONLY tasks where I am the assignee (no watcher leak, no others)
-    return tasks.filter((t) => t.due_date && t.assignee_id === targetUserId);
+    // Personal mode: tasks where I am the assignee OR tasks shared with me (watcher).
+    const watchedIds = new Set(
+      watchers.filter((w) => w.user_id === targetUserId).map((w) => w.task_id),
+    );
+    return tasks.filter(
+      (t) =>
+        t.due_date && (t.assignee_id === targetUserId || watchedIds.has(t.id)),
+    );
   }, [tasks, watchers, targetUserId, mode, teamFocusUserId, projectId]);
 
   const tasksByDay = useMemo(() => {
@@ -391,6 +397,7 @@ export function CalendarWidget({
           currentUserId={targetUserId}
           readOnly={isReadOnly}
           mode={mode}
+          splitOwnership={mode === "personal" && !projectId && (!userId || userId === currentUserId)}
           onOpenTask={setOpenTask}
           onCreateSlot={(slotIdx) => {
             if (isReadOnly) return;
@@ -612,7 +619,7 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, readOnly, mode = "personal", onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, readOnly, mode = "personal", splitOwnership = false, onOpenTask, onCreateSlot, onCreateRange,
 }: {
   date: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
@@ -620,6 +627,7 @@ function DayView({
   currentUserId: string | null | undefined;
   readOnly?: boolean;
   mode?: "personal" | "team";
+  splitOwnership?: boolean;
   onOpenTask: (t: Task) => void;
   onCreateSlot: (slotIdx: number) => void;
   onCreateRange: (startSlot: number, endSlot: number) => void;
@@ -642,10 +650,14 @@ function DayView({
     .filter((t) => hasTime(t))
     .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
 
-  const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
+  // V osobnom režime so split-om: "moje" = úlohy, ktoré som vytvoril ja.
+  // V tímovom režime: "moje" = úlohy, kde som assignee.
+  const isMine = (t: Task) =>
+    !!currentUserId &&
+    (splitOwnership ? t.created_by === currentUserId : t.assignee_id === currentUserId);
   const allDayMine = allDay.filter(isMine);
   const allDayOthers = allDay.filter((t) => !isMine(t));
-  const splitView = mode === "team";
+  const splitView = mode === "team" || splitOwnership;
 
   // Skryjeme Google eventy, ktoré sú duplikátmi našich časovaných úloh.
   // Match podľa rovnakého názvu (case-insensitive) na ten istý deň,
@@ -907,26 +919,27 @@ function DayView({
           <div className="grid gap-2 sm:grid-cols-2">
             <div>
               <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Moje</p>
-              {allDayMine.length === 0 ? (
+              {allDayMine.length === 0 && (!splitOwnership || googleAllDay.length === 0) ? (
                 <p className="text-[11px] text-muted-foreground/70">—</p>
               ) : (
                 <ul className="space-y-1">
                   {allDayMine.map((t) => (
                     <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} owner={null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />
                   ))}
+                  {splitOwnership && googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
                 </ul>
               )}
             </div>
             <div>
-              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Ostatní</p>
-              {allDayOthers.length === 0 && googleAllDay.length === 0 ? (
+              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Od iných</p>
+              {allDayOthers.length === 0 && (splitOwnership || googleAllDay.length === 0) ? (
                 <p className="text-[11px] text-muted-foreground/70">—</p>
               ) : (
                 <ul className="space-y-1">
                   {allDayOthers.map((t) => (
                     <TaskRow key={t.id} task={t} myColor={myColor} project={t.project_id ? projectsById.get(t.project_id) ?? null : null} owner={t.assignee_id ? profilesById.get(t.assignee_id) ?? null : null} onOpenTask={onOpenTask} onDelete={readOnly ? undefined : handleDelete} />
                   ))}
-                  {googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
+                  {!splitOwnership && googleAllDay.map((e) => <GoogleEventRow key={e.id} event={e} />)}
                 </ul>
               )}
             </div>
@@ -1202,8 +1215,8 @@ function DayView({
                 data-task-block
                 className="absolute overflow-hidden rounded-md border border-dashed border-border/70 bg-surface-muted/60 px-1 py-1 text-left text-[10px] text-muted-foreground hover:bg-surface-muted"
                 style={{
-                  left: "calc(100% - 70px)",
-                  right: "2px",
+                  left: splitOwnership ? "calc(50% - 72px)" : "calc(100% - 70px)",
+                  right: splitOwnership ? "calc(50% + 2px)" : "2px",
                   top: startSlot * SLOT_PX + 1,
                   height: lengthSlots * SLOT_PX - 2,
                 }}
