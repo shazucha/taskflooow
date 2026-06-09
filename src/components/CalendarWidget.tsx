@@ -397,6 +397,7 @@ export function CalendarWidget({
           currentUserId={targetUserId}
           readOnly={isReadOnly}
           mode={mode}
+          splitOwnership={mode === "personal" && !projectId && (!userId || userId === currentUserId)}
           onOpenTask={setOpenTask}
           onCreateSlot={(slotIdx) => {
             if (isReadOnly) return;
