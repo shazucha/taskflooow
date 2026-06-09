@@ -1229,7 +1229,6 @@ function DayView({
                 <div className="font-mono text-[10px]">
                   {String(s.getHours()).padStart(2, "0")}:{String(s.getMinutes()).padStart(2, "0")}
                 </div>
-                <div className="truncate font-semibold">{ev.title}</div>
               </a>
             );
           })}
