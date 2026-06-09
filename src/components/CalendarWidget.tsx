@@ -619,7 +619,7 @@ const SLOT_PX = 28; // výška jedného 30-min slotu
 const SLOTS_PER_DAY = 48;
 
 function DayView({
-  date, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, readOnly, mode = "personal", onOpenTask, onCreateSlot, onCreateRange,
+  date, tasks, googleEvents = [], myColor, projectsById, profilesById, currentUserId, readOnly, mode = "personal", splitOwnership = false, onOpenTask, onCreateSlot, onCreateRange,
 }: {
   date: Date; tasks: Task[]; googleEvents?: GoogleEvent[]; myColor: string;
   projectsById: Map<string, Project>;
@@ -627,6 +627,7 @@ function DayView({
   currentUserId: string | null | undefined;
   readOnly?: boolean;
   mode?: "personal" | "team";
+  splitOwnership?: boolean;
   onOpenTask: (t: Task) => void;
   onCreateSlot: (slotIdx: number) => void;
   onCreateRange: (startSlot: number, endSlot: number) => void;
@@ -649,10 +650,14 @@ function DayView({
     .filter((t) => hasTime(t))
     .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
 
-  const isMine = (t: Task) => !!currentUserId && t.assignee_id === currentUserId;
+  // V osobnom režime so split-om: "moje" = úlohy, ktoré som vytvoril ja.
+  // V tímovom režime: "moje" = úlohy, kde som assignee.
+  const isMine = (t: Task) =>
+    !!currentUserId &&
+    (splitOwnership ? t.created_by === currentUserId : t.assignee_id === currentUserId);
   const allDayMine = allDay.filter(isMine);
   const allDayOthers = allDay.filter((t) => !isMine(t));
-  const splitView = mode === "team";
+  const splitView = mode === "team" || splitOwnership;
 
   // Skryjeme Google eventy, ktoré sú duplikátmi našich časovaných úloh.
   // Match podľa rovnakého názvu (case-insensitive) na ten istý deň,
