@@ -1170,7 +1170,7 @@ function DayView({
                       return `${fmtTime(sh, sm)}\u2013${fmtTime(eh, em)}`;
                     })()}
                   </div>
-                  <div className={cn("truncate font-semibold", isDone && "line-through")}>{task.title}</div>
+                  {/* Názov úlohy v bloku skrytý — viditeľný po rozkliknutí a v agende pod kalendárom. */}
                 </button>
                 {!readOnly && (
                   <button
@@ -1229,7 +1229,6 @@ function DayView({
                 <div className="font-mono text-[10px]">
                   {String(s.getHours()).padStart(2, "0")}:{String(s.getMinutes()).padStart(2, "0")}
                 </div>
-                <div className="truncate font-semibold">{ev.title}</div>
               </a>
             );
           })}
