@@ -456,98 +456,40 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
       )}
 
       {materials.length > 0 && (
-        <ul className="space-y-1.5">
-          {visible.map((m) => {
-            const kind = detectKind(m.url);
-            const meta = KIND_META[kind];
-            const Icon = meta.icon;
-            const canDelete = m.created_by === currentUserId;
-            const dateText = formatMaterialDate(m.created_at);
-            const showNovice = m.is_highlighted && !viewedIds.has(m.id);
-            const colorMeta = m.color
-              ? COLOR_OPTIONS.find((c) => c.key === m.color)
-              : null;
-            return (
-              <li
-                key={m.id}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg bg-surface-muted px-2.5 py-1.5 transition",
-                  showNovice && "ring-1 ring-red-500/40 bg-red-500/5",
-                )}
-              >
-                {showNovice && <NoviceBadge title="Novinka – ešte si tento materiál neotvoril" />}
-                {colorMeta && (
-                  <span
-                    className={cn("h-2 w-2 shrink-0 rounded-full", colorMeta.dot)}
-                    title={colorMeta.label}
-                  />
-                )}
-                <span
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background",
-                    meta.cls,
-                  )}
-                  title={meta.label}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                </span>
-                <a
-                  href={m.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  onClick={() => {
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={visible.map((m) => m.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className="space-y-1.5">
+              {visible.map((m) => (
+                <SortableMaterialRow
+                  key={m.id}
+                  material={m}
+                  dndEnabled={dndEnabled}
+                  showNovice={m.is_highlighted && !viewedIds.has(m.id)}
+                  canDelete={m.created_by === currentUserId}
+                  onOpen={() => {
                     if (currentUserId && !viewedIds.has(m.id)) {
                       markViewed.mutate({ material_id: m.id, material_type: "project" });
                     }
                   }}
-                  className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
-                >
-                  <span className="flex items-center gap-1.5 truncate">
-                    <span className="truncate">{m.label || hostOf(m.url)}</span>
-                    {m.label && (
-                      <span className="truncate text-[11px] text-muted-foreground">
-                        · {hostOf(m.url)}
-                      </span>
-                    )}
-                    <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
-                  </span>
-                  {dateText && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {dateText}
-                    </span>
-                  )}
-                </a>
-                <button
-                    type="button"
-                    onClick={() =>
-                      updateMaterial.mutate({
-                        id: m.id,
-                        patch: { is_highlighted: !m.is_highlighted },
-                      })
-                    }
-                    className={cn(
-                      "text-muted-foreground hover:text-foreground",
-                      m.is_highlighted && "text-red-500 hover:text-red-600",
-                    )}
-                    aria-label={m.is_highlighted ? "Zrušiť označenie novinky" : "Označiť ako novinku"}
-                    title={m.is_highlighted ? "Zrušiť novinku" : "Označiť ako novinku"}
-                  >
-                    {m.is_highlighted ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
-                </button>
-                {canDelete && (
-                  <button
-                    type="button"
-                    onClick={() => remove.mutate(m.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                    aria-label="Odstrániť"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  onToggleNovice={() =>
+                    updateMaterial.mutate({
+                      id: m.id,
+                      patch: { is_highlighted: !m.is_highlighted },
+                    })
+                  }
+                  onDelete={() => remove.mutate(m.id)}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
 
       {hasMore && (
