@@ -48,6 +48,6 @@ do $$
 begin
   begin
     alter publication supabase_realtime add table public.material_views;
-  exception when duplicate_object then null;
+  exception when others then null;
   end;
 end $$;
