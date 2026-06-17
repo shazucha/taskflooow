@@ -697,7 +697,8 @@ export async function deleteTaskMaterial(id: string): Promise<void> {
 }
 
 // ---- Project materials
-const PROJECT_MATERIAL_COLS = "id, project_id, url, label, created_by, created_at";
+const PROJECT_MATERIAL_COLS =
+  "id, project_id, url, label, created_by, created_at, color, is_highlighted";
 
 export async function fetchProjectMaterials(projectId: string): Promise<ProjectMaterial[]> {
   const { data, error } = await supabase
@@ -714,6 +715,8 @@ export async function createProjectMaterial(input: {
   url: string;
   label: string | null;
   created_by: string;
+  color?: string | null;
+  is_highlighted?: boolean;
 }): Promise<ProjectMaterial> {
   const { data, error } = await supabase
     .from("project_materials")
@@ -722,6 +725,8 @@ export async function createProjectMaterial(input: {
       url: input.url,
       label: input.label,
       created_by: input.created_by,
+      color: input.color ?? null,
+      is_highlighted: input.is_highlighted ?? false,
     })
     .select(PROJECT_MATERIAL_COLS)
     .single();
@@ -734,9 +739,28 @@ export async function deleteProjectMaterial(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function updateProjectMaterial(
+  id: string,
+  patch: {
+    url?: string;
+    label?: string | null;
+    color?: string | null;
+    is_highlighted?: boolean;
+  },
+): Promise<ProjectMaterial> {
+  const { data, error } = await supabase
+    .from("project_materials")
+    .update(patch)
+    .eq("id", id)
+    .select(PROJECT_MATERIAL_COLS)
+    .single();
+  if (error) throw error;
+  return data as ProjectMaterial;
+}
+
 // ---- Company materials (zdieľané pre celý tím)
 const COMPANY_MATERIAL_COLS =
-  "id, url, label, created_by, created_at, position, color, subcategory";
+  "id, url, label, created_by, created_at, position, color, subcategory, is_highlighted";
 
 const COMPANY_MATERIALS_MISSING_MSG =
   "Tabuľka 'company_materials' ešte neexistuje v databáze. Spusti prosím SQL migráciu (pozri inštrukcie v aplikácii) a skús to znova.";
