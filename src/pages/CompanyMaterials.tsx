@@ -958,6 +958,7 @@ function SortableMaterialRow({
                   label: editLabel,
                   color: editColor,
                   subcategory: editSubcategory,
+                  is_highlighted: editNovice,
                 });
                 setEditing(false);
               } catch {
@@ -981,6 +982,15 @@ function SortableMaterialRow({
             />
           </div>
         </div>
+        <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={editNovice}
+            onChange={(e) => setEditNovice(e.target.checked)}
+            className="h-3.5 w-3.5 accent-red-500"
+          />
+          Označiť ako novinku (pulzujúca bodka pre kolegov)
+        </label>
       </li>
     );
   }
