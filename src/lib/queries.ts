@@ -31,6 +31,7 @@ import {
   fetchProjectServiceOverrides,
   fetchProjectWorks,
   fetchProjectMaterials,
+  reorderProjectMaterials,
   createCompanyMaterial,
   deleteCompanyMaterial,
   fetchCompanyMaterials,
@@ -890,8 +891,18 @@ export function useUpdateProjectMaterial(projectId: string) {
         label?: string | null;
         color?: string | null;
         is_highlighted?: boolean;
+        position?: number;
       };
     }) => updateProjectMaterial(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_materials", projectId] }),
+  });
+}
+
+export function useReorderProjectMaterials(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (updates: { id: string; position: number }[]) =>
+      reorderProjectMaterials(updates),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["project_materials", projectId] }),
   });
 }

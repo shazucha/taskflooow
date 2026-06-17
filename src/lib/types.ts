@@ -151,6 +151,7 @@ export interface ProjectMaterial {
   created_at: string;
   color: string | null;
   is_highlighted: boolean;
+  position: number | null;
 }
 
 export interface CompanyMaterial {

@@ -18,6 +18,7 @@ import {
   FolderOpen,
   ChevronDown,
   ChevronUp,
+  GripVertical,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,29 @@ import {
   useDeleteProjectMaterial,
   useMarkMaterialViewed,
   useProjectMaterials,
+  useReorderProjectMaterials,
   useUpdateProjectMaterial,
   useViewedMaterialIds,
 } from "@/lib/queries";
 import { cn, formatMaterialDate, parseMaterialTimestamp } from "@/lib/utils";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import type { ProjectMaterial } from "@/lib/types";
 
 function normalizeUrl(raw: string): string | null {
   const trimmed = raw.trim();
@@ -163,6 +183,129 @@ function NoviceBadge({ title }: { title: string }) {
   );
 }
 
+/** Riadok materiálu s podporou drag & drop (cez @dnd-kit). */
+function SortableMaterialRow({
+  material,
+  dndEnabled,
+  showNovice,
+  canDelete,
+  onOpen,
+  onToggleNovice,
+  onDelete,
+}: {
+  material: ProjectMaterial;
+  dndEnabled: boolean;
+  showNovice: boolean;
+  canDelete: boolean;
+  onOpen: () => void;
+  onToggleNovice: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: material.id, disabled: !dndEnabled });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const kind = detectKind(material.url);
+  const meta = KIND_META[kind];
+  const Icon = meta.icon;
+  const dateText = formatMaterialDate(material.created_at);
+  const colorMeta = material.color
+    ? COLOR_OPTIONS.find((c) => c.key === material.color)
+    : null;
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-2 rounded-lg bg-surface-muted px-2.5 py-1.5 transition",
+        showNovice && "ring-1 ring-red-500/40 bg-red-500/5",
+        isDragging && "opacity-60 shadow-lg",
+      )}
+    >
+      {dndEnabled && (
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          aria-label="Presunúť"
+          title="Presunúť"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {showNovice && <NoviceBadge title="Novinka – ešte si tento materiál neotvoril" />}
+      {colorMeta && (
+        <span
+          className={cn("h-2 w-2 shrink-0 rounded-full", colorMeta.dot)}
+          title={colorMeta.label}
+        />
+      )}
+      <span
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background",
+          meta.cls,
+        )}
+        title={meta.label}
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <a
+        href={material.url}
+        target="_blank"
+        rel="noreferrer noopener"
+        onClick={onOpen}
+        className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
+      >
+        <span className="flex items-center gap-1.5 truncate">
+          <span className="truncate">{material.label || hostOf(material.url)}</span>
+          {material.label && (
+            <span className="truncate text-[11px] text-muted-foreground">
+              · {hostOf(material.url)}
+            </span>
+          )}
+          <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+        </span>
+        {dateText && (
+          <span className="text-[10px] text-muted-foreground">{dateText}</span>
+        )}
+      </a>
+      <button
+        type="button"
+        onClick={onToggleNovice}
+        className={cn(
+          "text-muted-foreground hover:text-foreground",
+          material.is_highlighted && "text-red-500 hover:text-red-600",
+        )}
+        aria-label={material.is_highlighted ? "Zrušiť označenie novinky" : "Označiť ako novinku"}
+        title={material.is_highlighted ? "Zrušiť novinku" : "Označiť ako novinku"}
+      >
+        {material.is_highlighted ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+      </button>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="text-muted-foreground hover:text-destructive"
+          aria-label="Odstrániť"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </li>
+  );
+}
+
 export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
   const currentUserId = useCurrentUserId();
   const { data: materials = [] } = useProjectMaterials(projectId);
@@ -179,11 +322,24 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
   const [isNovice, setIsNovice] = useState(false);
   const PREVIEW_COUNT = 3;
   const [expanded, setExpanded] = useState(false);
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "az" | "za">("newest");
+  const [sortBy, setSortBy] = useState<"manual" | "newest" | "oldest" | "az" | "za">("manual");
+  const reorder = useReorderProjectMaterials(projectId);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const sortedMaterials = useMemo(() => {
     const arr = [...materials];
     switch (sortBy) {
+      case "manual":
+        return arr.sort((a, b) => {
+          const pa = a.position ?? Number.MAX_SAFE_INTEGER;
+          const pb = b.position ?? Number.MAX_SAFE_INTEGER;
+          if (pa !== pb) return pa - pb;
+          return (parseMaterialTimestamp(a.created_at) ?? 0) - (parseMaterialTimestamp(b.created_at) ?? 0);
+        });
       case "newest":
         return arr.sort((a, b) => (parseMaterialTimestamp(b.created_at) ?? 0) - (parseMaterialTimestamp(a.created_at) ?? 0));
       case "oldest":
@@ -199,6 +355,19 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
 
   const hasMore = sortedMaterials.length > PREVIEW_COUNT;
   const visible = expanded || !hasMore ? sortedMaterials : sortedMaterials.slice(0, PREVIEW_COUNT);
+  const dndEnabled = sortBy === "manual";
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const fullIds = sortedMaterials.map((m) => m.id);
+    const oldIdx = fullIds.indexOf(String(active.id));
+    const newIdx = fullIds.indexOf(String(over.id));
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(fullIds, oldIdx, newIdx);
+    const updates = reordered.map((id, idx) => ({ id, position: idx + 1 }));
+    reorder.mutate(updates);
+  };
 
   const submit = async () => {
     if (!currentUserId) return;
@@ -264,6 +433,7 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
                   <option value="oldest">Najstaršie</option>
                   <option value="az">A – Z</option>
                   <option value="za">Z – A</option>
+                  <option value="manual">Vlastné poradie</option>
                 </select>
                 <ArrowUpDown className="pointer-events-none absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
               </div>
@@ -286,98 +456,40 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
       )}
 
       {materials.length > 0 && (
-        <ul className="space-y-1.5">
-          {visible.map((m) => {
-            const kind = detectKind(m.url);
-            const meta = KIND_META[kind];
-            const Icon = meta.icon;
-            const canDelete = m.created_by === currentUserId;
-            const dateText = formatMaterialDate(m.created_at);
-            const showNovice = m.is_highlighted && !viewedIds.has(m.id);
-            const colorMeta = m.color
-              ? COLOR_OPTIONS.find((c) => c.key === m.color)
-              : null;
-            return (
-              <li
-                key={m.id}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg bg-surface-muted px-2.5 py-1.5 transition",
-                  showNovice && "ring-1 ring-red-500/40 bg-red-500/5",
-                )}
-              >
-                {showNovice && <NoviceBadge title="Novinka – ešte si tento materiál neotvoril" />}
-                {colorMeta && (
-                  <span
-                    className={cn("h-2 w-2 shrink-0 rounded-full", colorMeta.dot)}
-                    title={colorMeta.label}
-                  />
-                )}
-                <span
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background",
-                    meta.cls,
-                  )}
-                  title={meta.label}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                </span>
-                <a
-                  href={m.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  onClick={() => {
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={visible.map((m) => m.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className="space-y-1.5">
+              {visible.map((m) => (
+                <SortableMaterialRow
+                  key={m.id}
+                  material={m}
+                  dndEnabled={dndEnabled}
+                  showNovice={m.is_highlighted && !viewedIds.has(m.id)}
+                  canDelete={m.created_by === currentUserId}
+                  onOpen={() => {
                     if (currentUserId && !viewedIds.has(m.id)) {
                       markViewed.mutate({ material_id: m.id, material_type: "project" });
                     }
                   }}
-                  className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
-                >
-                  <span className="flex items-center gap-1.5 truncate">
-                    <span className="truncate">{m.label || hostOf(m.url)}</span>
-                    {m.label && (
-                      <span className="truncate text-[11px] text-muted-foreground">
-                        · {hostOf(m.url)}
-                      </span>
-                    )}
-                    <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
-                  </span>
-                  {dateText && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {dateText}
-                    </span>
-                  )}
-                </a>
-                <button
-                    type="button"
-                    onClick={() =>
-                      updateMaterial.mutate({
-                        id: m.id,
-                        patch: { is_highlighted: !m.is_highlighted },
-                      })
-                    }
-                    className={cn(
-                      "text-muted-foreground hover:text-foreground",
-                      m.is_highlighted && "text-red-500 hover:text-red-600",
-                    )}
-                    aria-label={m.is_highlighted ? "Zrušiť označenie novinky" : "Označiť ako novinku"}
-                    title={m.is_highlighted ? "Zrušiť novinku" : "Označiť ako novinku"}
-                  >
-                    {m.is_highlighted ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
-                </button>
-                {canDelete && (
-                  <button
-                    type="button"
-                    onClick={() => remove.mutate(m.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                    aria-label="Odstrániť"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  onToggleNovice={() =>
+                    updateMaterial.mutate({
+                      id: m.id,
+                      patch: { is_highlighted: !m.is_highlighted },
+                    })
+                  }
+                  onDelete={() => remove.mutate(m.id)}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
 
       {hasMore && (
