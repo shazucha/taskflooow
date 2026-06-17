@@ -1002,6 +1002,7 @@ function SortableMaterialRow({
       className={cn(
         "flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5",
         isDragging && "opacity-60 shadow-lg",
+        showNovice && "ring-1 ring-red-500/40 bg-red-500/5",
       )}
     >
       <button
@@ -1013,6 +1014,7 @@ function SortableMaterialRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
+      {showNovice && <NoviceBadge title="Novinka – ešte si tento materiál neotvoril" />}
       {material.color && (
         <span
           className={cn(
@@ -1057,6 +1059,7 @@ function SortableMaterialRow({
         href={material.url}
         target="_blank"
         rel="noreferrer noopener"
+        onClick={onOpen}
         className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
       >
         <span className="flex items-center gap-1.5 truncate font-medium">
@@ -1082,6 +1085,20 @@ function SortableMaterialRow({
       >
         <Pencil className="h-4 w-4" />
       </button>
+      {isAuthor && (
+        <button
+          type="button"
+          onClick={onToggleNovice}
+          className={cn(
+            "text-muted-foreground hover:text-foreground",
+            material.is_highlighted && "text-red-500 hover:text-red-600",
+          )}
+          aria-label={material.is_highlighted ? "Zrušiť označenie novinky" : "Označiť ako novinku"}
+          title={material.is_highlighted ? "Zrušiť novinku" : "Označiť ako novinku"}
+        >
+          {material.is_highlighted ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+        </button>
+      )}
       {canDelete && (
         <button
           type="button"
