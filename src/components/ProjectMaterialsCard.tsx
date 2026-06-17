@@ -310,6 +310,7 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
                   <option value="oldest">Najstaršie</option>
                   <option value="az">A – Z</option>
                   <option value="za">Z – A</option>
+                  <option value="manual">Vlastné poradie</option>
                 </select>
                 <ArrowUpDown className="pointer-events-none absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
               </div>
