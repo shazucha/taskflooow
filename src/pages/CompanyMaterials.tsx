@@ -384,12 +384,15 @@ export default function CompanyMaterials() {
   const remove = useDeleteCompanyMaterial();
   const reorder = useReorderCompanyMaterials();
   const update = useUpdateCompanyMaterial();
+  const markViewed = useMarkMaterialViewed();
+  const viewedIds = useViewedMaterialIds();
 
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
   const [color, setColor] = useState<string | null>(null);
   const [subcategory, setSubcategory] = useState<string | null>(null);
+  const [isNovice, setIsNovice] = useState(false);
   const [activeTab, setActiveTab] = useState("materials");
   const [filter, setFilter] = useState<MaterialGroup | "all">("all");
   const [subFilter, setSubFilter] = useState<string | "all">("all");
@@ -541,11 +544,13 @@ export default function CompanyMaterials() {
         created_by: currentUserId,
         color,
         subcategory,
+        is_highlighted: isNovice,
       });
       setUrl("");
       setLabel("");
       setColor(null);
       setSubcategory(null);
+      setIsNovice(false);
       setAdding(false);
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa pridať");
