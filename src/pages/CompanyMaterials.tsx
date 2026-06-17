@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
+  Bell,
+  BellOff,
   ChevronDown,
   ExternalLink,
   FileText,
@@ -40,9 +42,11 @@ import {
   useCreateCompanyMaterial,
   useCurrentUserId,
   useDeleteCompanyMaterial,
+  useMarkMaterialViewed,
   useProfiles,
   useReorderCompanyMaterials,
   useUpdateCompanyMaterial,
+  useViewedMaterialIds,
 } from "@/lib/queries";
 import { cn, formatMaterialDate } from "@/lib/utils";
 import {
