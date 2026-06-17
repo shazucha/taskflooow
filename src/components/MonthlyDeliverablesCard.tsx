@@ -380,6 +380,22 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
 
   // Mutácia — toggle nad šablónou (keď snapshot ešte nie je)
   const toggleTpl = useToggleRecurringWorkDone(projectId);
+  const qc = useQueryClient();
+
+  /**
+   * Auto-materializuje mesačný snapshot zo šablóny pri prvej úprave a vráti
+   * id v `project_monthly_works`, ktoré zodpovedá pôvodnému `srcId` (šablóna alebo už snapshot).
+   */
+  const ensureAndResolveId = async (srcId: string): Promise<string | null> => {
+    if (hasSnapshot) return srcId;
+    await ensureSnap.mutateAsync();
+    const fresh = await qc.fetchQuery({
+      queryKey: ["project_monthly_works", projectId, monthKey],
+      queryFn: () => fetchProjectMonthlyWorks(projectId, monthKey),
+    });
+    const match = fresh.find((w) => w.source_work_id === srcId);
+    return match?.id ?? null;
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
