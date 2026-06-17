@@ -183,6 +183,129 @@ function NoviceBadge({ title }: { title: string }) {
   );
 }
 
+/** Riadok materiálu s podporou drag & drop (cez @dnd-kit). */
+function SortableMaterialRow({
+  material,
+  dndEnabled,
+  showNovice,
+  canDelete,
+  onOpen,
+  onToggleNovice,
+  onDelete,
+}: {
+  material: ProjectMaterial;
+  dndEnabled: boolean;
+  showNovice: boolean;
+  canDelete: boolean;
+  onOpen: () => void;
+  onToggleNovice: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: material.id, disabled: !dndEnabled });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const kind = detectKind(material.url);
+  const meta = KIND_META[kind];
+  const Icon = meta.icon;
+  const dateText = formatMaterialDate(material.created_at);
+  const colorMeta = material.color
+    ? COLOR_OPTIONS.find((c) => c.key === material.color)
+    : null;
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-2 rounded-lg bg-surface-muted px-2.5 py-1.5 transition",
+        showNovice && "ring-1 ring-red-500/40 bg-red-500/5",
+        isDragging && "opacity-60 shadow-lg",
+      )}
+    >
+      {dndEnabled && (
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          aria-label="Presunúť"
+          title="Presunúť"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {showNovice && <NoviceBadge title="Novinka – ešte si tento materiál neotvoril" />}
+      {colorMeta && (
+        <span
+          className={cn("h-2 w-2 shrink-0 rounded-full", colorMeta.dot)}
+          title={colorMeta.label}
+        />
+      )}
+      <span
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background",
+          meta.cls,
+        )}
+        title={meta.label}
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <a
+        href={material.url}
+        target="_blank"
+        rel="noreferrer noopener"
+        onClick={onOpen}
+        className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
+      >
+        <span className="flex items-center gap-1.5 truncate">
+          <span className="truncate">{material.label || hostOf(material.url)}</span>
+          {material.label && (
+            <span className="truncate text-[11px] text-muted-foreground">
+              · {hostOf(material.url)}
+            </span>
+          )}
+          <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+        </span>
+        {dateText && (
+          <span className="text-[10px] text-muted-foreground">{dateText}</span>
+        )}
+      </a>
+      <button
+        type="button"
+        onClick={onToggleNovice}
+        className={cn(
+          "text-muted-foreground hover:text-foreground",
+          material.is_highlighted && "text-red-500 hover:text-red-600",
+        )}
+        aria-label={material.is_highlighted ? "Zrušiť označenie novinky" : "Označiť ako novinku"}
+        title={material.is_highlighted ? "Zrušiť novinku" : "Označiť ako novinku"}
+      >
+        {material.is_highlighted ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+      </button>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="text-muted-foreground hover:text-destructive"
+          aria-label="Odstrániť"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </li>
+  );
+}
+
 export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
   const currentUserId = useCurrentUserId();
   const { data: materials = [] } = useProjectMaterials(projectId);
