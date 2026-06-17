@@ -199,11 +199,24 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
   const [isNovice, setIsNovice] = useState(false);
   const PREVIEW_COUNT = 3;
   const [expanded, setExpanded] = useState(false);
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "az" | "za">("newest");
+  const [sortBy, setSortBy] = useState<"manual" | "newest" | "oldest" | "az" | "za">("manual");
+  const reorder = useReorderProjectMaterials(projectId);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const sortedMaterials = useMemo(() => {
     const arr = [...materials];
     switch (sortBy) {
+      case "manual":
+        return arr.sort((a, b) => {
+          const pa = a.position ?? Number.MAX_SAFE_INTEGER;
+          const pb = b.position ?? Number.MAX_SAFE_INTEGER;
+          if (pa !== pb) return pa - pb;
+          return (parseMaterialTimestamp(a.created_at) ?? 0) - (parseMaterialTimestamp(b.created_at) ?? 0);
+        });
       case "newest":
         return arr.sort((a, b) => (parseMaterialTimestamp(b.created_at) ?? 0) - (parseMaterialTimestamp(a.created_at) ?? 0));
       case "oldest":
@@ -219,6 +232,19 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
 
   const hasMore = sortedMaterials.length > PREVIEW_COUNT;
   const visible = expanded || !hasMore ? sortedMaterials : sortedMaterials.slice(0, PREVIEW_COUNT);
+  const dndEnabled = sortBy === "manual";
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const fullIds = sortedMaterials.map((m) => m.id);
+    const oldIdx = fullIds.indexOf(String(active.id));
+    const newIdx = fullIds.indexOf(String(over.id));
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(fullIds, oldIdx, newIdx);
+    const updates = reordered.map((id, idx) => ({ id, position: idx + 1 }));
+    reorder.mutate(updates);
+  };
 
   const submit = async () => {
     if (!currentUserId) return;
