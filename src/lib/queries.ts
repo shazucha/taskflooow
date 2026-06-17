@@ -31,6 +31,7 @@ import {
   fetchProjectServiceOverrides,
   fetchProjectWorks,
   fetchProjectMaterials,
+  reorderProjectMaterials,
   createCompanyMaterial,
   deleteCompanyMaterial,
   fetchCompanyMaterials,
