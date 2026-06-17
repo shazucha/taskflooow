@@ -149,6 +149,8 @@ export interface ProjectMaterial {
   label: string | null;
   created_by: string | null;
   created_at: string;
+  color: string | null;
+  is_highlighted: boolean;
 }
 
 export interface CompanyMaterial {
@@ -160,6 +162,7 @@ export interface CompanyMaterial {
   position: number | null;
   color: string | null;
   subcategory: string | null;
+  is_highlighted: boolean;
 }
 
 export const AI_TOOL_CATEGORIES = [

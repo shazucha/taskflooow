@@ -83,6 +83,13 @@ import {
 import type { Profile, Project, Task, TaskStatus } from "./types";
 import { useSession } from "./useSession";
 import { syncTaskToGoogle } from "./googleCalendar";
+import {
+  fetchMaterialViews,
+  markMaterialViewed,
+  updateProjectMaterial,
+  type MaterialView,
+  type MaterialViewType,
+} from "./api";
 
 function fireAndForgetTaskSync(taskId: string, action: "upsert" | "delete" = "upsert") {
   void syncTaskToGoogle(taskId, action).catch((error) => {
@@ -870,6 +877,79 @@ export function useDeleteProjectMaterial(projectId: string) {
   });
 }
 
+export function useUpdateProjectMaterial(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: {
+        url?: string;
+        label?: string | null;
+        color?: string | null;
+        is_highlighted?: boolean;
+      };
+    }) => updateProjectMaterial(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_materials", projectId] }),
+  });
+}
+
+// ---- Material views (per-user „už som videl" pre novinky v materiáloch)
+export function useMaterialViews() {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+
+  useEffect(() => {
+    if (!isReady || !user) return;
+    const channel = supabase
+      .channel(`material-views-${user.id}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "material_views",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => qc.invalidateQueries({ queryKey: ["material_views", user.id] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isReady, user, qc]);
+
+  return useQuery({
+    queryKey: ["material_views", user?.id ?? null],
+    queryFn: () => fetchMaterialViews(user!.id),
+    enabled: isReady && !!user,
+    staleTime: 30_000,
+  });
+}
+
+/** Vráti Set ID materiálov, ktoré daný používateľ už videl. */
+export function useViewedMaterialIds(): Set<string> {
+  const { data } = useMaterialViews();
+  // Memo by query bolo nadbytočné – Set je stabilný v rámci jedného renderu.
+  return new Set((data ?? []).map((v: MaterialView) => v.material_id));
+}
+
+export function useMarkMaterialViewed() {
+  const qc = useQueryClient();
+  const userId = useCurrentUserId();
+  return useMutation({
+    mutationFn: (input: { material_id: string; material_type: MaterialViewType }) => {
+      if (!userId) return Promise.resolve();
+      return markMaterialViewed({ user_id: userId, ...input });
+    },
+    onSuccess: () => {
+      if (userId) qc.invalidateQueries({ queryKey: ["material_views", userId] });
+    },
+  });
+}
+
 // ---- Company materials (zdieľané pre celý tím)
 export function useCompanyMaterials() {
   const qc = useQueryClient();
@@ -935,6 +1015,7 @@ export function useUpdateCompanyMaterial() {
         label?: string | null;
         color?: string | null;
         subcategory?: string | null;
+        is_highlighted?: boolean;
       };
     }) =>
       updateCompanyMaterial(id, patch),

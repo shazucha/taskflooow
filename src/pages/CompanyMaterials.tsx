@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
+  Bell,
+  BellOff,
   ChevronDown,
   ExternalLink,
   FileText,
@@ -40,9 +42,11 @@ import {
   useCreateCompanyMaterial,
   useCurrentUserId,
   useDeleteCompanyMaterial,
+  useMarkMaterialViewed,
   useProfiles,
   useReorderCompanyMaterials,
   useUpdateCompanyMaterial,
+  useViewedMaterialIds,
 } from "@/lib/queries";
 import { cn, formatMaterialDate } from "@/lib/utils";
 import {
@@ -108,6 +112,20 @@ function ColorPicker({
         />
       ))}
     </div>
+  );
+}
+
+/** Pulzujúca červená bodka (tlkot srdca) pre nevidené novinky. */
+function NoviceBadge({ title }: { title: string }) {
+  return (
+    <span
+      className="relative inline-flex h-3 w-3 shrink-0 items-center justify-center"
+      title={title}
+      aria-label={title}
+    >
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-60" />
+      <span className="relative inline-flex h-3 w-3 animate-heartbeat rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]" />
+    </span>
   );
 }
 
@@ -366,12 +384,15 @@ export default function CompanyMaterials() {
   const remove = useDeleteCompanyMaterial();
   const reorder = useReorderCompanyMaterials();
   const update = useUpdateCompanyMaterial();
+  const markViewed = useMarkMaterialViewed();
+  const viewedIds = useViewedMaterialIds();
 
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
   const [color, setColor] = useState<string | null>(null);
   const [subcategory, setSubcategory] = useState<string | null>(null);
+  const [isNovice, setIsNovice] = useState(false);
   const [activeTab, setActiveTab] = useState("materials");
   const [filter, setFilter] = useState<MaterialGroup | "all">("all");
   const [subFilter, setSubFilter] = useState<string | "all">("all");
@@ -523,11 +544,13 @@ export default function CompanyMaterials() {
         created_by: currentUserId,
         color,
         subcategory,
+        is_highlighted: isNovice,
       });
       setUrl("");
       setLabel("");
       setColor(null);
       setSubcategory(null);
+      setIsNovice(false);
       setAdding(false);
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa pridať");
@@ -614,6 +637,7 @@ export default function CompanyMaterials() {
                 setLabel("");
                 setColor(null);
                 setSubcategory(null);
+                setIsNovice(false);
               }}
             >
               Zrušiť
@@ -629,6 +653,15 @@ export default function CompanyMaterials() {
             </Button>
             </div>
           </div>
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={isNovice}
+              onChange={(e) => setIsNovice(e.target.checked)}
+              className="h-3.5 w-3.5 accent-red-500"
+            />
+            Označiť ako novinku (pulzujúca bodka pre kolegov)
+          </label>
           <div className="flex items-center gap-2">
             <span className="shrink-0 text-xs text-muted-foreground">Podkategória:</span>
             <div className="min-w-[200px] flex-1">
@@ -760,6 +793,19 @@ export default function CompanyMaterials() {
                       key={m.id}
                       material={m}
                       canDelete={m.created_by === currentUserId}
+                      isAuthor={m.created_by === currentUserId}
+                      showNovice={m.is_highlighted && !viewedIds.has(m.id)}
+                      onOpen={() => {
+                        if (currentUserId && !viewedIds.has(m.id)) {
+                          markViewed.mutate({ material_id: m.id, material_type: "company" });
+                        }
+                      }}
+                      onToggleNovice={() =>
+                        update.mutate({
+                          id: m.id,
+                          patch: { is_highlighted: !m.is_highlighted },
+                        })
+                      }
                       authorName={m.created_by ? profileById.get(m.created_by)?.full_name ?? null : null}
                       onDelete={() => {
                         if (!confirm("Naozaj odstrániť tento materiál?")) return;
@@ -778,6 +824,7 @@ export default function CompanyMaterials() {
                             label: patch.label.trim() || null,
                             color: patch.color,
                             subcategory: patch.subcategory,
+                            is_highlighted: patch.is_highlighted,
                           },
                         });
                       }}
@@ -821,20 +868,29 @@ export default function CompanyMaterials() {
 function SortableMaterialRow({
   material,
   canDelete,
+  isAuthor,
+  showNovice,
   authorName,
   onDelete,
+  onOpen,
+  onToggleNovice,
   onSave,
   existingSubcategories,
 }: {
   material: CompanyMaterial;
   canDelete: boolean;
+  isAuthor: boolean;
+  showNovice: boolean;
   authorName: string | null;
   onDelete: () => void;
+  onOpen: () => void;
+  onToggleNovice: () => void;
   onSave: (patch: {
     url: string;
     label: string;
     color: string | null;
     subcategory: string | null;
+    is_highlighted: boolean;
   }) => Promise<void>;
   existingSubcategories: string[];
 }) {
@@ -855,6 +911,7 @@ function SortableMaterialRow({
   const [editLabel, setEditLabel] = useState(material.label ?? "");
   const [editColor, setEditColor] = useState<string | null>(material.color ?? null);
   const [editSubcategory, setEditSubcategory] = useState<string | null>(material.subcategory ?? null);
+  const [editNovice, setEditNovice] = useState<boolean>(material.is_highlighted);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -863,8 +920,9 @@ function SortableMaterialRow({
       setEditLabel(material.label ?? "");
       setEditColor(material.color ?? null);
       setEditSubcategory(material.subcategory ?? null);
+      setEditNovice(material.is_highlighted);
     }
-  }, [material.url, material.label, material.color, material.subcategory, editing]);
+  }, [material.url, material.label, material.color, material.subcategory, material.is_highlighted, editing]);
 
   if (editing) {
     return (
@@ -900,6 +958,7 @@ function SortableMaterialRow({
                   label: editLabel,
                   color: editColor,
                   subcategory: editSubcategory,
+                  is_highlighted: editNovice,
                 });
                 setEditing(false);
               } catch {
@@ -923,6 +982,15 @@ function SortableMaterialRow({
             />
           </div>
         </div>
+        <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={editNovice}
+            onChange={(e) => setEditNovice(e.target.checked)}
+            className="h-3.5 w-3.5 accent-red-500"
+          />
+          Označiť ako novinku (pulzujúca bodka pre kolegov)
+        </label>
       </li>
     );
   }
@@ -934,6 +1002,7 @@ function SortableMaterialRow({
       className={cn(
         "flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5",
         isDragging && "opacity-60 shadow-lg",
+        showNovice && "ring-1 ring-red-500/40 bg-red-500/5",
       )}
     >
       <button
@@ -945,6 +1014,7 @@ function SortableMaterialRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
+      {showNovice && <NoviceBadge title="Novinka – ešte si tento materiál neotvoril" />}
       {material.color && (
         <span
           className={cn(
@@ -959,6 +1029,7 @@ function SortableMaterialRow({
           href={material.url}
           target="_blank"
           rel="noreferrer noopener"
+          onClick={onOpen}
           className="group relative flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-muted"
           title={meta.label}
           aria-label="Otvoriť video v novom okne"
@@ -989,6 +1060,7 @@ function SortableMaterialRow({
         href={material.url}
         target="_blank"
         rel="noreferrer noopener"
+        onClick={onOpen}
         className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
       >
         <span className="flex items-center gap-1.5 truncate font-medium">
@@ -1014,6 +1086,20 @@ function SortableMaterialRow({
       >
         <Pencil className="h-4 w-4" />
       </button>
+      {isAuthor && (
+        <button
+          type="button"
+          onClick={onToggleNovice}
+          className={cn(
+            "text-muted-foreground hover:text-foreground",
+            material.is_highlighted && "text-red-500 hover:text-red-600",
+          )}
+          aria-label={material.is_highlighted ? "Zrušiť označenie novinky" : "Označiť ako novinku"}
+          title={material.is_highlighted ? "Zrušiť novinku" : "Označiť ako novinku"}
+        >
+          {material.is_highlighted ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+        </button>
+      )}
       {canDelete && (
         <button
           type="button"

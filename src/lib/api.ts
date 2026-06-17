@@ -697,7 +697,8 @@ export async function deleteTaskMaterial(id: string): Promise<void> {
 }
 
 // ---- Project materials
-const PROJECT_MATERIAL_COLS = "id, project_id, url, label, created_by, created_at";
+const PROJECT_MATERIAL_COLS =
+  "id, project_id, url, label, created_by, created_at, color, is_highlighted";
 
 export async function fetchProjectMaterials(projectId: string): Promise<ProjectMaterial[]> {
   const { data, error } = await supabase
@@ -714,6 +715,8 @@ export async function createProjectMaterial(input: {
   url: string;
   label: string | null;
   created_by: string;
+  color?: string | null;
+  is_highlighted?: boolean;
 }): Promise<ProjectMaterial> {
   const { data, error } = await supabase
     .from("project_materials")
@@ -722,6 +725,8 @@ export async function createProjectMaterial(input: {
       url: input.url,
       label: input.label,
       created_by: input.created_by,
+      color: input.color ?? null,
+      is_highlighted: input.is_highlighted ?? false,
     })
     .select(PROJECT_MATERIAL_COLS)
     .single();
@@ -734,9 +739,28 @@ export async function deleteProjectMaterial(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function updateProjectMaterial(
+  id: string,
+  patch: {
+    url?: string;
+    label?: string | null;
+    color?: string | null;
+    is_highlighted?: boolean;
+  },
+): Promise<ProjectMaterial> {
+  const { data, error } = await supabase
+    .from("project_materials")
+    .update(patch)
+    .eq("id", id)
+    .select(PROJECT_MATERIAL_COLS)
+    .single();
+  if (error) throw error;
+  return data as ProjectMaterial;
+}
+
 // ---- Company materials (zdieľané pre celý tím)
 const COMPANY_MATERIAL_COLS =
-  "id, url, label, created_by, created_at, position, color, subcategory";
+  "id, url, label, created_by, created_at, position, color, subcategory, is_highlighted";
 
 const COMPANY_MATERIALS_MISSING_MSG =
   "Tabuľka 'company_materials' ešte neexistuje v databáze. Spusti prosím SQL migráciu (pozri inštrukcie v aplikácii) a skús to znova.";
@@ -774,6 +798,7 @@ export async function createCompanyMaterial(input: {
   created_by: string;
   color?: string | null;
   subcategory?: string | null;
+  is_highlighted?: boolean;
 }): Promise<CompanyMaterial> {
   // Vypočítame ďalšiu pozíciu (na koniec zoznamu)
   const { data: maxRow } = await supabase
@@ -792,6 +817,7 @@ export async function createCompanyMaterial(input: {
       position: nextPos,
       color: input.color ?? null,
       subcategory: input.subcategory ?? null,
+      is_highlighted: input.is_highlighted ?? false,
     })
     .select(COMPANY_MATERIAL_COLS)
     .single();
@@ -816,6 +842,7 @@ export async function updateCompanyMaterial(
     label?: string | null;
     color?: string | null;
     subcategory?: string | null;
+    is_highlighted?: boolean;
   },
 ): Promise<CompanyMaterial> {
   const { data, error } = await supabase
@@ -1292,4 +1319,51 @@ export async function upsertProjectServiceOverride(input: {
 export async function deleteProjectServiceOverride(id: string): Promise<void> {
   const { error } = await supabase.from("project_service_overrides").delete().eq("id", id);
   if (error) throw error;
+}
+
+// ---- Material views (per-user „už som videl" stav pre novinky v materiáloch)
+export type MaterialViewType = "project" | "company";
+
+export interface MaterialView {
+  user_id: string;
+  material_id: string;
+  material_type: MaterialViewType;
+  viewed_at: string;
+}
+
+export async function fetchMaterialViews(userId: string): Promise<MaterialView[]> {
+  const { data, error } = await supabase
+    .from("material_views")
+    .select("user_id, material_id, material_type, viewed_at")
+    .eq("user_id", userId);
+  if (error) {
+    // Ak tabuľka ešte neexistuje (migrácia nebola spustená), nevyhadzujeme chybu.
+    const code = (error as { code?: string }).code;
+    if (code === "PGRST205" || code === "42P01") return [];
+    throw error;
+  }
+  return (data ?? []) as MaterialView[];
+}
+
+export async function markMaterialViewed(input: {
+  user_id: string;
+  material_id: string;
+  material_type: MaterialViewType;
+}): Promise<void> {
+  const { error } = await supabase
+    .from("material_views")
+    .upsert(
+      {
+        user_id: input.user_id,
+        material_id: input.material_id,
+        material_type: input.material_type,
+        viewed_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,material_id" },
+    );
+  if (error) {
+    const code = (error as { code?: string }).code;
+    if (code === "PGRST205" || code === "42P01") return;
+    throw error;
+  }
 }

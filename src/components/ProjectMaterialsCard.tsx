@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import {
   ArrowUpDown,
+  Bell,
+  BellOff,
   ExternalLink,
   FileText,
   Figma,
@@ -24,7 +26,10 @@ import {
   useCreateProjectMaterial,
   useCurrentUserId,
   useDeleteProjectMaterial,
+  useMarkMaterialViewed,
   useProjectMaterials,
+  useUpdateProjectMaterial,
+  useViewedMaterialIds,
 } from "@/lib/queries";
 import { cn, formatMaterialDate, parseMaterialTimestamp } from "@/lib/utils";
 
@@ -98,15 +103,80 @@ const KIND_META: Record<MaterialKind, { icon: typeof LinkIcon; label: string; cl
   web: { icon: Globe, label: "Web", cls: "text-muted-foreground" },
 };
 
+// Farebné označenia (zhodné s firemnými materiálmi, aby bol jednotný význam).
+const COLOR_OPTIONS = [
+  { key: "red", label: "Google Ads", dot: "bg-red-500", ring: "ring-red-500" },
+  { key: "blue", label: "Facebook", dot: "bg-blue-500", ring: "ring-blue-500" },
+  { key: "green", label: "Prompty", dot: "bg-green-500", ring: "ring-green-500" },
+  { key: "orange", label: "Webstránky", dot: "bg-orange-500", ring: "ring-orange-500" },
+] as const;
+
+function MaterialColorPicker({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        className={cn(
+          "h-4 w-4 rounded-full border border-dashed border-muted-foreground/50 transition",
+          !value && "ring-2 ring-offset-1 ring-foreground/40",
+        )}
+        title="Bez označenia"
+        aria-label="Bez označenia"
+      />
+      {COLOR_OPTIONS.map((c) => (
+        <button
+          key={c.key}
+          type="button"
+          onClick={() => onChange(c.key)}
+          className={cn(
+            "h-4 w-4 rounded-full transition",
+            c.dot,
+            value === c.key && "ring-2 ring-offset-1",
+            value === c.key && c.ring,
+          )}
+          title={c.label}
+          aria-label={c.label}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Pulzujúca červená bodka (tlkot srdca) pre nevidené novinky. */
+function NoviceBadge({ title }: { title: string }) {
+  return (
+    <span
+      className="relative inline-flex h-2.5 w-2.5 shrink-0 items-center justify-center"
+      title={title}
+      aria-label={title}
+    >
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-60" />
+      <span className="relative inline-flex h-2.5 w-2.5 animate-heartbeat rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
+    </span>
+  );
+}
+
 export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
   const currentUserId = useCurrentUserId();
   const { data: materials = [] } = useProjectMaterials(projectId);
   const create = useCreateProjectMaterial();
   const remove = useDeleteProjectMaterial(projectId);
+  const updateMaterial = useUpdateProjectMaterial(projectId);
+  const markViewed = useMarkMaterialViewed();
+  const viewedIds = useViewedMaterialIds();
 
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
+  const [color, setColor] = useState<string | null>(null);
+  const [isNovice, setIsNovice] = useState(false);
   const PREVIEW_COUNT = 3;
   const [expanded, setExpanded] = useState(false);
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "az" | "za">("newest");
@@ -143,9 +213,13 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
         url: normalized,
         label: label.trim() || null,
         created_by: currentUserId,
+        color,
+        is_highlighted: isNovice,
       });
       setUrl("");
       setLabel("");
+      setColor(null);
+      setIsNovice(false);
       setAdding(false);
     } catch (e: any) {
       toast.error(e.message ?? "Nepodarilo sa pridať");
@@ -219,11 +293,26 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
             const Icon = meta.icon;
             const canDelete = m.created_by === currentUserId;
             const dateText = formatMaterialDate(m.created_at);
+            const isAuthor = m.created_by === currentUserId;
+            const showNovice = m.is_highlighted && !viewedIds.has(m.id);
+            const colorMeta = m.color
+              ? COLOR_OPTIONS.find((c) => c.key === m.color)
+              : null;
             return (
               <li
                 key={m.id}
-                className="flex items-center gap-2 rounded-lg bg-surface-muted px-2.5 py-1.5"
+                className={cn(
+                  "flex items-center gap-2 rounded-lg bg-surface-muted px-2.5 py-1.5 transition",
+                  showNovice && "ring-1 ring-red-500/40 bg-red-500/5",
+                )}
               >
+                {showNovice && <NoviceBadge title="Novinka – ešte si tento materiál neotvoril" />}
+                {colorMeta && (
+                  <span
+                    className={cn("h-2 w-2 shrink-0 rounded-full", colorMeta.dot)}
+                    title={colorMeta.label}
+                  />
+                )}
                 <span
                   className={cn(
                     "flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background",
@@ -237,6 +326,11 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
                   href={m.url}
                   target="_blank"
                   rel="noreferrer noopener"
+                  onClick={() => {
+                    if (currentUserId && !viewedIds.has(m.id)) {
+                      markViewed.mutate({ material_id: m.id, material_type: "project" });
+                    }
+                  }}
                   className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
                 >
                   <span className="flex items-center gap-1.5 truncate">
@@ -254,6 +348,25 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
                     </span>
                   )}
                 </a>
+                {isAuthor && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateMaterial.mutate({
+                        id: m.id,
+                        patch: { is_highlighted: !m.is_highlighted },
+                      })
+                    }
+                    className={cn(
+                      "text-muted-foreground hover:text-foreground",
+                      m.is_highlighted && "text-red-500 hover:text-red-600",
+                    )}
+                    aria-label={m.is_highlighted ? "Zrušiť označenie novinky" : "Označiť ako novinku"}
+                    title={m.is_highlighted ? "Zrušiť novinku" : "Označiť ako novinku"}
+                  >
+                    {m.is_highlighted ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+                  </button>
+                )}
                 {canDelete && (
                   <button
                     type="button"
@@ -301,6 +414,21 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
             placeholder="Názov (voliteľné)"
             onChange={(e) => setLabel(e.target.value)}
           />
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">Farba:</span>
+              <MaterialColorPicker value={color} onChange={setColor} />
+            </div>
+            <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={isNovice}
+                onChange={(e) => setIsNovice(e.target.checked)}
+                className="h-3.5 w-3.5 accent-red-500"
+              />
+              Označiť ako novinku
+            </label>
+          </div>
           <div className="flex justify-end gap-1.5">
             <Button
               type="button"
@@ -310,6 +438,8 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
                 setAdding(false);
                 setUrl("");
                 setLabel("");
+                setColor(null);
+                setIsNovice(false);
               }}
             >
               Zrušiť
