@@ -293,7 +293,6 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
             const Icon = meta.icon;
             const canDelete = m.created_by === currentUserId;
             const dateText = formatMaterialDate(m.created_at);
-            const isAuthor = m.created_by === currentUserId;
             const showNovice = m.is_highlighted && !viewedIds.has(m.id);
             const colorMeta = m.color
               ? COLOR_OPTIONS.find((c) => c.key === m.color)
@@ -348,8 +347,7 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
                     </span>
                   )}
                 </a>
-                {isAuthor && (
-                  <button
+                <button
                     type="button"
                     onClick={() =>
                       updateMaterial.mutate({
@@ -365,8 +363,7 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
                     title={m.is_highlighted ? "Zrušiť novinku" : "Označiť ako novinku"}
                   >
                     {m.is_highlighted ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
-                  </button>
-                )}
+                </button>
                 {canDelete && (
                   <button
                     type="button"
