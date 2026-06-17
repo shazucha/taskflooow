@@ -698,13 +698,14 @@ export async function deleteTaskMaterial(id: string): Promise<void> {
 
 // ---- Project materials
 const PROJECT_MATERIAL_COLS =
-  "id, project_id, url, label, created_by, created_at, color, is_highlighted";
+  "id, project_id, url, label, created_by, created_at, color, is_highlighted, position";
 
 export async function fetchProjectMaterials(projectId: string): Promise<ProjectMaterial[]> {
   const { data, error } = await supabase
     .from("project_materials")
     .select(PROJECT_MATERIAL_COLS)
     .eq("project_id", projectId)
+    .order("position", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
   if (error) throw error;
   return (data ?? []) as ProjectMaterial[];
@@ -746,6 +747,7 @@ export async function updateProjectMaterial(
     label?: string | null;
     color?: string | null;
     is_highlighted?: boolean;
+    position?: number;
   },
 ): Promise<ProjectMaterial> {
   const { data, error } = await supabase
@@ -756,6 +758,18 @@ export async function updateProjectMaterial(
     .single();
   if (error) throw error;
   return data as ProjectMaterial;
+}
+
+export async function reorderProjectMaterials(
+  updates: { id: string; position: number }[],
+): Promise<void> {
+  const results = await Promise.all(
+    updates.map((u) =>
+      supabase.from("project_materials").update({ position: u.position }).eq("id", u.id),
+    ),
+  );
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw firstError;
 }
 
 // ---- Company materials (zdieľané pre celý tím)
