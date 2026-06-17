@@ -115,6 +115,20 @@ function ColorPicker({
   );
 }
 
+/** Pulzujúca červená bodka (tlkot srdca) pre nevidené novinky. */
+function NoviceBadge({ title }: { title: string }) {
+  return (
+    <span
+      className="relative inline-flex h-3 w-3 shrink-0 items-center justify-center"
+      title={title}
+      aria-label={title}
+    >
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-60" />
+      <span className="relative inline-flex h-3 w-3 animate-heartbeat rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]" />
+    </span>
+  );
+}
+
 function slugifySubcategory(raw: string): string {
   return raw
     .trim()
