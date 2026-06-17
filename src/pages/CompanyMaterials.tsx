@@ -793,7 +793,7 @@ export default function CompanyMaterials() {
                       key={m.id}
                       material={m}
                       canDelete={m.created_by === currentUserId}
-                      isAuthor={m.created_by === currentUserId}
+                      isAuthor={true}
                       showNovice={m.is_highlighted && !viewedIds.has(m.id)}
                       onOpen={() => {
                         if (currentUserId && !viewedIds.has(m.id)) {
