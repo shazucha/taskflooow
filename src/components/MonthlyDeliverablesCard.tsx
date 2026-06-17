@@ -710,7 +710,7 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
                     <SortableRow
                       row={r}
                       done={doneSet.has(r.id)}
-                      editable={hasSnapshot}
+                      editable={true}
                       onToggle={() => handleToggle(r)}
                       onOpenTask={() => onWorkClick(r.title)}
                       onDelete={() => handleDelete(r)}
