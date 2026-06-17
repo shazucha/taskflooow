@@ -868,20 +868,29 @@ export default function CompanyMaterials() {
 function SortableMaterialRow({
   material,
   canDelete,
+  isAuthor,
+  showNovice,
   authorName,
   onDelete,
+  onOpen,
+  onToggleNovice,
   onSave,
   existingSubcategories,
 }: {
   material: CompanyMaterial;
   canDelete: boolean;
+  isAuthor: boolean;
+  showNovice: boolean;
   authorName: string | null;
   onDelete: () => void;
+  onOpen: () => void;
+  onToggleNovice: () => void;
   onSave: (patch: {
     url: string;
     label: string;
     color: string | null;
     subcategory: string | null;
+    is_highlighted: boolean;
   }) => Promise<void>;
   existingSubcategories: string[];
 }) {
@@ -902,6 +911,7 @@ function SortableMaterialRow({
   const [editLabel, setEditLabel] = useState(material.label ?? "");
   const [editColor, setEditColor] = useState<string | null>(material.color ?? null);
   const [editSubcategory, setEditSubcategory] = useState<string | null>(material.subcategory ?? null);
+  const [editNovice, setEditNovice] = useState<boolean>(material.is_highlighted);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -910,8 +920,9 @@ function SortableMaterialRow({
       setEditLabel(material.label ?? "");
       setEditColor(material.color ?? null);
       setEditSubcategory(material.subcategory ?? null);
+      setEditNovice(material.is_highlighted);
     }
-  }, [material.url, material.label, material.color, material.subcategory, editing]);
+  }, [material.url, material.label, material.color, material.subcategory, material.is_highlighted, editing]);
 
   if (editing) {
     return (
