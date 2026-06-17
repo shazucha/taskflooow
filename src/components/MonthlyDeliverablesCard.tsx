@@ -443,8 +443,9 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
   const handleAssign = async (row: Row, newAssigneeId: string | null) => {
     if (row.assignee_id === newAssigneeId) return;
     try {
-      // Materializuje snapshot a uloží assignee pre tento mesiac.
-      await updateSnap.mutateAsync({ id: row.id, patch: { assignee_id: newAssigneeId } });
+      const id = await ensureAndResolveId(row.id);
+      if (!id) throw new Error("Nepodarilo sa nájsť záznam pre úpravu");
+      await updateSnap.mutateAsync({ id, patch: { assignee_id: newAssigneeId } });
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Nepodarilo sa priradiť");
     }
@@ -478,10 +479,16 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
     }
   };
 
-  const startEdit = (row: Row) => {
-    setEditingId(row.id);
-    setEditTitle(row.title);
-    setEditNote(row.note ?? "");
+  const startEdit = async (row: Row) => {
+    try {
+      const id = await ensureAndResolveId(row.id);
+      if (!id) throw new Error("Nepodarilo sa nájsť záznam pre úpravu");
+      setEditingId(id);
+      setEditTitle(row.title);
+      setEditNote(row.note ?? "");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Nepodarilo sa otvoriť úpravu");
+    }
   };
 
   const submitEdit = async () => {
@@ -498,7 +505,9 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
     const ok = confirm(`Odstrániť "${row.title}" z tohto mesiaca?`);
     if (!ok) return;
     try {
-      await deleteSnap.mutateAsync(row.id);
+      const id = await ensureAndResolveId(row.id);
+      if (!id) throw new Error("Nepodarilo sa nájsť záznam");
+      await deleteSnap.mutateAsync(id);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Nepodarilo sa odstrániť");
     }
@@ -514,7 +523,7 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const ids = rows.map((r) => r.id);
@@ -522,7 +531,26 @@ export function MonthlyDeliverablesCard({ projectId }: Props) {
     const newIndex = ids.indexOf(over.id as string);
     if (oldIndex === -1 || newIndex === -1) return;
     const next = arrayMove(rows, oldIndex, newIndex);
-    reorderSnap.mutate(next.map((r, i) => ({ id: r.id, position: i })));
+    try {
+      let items: { id: string; position: number }[];
+      if (hasSnapshot) {
+        items = next.map((r, i) => ({ id: r.id, position: i }));
+      } else {
+        // Najprv materializuj snapshot a namapuj template ids → snapshot ids
+        await ensureSnap.mutateAsync();
+        const fresh = await qc.fetchQuery({
+          queryKey: ["project_monthly_works", projectId, monthKey],
+          queryFn: () => fetchProjectMonthlyWorks(projectId, monthKey),
+        });
+        const map = new Map(fresh.map((w) => [w.source_work_id ?? "", w.id]));
+        items = next
+          .map((r, i) => ({ id: map.get(r.id) ?? "", position: i }))
+          .filter((it) => it.id);
+      }
+      reorderSnap.mutate(items);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Nepodarilo sa zmeniť poradie");
+    }
   };
 
   const onWorkClick = (name: string) => {
