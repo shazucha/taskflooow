@@ -18,6 +18,7 @@ import {
   FolderOpen,
   ChevronDown,
   ChevronUp,
+  GripVertical,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,29 @@ import {
   useDeleteProjectMaterial,
   useMarkMaterialViewed,
   useProjectMaterials,
+  useReorderProjectMaterials,
   useUpdateProjectMaterial,
   useViewedMaterialIds,
 } from "@/lib/queries";
 import { cn, formatMaterialDate, parseMaterialTimestamp } from "@/lib/utils";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import type { ProjectMaterial } from "@/lib/types";
 
 function normalizeUrl(raw: string): string | null {
   const trimmed = raw.trim();
