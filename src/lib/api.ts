@@ -798,6 +798,7 @@ export async function createCompanyMaterial(input: {
   created_by: string;
   color?: string | null;
   subcategory?: string | null;
+  is_highlighted?: boolean;
 }): Promise<CompanyMaterial> {
   // Vypočítame ďalšiu pozíciu (na koniec zoznamu)
   const { data: maxRow } = await supabase
@@ -816,6 +817,7 @@ export async function createCompanyMaterial(input: {
       position: nextPos,
       color: input.color ?? null,
       subcategory: input.subcategory ?? null,
+      is_highlighted: input.is_highlighted ?? false,
     })
     .select(COMPANY_MATERIAL_COLS)
     .single();
@@ -840,6 +842,7 @@ export async function updateCompanyMaterial(
     label?: string | null;
     color?: string | null;
     subcategory?: string | null;
+    is_highlighted?: boolean;
   },
 ): Promise<CompanyMaterial> {
   const { data, error } = await supabase
