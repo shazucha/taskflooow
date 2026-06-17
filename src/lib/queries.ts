@@ -1015,6 +1015,7 @@ export function useUpdateCompanyMaterial() {
         label?: string | null;
         color?: string | null;
         subcategory?: string | null;
+        is_highlighted?: boolean;
       };
     }) =>
       updateCompanyMaterial(id, patch),
