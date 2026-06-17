@@ -793,6 +793,19 @@ export default function CompanyMaterials() {
                       key={m.id}
                       material={m}
                       canDelete={m.created_by === currentUserId}
+                      isAuthor={m.created_by === currentUserId}
+                      showNovice={m.is_highlighted && !viewedIds.has(m.id)}
+                      onOpen={() => {
+                        if (currentUserId && !viewedIds.has(m.id)) {
+                          markViewed.mutate({ material_id: m.id, material_type: "company" });
+                        }
+                      }}
+                      onToggleNovice={() =>
+                        update.mutate({
+                          id: m.id,
+                          patch: { is_highlighted: !m.is_highlighted },
+                        })
+                      }
                       authorName={m.created_by ? profileById.get(m.created_by)?.full_name ?? null : null}
                       onDelete={() => {
                         if (!confirm("Naozaj odstrániť tento materiál?")) return;
@@ -811,6 +824,7 @@ export default function CompanyMaterials() {
                             label: patch.label.trim() || null,
                             color: patch.color,
                             subcategory: patch.subcategory,
+                            is_highlighted: patch.is_highlighted,
                           },
                         });
                       }}
