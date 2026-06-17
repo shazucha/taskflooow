@@ -83,6 +83,13 @@ import {
 import type { Profile, Project, Task, TaskStatus } from "./types";
 import { useSession } from "./useSession";
 import { syncTaskToGoogle } from "./googleCalendar";
+import {
+  fetchMaterialViews,
+  markMaterialViewed,
+  updateProjectMaterial,
+  type MaterialView,
+  type MaterialViewType,
+} from "./api";
 
 function fireAndForgetTaskSync(taskId: string, action: "upsert" | "delete" = "upsert") {
   void syncTaskToGoogle(taskId, action).catch((error) => {
