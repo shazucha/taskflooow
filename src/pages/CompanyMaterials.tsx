@@ -1029,6 +1029,7 @@ function SortableMaterialRow({
           href={material.url}
           target="_blank"
           rel="noreferrer noopener"
+          onClick={onOpen}
           className="group relative flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-muted"
           title={meta.label}
           aria-label="Otvoriť video v novom okne"
