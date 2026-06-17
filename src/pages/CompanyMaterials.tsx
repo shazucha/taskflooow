@@ -637,6 +637,7 @@ export default function CompanyMaterials() {
                 setLabel("");
                 setColor(null);
                 setSubcategory(null);
+                setIsNovice(false);
               }}
             >
               Zrušiť
@@ -652,6 +653,15 @@ export default function CompanyMaterials() {
             </Button>
             </div>
           </div>
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={isNovice}
+              onChange={(e) => setIsNovice(e.target.checked)}
+              className="h-3.5 w-3.5 accent-red-500"
+            />
+            Označiť ako novinku (pulzujúca bodka pre kolegov)
+          </label>
           <div className="flex items-center gap-2">
             <span className="shrink-0 text-xs text-muted-foreground">Podkategória:</span>
             <div className="min-w-[200px] flex-1">
