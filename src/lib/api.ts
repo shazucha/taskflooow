@@ -1320,3 +1320,50 @@ export async function deleteProjectServiceOverride(id: string): Promise<void> {
   const { error } = await supabase.from("project_service_overrides").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ---- Material views (per-user „už som videl" stav pre novinky v materiáloch)
+export type MaterialViewType = "project" | "company";
+
+export interface MaterialView {
+  user_id: string;
+  material_id: string;
+  material_type: MaterialViewType;
+  viewed_at: string;
+}
+
+export async function fetchMaterialViews(userId: string): Promise<MaterialView[]> {
+  const { data, error } = await supabase
+    .from("material_views")
+    .select("user_id, material_id, material_type, viewed_at")
+    .eq("user_id", userId);
+  if (error) {
+    // Ak tabuľka ešte neexistuje (migrácia nebola spustená), nevyhadzujeme chybu.
+    const code = (error as { code?: string }).code;
+    if (code === "PGRST205" || code === "42P01") return [];
+    throw error;
+  }
+  return (data ?? []) as MaterialView[];
+}
+
+export async function markMaterialViewed(input: {
+  user_id: string;
+  material_id: string;
+  material_type: MaterialViewType;
+}): Promise<void> {
+  const { error } = await supabase
+    .from("material_views")
+    .upsert(
+      {
+        user_id: input.user_id,
+        material_id: input.material_id,
+        material_type: input.material_type,
+        viewed_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,material_id" },
+    );
+  if (error) {
+    const code = (error as { code?: string }).code;
+    if (code === "PGRST205" || code === "42P01") return;
+    throw error;
+  }
+}
