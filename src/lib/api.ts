@@ -29,6 +29,58 @@ export async function fetchProfiles(): Promise<Profile[]> {
   return (data ?? []) as Profile[];
 }
 
+// ---- Project monthly reports (mesačné reporty pre projekt)
+const PROJECT_MONTHLY_REPORT_COLS =
+  "id, project_id, month_key, title, note, url, file_url, file_name, created_by, created_at";
+
+export async function fetchProjectMonthlyReports(projectId: string): Promise<ProjectMonthlyReport[]> {
+  const { data, error } = await supabase
+    .from("project_monthly_reports")
+    .select(PROJECT_MONTHLY_REPORT_COLS)
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ProjectMonthlyReport[];
+}
+
+export async function createProjectMonthlyReport(input: {
+  project_id: string;
+  month_key: string;
+  title: string | null;
+  note: string | null;
+  url: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  created_by: string;
+}): Promise<ProjectMonthlyReport> {
+  const { data, error } = await supabase
+    .from("project_monthly_reports")
+    .insert(input)
+    .select(PROJECT_MONTHLY_REPORT_COLS)
+    .single();
+  if (error) throw error;
+  return data as ProjectMonthlyReport;
+}
+
+export async function deleteProjectMonthlyReport(id: string): Promise<void> {
+  const { error } = await supabase.from("project_monthly_reports").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateProjectMonthlyReport(
+  id: string,
+  patch: Partial<Pick<ProjectMonthlyReport, "title" | "note" | "url" | "file_url" | "file_name" | "month_key">>,
+): Promise<ProjectMonthlyReport> {
+  const { data, error } = await supabase
+    .from("project_monthly_reports")
+    .update(patch)
+    .eq("id", id)
+    .select(PROJECT_MONTHLY_REPORT_COLS)
+    .single();
+  if (error) throw error;
+  return data as ProjectMonthlyReport;
+}
+
 export async function updateProfile(id: string, patch: Partial<Pick<Profile, "full_name" | "color">>) {
   const { data, error } = await supabase
     .from("profiles")

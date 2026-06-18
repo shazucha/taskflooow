@@ -91,6 +91,13 @@ import {
   type MaterialView,
   type MaterialViewType,
 } from "./api";
+import {
+  fetchProjectMonthlyReports,
+  createProjectMonthlyReport,
+  deleteProjectMonthlyReport,
+  updateProjectMonthlyReport,
+} from "./api";
+import type { ProjectMonthlyReport } from "./types";
 
 function fireAndForgetTaskSync(taskId: string, action: "upsert" | "delete" = "upsert") {
   void syncTaskToGoogle(taskId, action).catch((error) => {
@@ -1473,5 +1480,58 @@ export function useMarkMonthlyWorkCommentsRead() {
     },
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["monthly_work_comment_reads", userId] }),
+  });
+}
+
+// ---- Project monthly reports
+export function useProjectMonthlyReports(projectId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { isReady, user } = useAuthReady();
+
+  useEffect(() => {
+    if (!isReady || !user || !projectId) return;
+    const channel = supabase
+      .channel(`project-monthly-reports-${projectId}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_monthly_reports", filter: `project_id=eq.${projectId}` },
+        () => qc.invalidateQueries({ queryKey: ["project_monthly_reports", projectId] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isReady, user, projectId, qc]);
+
+  return useQuery({
+    queryKey: ["project_monthly_reports", projectId],
+    queryFn: () => fetchProjectMonthlyReports(projectId as string),
+    enabled: isReady && !!user && !!projectId,
+  });
+}
+
+export function useCreateProjectMonthlyReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createProjectMonthlyReport,
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ["project_monthly_reports", vars.project_id] }),
+  });
+}
+
+export function useDeleteProjectMonthlyReport(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteProjectMonthlyReport(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_monthly_reports", projectId] }),
+  });
+}
+
+export function useUpdateProjectMonthlyReport(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<ProjectMonthlyReport> }) =>
+      updateProjectMonthlyReport(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project_monthly_reports", projectId] }),
   });
 }
