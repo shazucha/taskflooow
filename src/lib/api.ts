@@ -772,6 +772,17 @@ export async function createProjectMaterial(input: {
   color?: string | null;
   is_highlighted?: boolean;
 }): Promise<ProjectMaterial> {
+  // Nový materiál ide na samý vrch – nájdeme najnižšiu pozíciu a dáme ešte nižšiu.
+  const { data: existing } = await supabase
+    .from("project_materials")
+    .select("position")
+    .eq("project_id", input.project_id)
+    .order("position", { ascending: true, nullsFirst: false })
+    .limit(1);
+
+  const minPos = existing && existing.length > 0 ? existing[0].position : null;
+  const newPosition = minPos !== null && minPos !== undefined ? minPos - 1 : 0;
+
   const { data, error } = await supabase
     .from("project_materials")
     .insert({
@@ -781,6 +792,7 @@ export async function createProjectMaterial(input: {
       created_by: input.created_by,
       color: input.color ?? null,
       is_highlighted: input.is_highlighted ?? false,
+      position: newPosition,
     })
     .select(PROJECT_MATERIAL_COLS)
     .single();
