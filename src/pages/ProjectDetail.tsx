@@ -126,6 +126,7 @@ export default function ProjectDetail() {
       <div className="mt-4 md:grid md:grid-cols-3 md:gap-6">
         <div className="space-y-4 md:col-span-2">
           <ProjectMaterialsCard projectId={project.id} />
+          <MonthlyReportsCard projectId={project.id} />
           <MonthlyDeliverablesCard projectId={project.id} />
 
           <section>
@@ -136,8 +137,6 @@ export default function ProjectDetail() {
           </section>
 
           <MonthlyBonusesCard projectId={project.id} />
-
-          <MonthlyReportsCard projectId={project.id} />
 
           <section>
             <h2 className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
