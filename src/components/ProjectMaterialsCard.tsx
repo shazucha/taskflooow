@@ -352,6 +352,12 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
     }
   }, [materials, sortBy]);
 
+  const noviceCount = useMemo(
+    () => sortedMaterials.filter((m) => m.is_highlighted && !viewedIds.has(m.id)).length,
+    [sortedMaterials, viewedIds]
+  );
+  const PREVIEW_COUNT = noviceCount === 4 ? 4 : 3;
+
   const hasMore = sortedMaterials.length > PREVIEW_COUNT;
   const visible = expanded || !hasMore ? sortedMaterials : sortedMaterials.slice(0, PREVIEW_COUNT);
   const dndEnabled = sortBy === "manual";
