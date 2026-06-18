@@ -138,8 +138,6 @@ export default function ProjectDetail() {
 
           <MonthlyBonusesCard projectId={project.id} />
 
-          <MonthlyReportsCard projectId={project.id} />
-
           <section>
             <h2 className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
               <CalendarDays className="h-4 w-4" /> Kalendár projektu
