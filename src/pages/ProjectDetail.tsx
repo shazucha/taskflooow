@@ -10,6 +10,7 @@ import { ProjectMetaCard } from "@/components/ProjectMetaCard";
 import { MonthlyDeliverablesCard } from "@/components/MonthlyDeliverablesCard";
 import { MonthlyBonusesCard } from "@/components/MonthlyBonusesCard";
 import { ProjectMaterialsCard } from "@/components/ProjectMaterialsCard";
+import { MonthlyReportsCard } from "@/components/MonthlyReportsCard";
 import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
 import { ProjectAccessCard } from "@/components/ProjectAccessCard";
 import { EditableProjectHeader } from "@/components/EditableProjectHeader";
@@ -135,6 +136,8 @@ export default function ProjectDetail() {
           </section>
 
           <MonthlyBonusesCard projectId={project.id} />
+
+          <MonthlyReportsCard projectId={project.id} />
 
           <section>
             <h2 className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
