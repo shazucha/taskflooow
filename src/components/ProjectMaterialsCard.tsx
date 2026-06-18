@@ -320,7 +320,11 @@ export function ProjectMaterialsCard({ projectId }: { projectId: string }) {
   const [label, setLabel] = useState("");
   const [color, setColor] = useState<string | null>(null);
   const [isNovice, setIsNovice] = useState(false);
-  const PREVIEW_COUNT = 3;
+  const noviceCount = useMemo(
+    () => sortedMaterials.filter((m) => m.is_highlighted && !viewedIds.has(m.id)).length,
+    [sortedMaterials, viewedIds]
+  );
+  const PREVIEW_COUNT = noviceCount === 4 ? 4 : 3;
   const [expanded, setExpanded] = useState(false);
   const [sortBy, setSortBy] = useState<"manual" | "newest" | "oldest" | "az" | "za">("manual");
   const reorder = useReorderProjectMaterials(projectId);
