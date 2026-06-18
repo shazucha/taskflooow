@@ -166,6 +166,19 @@ export interface CompanyMaterial {
   is_highlighted: boolean;
 }
 
+export interface ProjectMonthlyReport {
+  id: string;
+  project_id: string;
+  month_key: string; // "YYYY-MM"
+  title: string | null;
+  note: string | null;
+  url: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export const AI_TOOL_CATEGORIES = [
   "tvorba-textu",
   "obrazky",

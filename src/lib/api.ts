@@ -14,6 +14,7 @@ import type {
   TaskMaterial,
   CompanyMaterial,
 } from "./types";
+import type { ProjectMonthlyReport } from "./types";
 
 const PROJECT_COLS =
   "id, name, description, color, owner_id, created_at, monthly_price, currency, client_since, category, hourly_rate";
