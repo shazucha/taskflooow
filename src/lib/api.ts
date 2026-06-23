@@ -1066,9 +1066,18 @@ export async function createGuide(input: {
   attachments: import("./types").GuideAttachment[];
   created_by: string;
 }): Promise<import("./types").Guide> {
+  // Nový návod dáme na vrch zoznamu (najmenšia position)
+  const { data: minRow } = await supabase
+    .from("guides")
+    .select("position")
+    .order("position", { ascending: true, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  const minPos = typeof minRow?.position === "number" ? minRow.position : 0;
+  const nextPos = minPos - 1;
   const { data, error } = await supabase
     .from("guides")
-    .insert(input)
+    .insert({ ...input, position: nextPos })
     .select(GUIDE_COLS)
     .single();
   if (error) {
