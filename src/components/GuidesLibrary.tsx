@@ -144,7 +144,11 @@ export function GuidesLibrary() {
   const update = useUpdateGuide();
   const remove = useDeleteGuide();
   const reorder = useReorderGuides();
-  const [dragId, setDragId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const [filter, setFilter] = useState<string>("all");
   const [openGuide, setOpenGuide] = useState<Guide | null>(null);
@@ -191,6 +195,25 @@ export function GuidesLibrary() {
     () => (filter === "all" ? guides : guides.filter((g) => g.category === filter)),
     [guides, filter],
   );
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const ids = visible.map((x) => x.id);
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const next = arrayMove(visible, from, to);
+    // Použijeme existujúce pozície práve viditeľných položiek
+    // (zoradené vzostupne) a priradíme ich novému poradiu,
+    // aby sa neovplyvnili položky mimo filtra.
+    const slots = visible
+      .map((it, idx) => it.position ?? idx + 1)
+      .slice()
+      .sort((a, b) => a - b);
+    const payload = next.map((it, idx) => ({ id: it.id, position: slots[idx] }));
+    reorder.mutate(payload);
+  };
 
   const submitCreate = async () => {
     if (!currentUserId) return;
