@@ -31,6 +31,23 @@ import {
 import type { Guide, GuideAttachment } from "@/lib/types";
 import { cn, formatMaterialDate } from "@/lib/utils";
 import { ImageUploadField } from "@/components/ImageUploadField";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const SECTION_KEYS = ["what", "steps", "tips", "notes"] as const;
 type SectionKey = (typeof SECTION_KEYS)[number];
