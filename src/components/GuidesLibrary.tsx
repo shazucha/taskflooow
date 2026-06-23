@@ -500,6 +500,79 @@ function GuideForm({
   guides: Guide[];
   extraCats?: string[];
 }) {
+  return <GuideFormInner form={form} setForm={setForm} guides={guides} extraCats={extraCats} />;
+}
+
+function SortableGuideCard({ guide, onOpen }: { guide: Guide; onOpen: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: guide.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+        isDragging && "opacity-60 shadow-lg z-10",
+      )}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-md bg-background/90 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition hover:text-foreground group-hover:opacity-100 active:cursor-grabbing"
+        aria-label="Presunúť"
+        title="Presunúť (drag & drop)"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex flex-1 flex-col text-left"
+      >
+        <div className="relative aspect-[16/10] w-full overflow-hidden bg-surface-muted">
+          {guide.image_url ? (
+            <img
+              src={guide.image_url}
+              alt={guide.name}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <BookOpen className="h-8 w-8 text-muted-foreground" />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-1 flex-col gap-1 p-3">
+          <span className="text-sm font-semibold leading-snug break-words">{guide.name}</span>
+          <span className="text-[11px] text-muted-foreground">
+            {prettyCategory(guide.category)}
+            {guide.attachments?.length > 0 && ` · ${guide.attachments.length} príloh`}
+          </span>
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function GuideFormInner({
+  form,
+  setForm,
+  guides,
+  extraCats = [],
+}: {
+  form: FormState;
+  setForm: (f: FormState) => void;
+  guides: Guide[];
+  extraCats?: string[];
+}) {
   const [customCatOpen, setCustomCatOpen] = useState(false);
   const [customCatInput, setCustomCatInput] = useState("");
   const [newAttUrl, setNewAttUrl] = useState("");
