@@ -31,6 +31,23 @@ import {
 import type { Guide, GuideAttachment } from "@/lib/types";
 import { cn, formatMaterialDate } from "@/lib/utils";
 import { ImageUploadField } from "@/components/ImageUploadField";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const SECTION_KEYS = ["what", "steps", "tips", "notes"] as const;
 type SectionKey = (typeof SECTION_KEYS)[number];
@@ -127,7 +144,11 @@ export function GuidesLibrary() {
   const update = useUpdateGuide();
   const remove = useDeleteGuide();
   const reorder = useReorderGuides();
-  const [dragId, setDragId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const [filter, setFilter] = useState<string>("all");
   const [openGuide, setOpenGuide] = useState<Guide | null>(null);
@@ -174,6 +195,25 @@ export function GuidesLibrary() {
     () => (filter === "all" ? guides : guides.filter((g) => g.category === filter)),
     [guides, filter],
   );
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const ids = visible.map((x) => x.id);
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const next = arrayMove(visible, from, to);
+    // Použijeme existujúce pozície práve viditeľných položiek
+    // (zoradené vzostupne) a priradíme ich novému poradiu,
+    // aby sa neovplyvnili položky mimo filtra.
+    const slots = visible
+      .map((it, idx) => it.position ?? idx + 1)
+      .slice()
+      .sort((a, b) => a - b);
+    const payload = next.map((it, idx) => ({ id: it.id, position: slots[idx] }));
+    reorder.mutate(payload);
+  };
 
   const submitCreate = async () => {
     if (!currentUserId) return;
@@ -347,74 +387,19 @@ export function GuidesLibrary() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {visible.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                draggable
-                onDragStart={(e) => {
-                  setDragId(g.id);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragOver={(e) => {
-                  if (dragId && dragId !== g.id) {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
-                  }
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (!dragId || dragId === g.id) return;
-                  const ids = visible.map((x) => x.id);
-                  const from = ids.indexOf(dragId);
-                  const to = ids.indexOf(g.id);
-                  if (from < 0 || to < 0) return;
-                  const next = [...visible];
-                  const [moved] = next.splice(from, 1);
-                  next.splice(to, 0, moved);
-                  // Použijeme existujúce pozície práve viditeľných položiek
-                  // (zoradené vzostupne) a priradíme ich novému poradiu,
-                  // aby sa neovplyvnili položky mimo filtra.
-                  const slots = visible
-                    .map((it, idx) => it.position ?? idx + 1)
-                    .slice()
-                    .sort((a, b) => a - b);
-                  const payload = next.map((it, idx) => ({ id: it.id, position: slots[idx] }));
-                  reorder.mutate(payload);
-                  setDragId(null);
-                }}
-                onDragEnd={() => setDragId(null)}
-                onClick={() => { setEditMode(false); setOpenGuide(g); }}
-                className={cn(
-                  "group flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md cursor-grab active:cursor-grabbing",
-                  dragId === g.id && "opacity-50",
-                )}
-              >
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-surface-muted">
-                  {g.image_url ? (
-                    <img
-                      src={g.image_url}
-                      alt={g.name}
-                      loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <BookOpen className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col gap-1 p-3">
-                  <span className="text-sm font-semibold leading-snug break-words">{g.name}</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {prettyCategory(g.category)}
-                    {g.attachments?.length > 0 && ` · ${g.attachments.length} príloh`}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={visible.map((g) => g.id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {visible.map((g) => (
+                  <SortableGuideCard
+                    key={g.id}
+                    guide={g}
+                    onOpen={() => { setEditMode(false); setOpenGuide(g); }}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
@@ -505,6 +490,79 @@ export function GuidesLibrary() {
 }
 
 function GuideForm({
+  form,
+  setForm,
+  guides,
+  extraCats = [],
+}: {
+  form: FormState;
+  setForm: (f: FormState) => void;
+  guides: Guide[];
+  extraCats?: string[];
+}) {
+  return <GuideFormInner form={form} setForm={setForm} guides={guides} extraCats={extraCats} />;
+}
+
+function SortableGuideCard({ guide, onOpen }: { guide: Guide; onOpen: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: guide.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+        isDragging && "opacity-60 shadow-lg z-10",
+      )}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-md bg-background/90 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition hover:text-foreground group-hover:opacity-100 active:cursor-grabbing"
+        aria-label="Presunúť"
+        title="Presunúť (drag & drop)"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex flex-1 flex-col text-left"
+      >
+        <div className="relative aspect-[16/10] w-full overflow-hidden bg-surface-muted">
+          {guide.image_url ? (
+            <img
+              src={guide.image_url}
+              alt={guide.name}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <BookOpen className="h-8 w-8 text-muted-foreground" />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-1 flex-col gap-1 p-3">
+          <span className="text-sm font-semibold leading-snug break-words">{guide.name}</span>
+          <span className="text-[11px] text-muted-foreground">
+            {prettyCategory(guide.category)}
+            {guide.attachments?.length > 0 && ` · ${guide.attachments.length} príloh`}
+          </span>
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function GuideFormInner({
   form,
   setForm,
   guides,
