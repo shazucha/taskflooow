@@ -169,8 +169,9 @@ Deno.serve(async (req) => {
       if (usedSyncToken) {
         url.searchParams.set("syncToken", tokenRow.sync_token!);
       } else {
-        // Only pull from "now" forward — never import past events.
-        const from = new Date();
+        // Pull only from posledných 7 dní dozadu dopredu — nikdy neimportujeme
+        // celú históriu kalendára (používateľ to explicitne nechce).
+        const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         from.setHours(0, 0, 0, 0);
         const to = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
         url.searchParams.set("timeMin", from.toISOString());
@@ -278,11 +279,12 @@ Deno.serve(async (req) => {
       const end = pickEnd(ev);
       if (!start) continue; // ignore events with no time at all
 
-      // Skip events that started before today — user only wants new/future stuff.
+      // Skip events that started viac ako 7 dní dozadu — používateľ nechce
+      // importovať celú históriu, max týždeň dozadu.
       const startMs = new Date(start).getTime();
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      if (startMs < todayStart.getTime() && !byEventId.get(ev.id)) {
+      const lookbackStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      lookbackStart.setHours(0, 0, 0, 0);
+      if (startMs < lookbackStart.getTime() && !byEventId.get(ev.id)) {
         // Only skip NEW imports. If we already imported it earlier, keep updating it.
         continue;
       }
