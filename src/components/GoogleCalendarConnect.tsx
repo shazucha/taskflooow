@@ -163,6 +163,9 @@ export function GoogleCalendarConnect() {
       let pushed = 0;
       let pushFailed = 0;
       if (userId) {
+        // Obmedzenie: push do Google len pre úlohy s termínom v poslednom týždni
+        // alebo v budúcnosti. Predtým sa nahadzovali všetky staré úlohy naspäť.
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const { data: pending } = await supabase
           .from("tasks")
           .select("id, due_date, due_end, google_event_id, google_imported")
@@ -170,6 +173,7 @@ export function GoogleCalendarConnect() {
           .not("due_date", "is", null)
           .is("google_event_id", null)
           .neq("google_imported", true)
+          .gte("due_date", sevenDaysAgo)
           .limit(200);
         for (const t of pending ?? []) {
           try {
