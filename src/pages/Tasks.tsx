@@ -1,16 +1,19 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, CalendarOff } from "lucide-react";
+import { AlertTriangle, ChevronDown, CalendarOff, CheckSquare, Trash2, X } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 import { MonthFilter } from "@/components/MonthFilter";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Priority, Task } from "@/lib/types";
 import { PRIORITY_META } from "@/lib/types";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
-import { useCurrentUserId, useIsAppAdmin, useProjects, useTasks } from "@/lib/queries";
+import { useCurrentUserId, useIsAppAdmin, useProjects, useTasks, useDeleteTasks } from "@/lib/queries";
 import { formatLocalDayHeader, isSameLocalDay, localDayKey, localTodayTomorrow, startOfLocalDay } from "@/lib/dayLabels";
+import { toast } from "sonner";
 
 function isValidDate(d: Date): boolean {
   return !isNaN(d.getTime());
@@ -29,6 +32,43 @@ export default function Tasks() {
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
   const [openTask, setOpenTask] = useState<Task | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const deleteTasksMutation = useDeleteTasks();
+
+  const toggleSelected = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelected(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    if (selected.size === 0) return;
+    if (!confirm(`Naozaj chceš zmazať ${selected.size} úloh?`)) return;
+    try {
+      await deleteTasksMutation.mutateAsync(Array.from(selected));
+      toast.success(`Zmazané: ${selected.size}`);
+      exitSelectMode();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Zmazanie zlyhalo");
+    }
+  };
+
+  const selectAllVisible = (list: Task[]) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const t of list) next.add(t.id);
+      return next;
+    });
+  };
 
   const myProjectIds = useMemo(() => new Set(projects.map((p) => p.id)), [projects]);
 
@@ -122,8 +162,58 @@ export default function Tasks() {
     <div className="page-container">
       <header className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Úlohy</h1>
-        <NewTaskDialog />
+        <div className="flex items-center gap-2">
+          {!selectMode ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSelectMode(true)}
+              className="gap-1.5"
+            >
+              <CheckSquare className="h-3.5 w-3.5" />
+              Výber
+            </Button>
+          ) : (
+            <Button size="sm" variant="ghost" onClick={exitSelectMode} className="gap-1.5">
+              <X className="h-3.5 w-3.5" />
+              Zrušiť
+            </Button>
+          )}
+          <NewTaskDialog />
+        </div>
       </header>
+
+      {selectMode && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary-soft/40 p-2">
+          <span className="text-xs font-semibold">Vybraných: {selected.size}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => selectAllVisible(filtered)}
+            className="h-7 text-xs"
+          >
+            Označiť všetky viditeľné
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setSelected(new Set())}
+            className="h-7 text-xs"
+          >
+            Vyčistiť
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={selected.size === 0 || deleteTasksMutation.isPending}
+            onClick={handleBulkDelete}
+            className="ml-auto h-7 gap-1.5 text-xs"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Zmazať vybrané
+          </Button>
+        </div>
+      )}
 
       <p className="mt-2 inline-flex items-center gap-2 text-[11px] text-muted-foreground">
         <span className="inline-flex h-3 w-3 rounded-full border-2 border-priority-high bg-priority-high-soft shadow-[0_0_8px_hsl(var(--priority-high)/0.5)]" />
@@ -257,7 +347,22 @@ export default function Tasks() {
                   <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                     <div className="space-y-2.5 px-2 pb-2 pt-1">
                       {g.tasks.map((t) => (
-                        <TaskCard key={t.id} task={t} showProject onOpen={setOpenTask} />
+                        <div key={t.id} className="flex items-start gap-2">
+                          {selectMode && (
+                            <Checkbox
+                              className="mt-3"
+                              checked={selected.has(t.id)}
+                              onCheckedChange={() => toggleSelected(t.id)}
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <TaskCard
+                              task={t}
+                              showProject
+                              onOpen={selectMode ? () => toggleSelected(t.id) : setOpenTask}
+                            />
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </CollapsibleContent>
@@ -279,7 +384,22 @@ export default function Tasks() {
                 <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                   <div className="space-y-2.5 px-2 pb-2 pt-1">
                     {noDate.map((t) => (
-                      <TaskCard key={t.id} task={t} showProject onOpen={setOpenTask} />
+                      <div key={t.id} className="flex items-start gap-2">
+                        {selectMode && (
+                          <Checkbox
+                            className="mt-3"
+                            checked={selected.has(t.id)}
+                            onCheckedChange={() => toggleSelected(t.id)}
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <TaskCard
+                            task={t}
+                            showProject
+                            onOpen={selectMode ? () => toggleSelected(t.id) : setOpenTask}
+                          />
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </CollapsibleContent>
