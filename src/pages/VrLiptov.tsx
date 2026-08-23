@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Trash2, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Printer, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,8 +30,12 @@ const MONTHS = [
 ];
 const WEEKDAYS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
 
-// Rozsah otváracích hodín zobrazený na časovej osi
-const HOURS = Array.from({ length: 14 }, (_, i) => 7 + i); // 7:00 – 20:00
+// Voliteľné rozsahy časovej osi (od–do)
+const RANGE_OPTIONS = [
+  { id: "7-20", label: "7:00 – 20:00", from: 7, to: 20 },
+  { id: "6-23", label: "6:00 – 23:00", from: 6, to: 23 },
+  { id: "0-24", label: "Celých 24 hodín", from: 0, to: 24 },
+] as const;
 
 const KIND_DEFAULT_TIME: Record<VrEntryKind, { start: string; end: string }> = {
   work: { start: "07:00", end: "14:00" },
@@ -66,6 +70,13 @@ export default function VrLiptov() {
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState(() => dayKey(new Date()));
   const [openHour, setOpenHour] = useState<number | null>(null);
+  const [rangeId, setRangeId] = useState<string>("7-20");
+
+  const range = RANGE_OPTIONS.find((r) => r.id === rangeId) ?? RANGE_OPTIONS[0];
+  const hours = useMemo(
+    () => Array.from({ length: range.to - range.from }, (_, i) => range.from + i),
+    [range]
+  );
 
   const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
@@ -140,6 +151,11 @@ export default function VrLiptov() {
   }
 
   const selectedDate = new Date(`${selected}T00:00:00`);
+
+  // Tlač / export do PDF cez systémový dialóg prehliadača (Uložiť ako PDF)
+  function printSchedule() {
+    window.print();
+  }
 
   return (
     <main className="w-full px-4 pb-28 pt-6 sm:px-6 md:px-10 md:pt-10 md:pb-12 2xl:mx-auto 2xl:max-w-[1700px]">
@@ -234,24 +250,50 @@ export default function VrLiptov() {
       </section>
 
       {/* Časová os – rozklikni hodinu a uvidíš, kto tam bude */}
-      <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4 lg:mt-0">
-        <h2 className="mb-1 text-sm font-semibold sm:text-base">
-          Rozpis hodín — {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()].toLowerCase()}
+      <section id="vr-print-area" className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4 lg:mt-0">
+        {/* Hlavička len pre tlač */}
+        <h2 className="mb-2 hidden text-base font-bold print:block">
+          VR Liptov — rozpis {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()].toLowerCase()}{" "}
+          {selectedDate.getFullYear()} ({range.label})
         </h2>
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2 print:hidden">
+          <h2 className="text-sm font-semibold sm:text-base">
+            Rozpis hodín — {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()].toLowerCase()}
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="vr-range" className="sr-only">Rozsah hodín</label>
+            <Select value={rangeId} onValueChange={(v) => { setRangeId(v); setOpenHour(null); }}>
+              <SelectTrigger id="vr-range" className="h-9 w-[170px] text-xs" aria-label="Rozsah hodín rozpisu">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RANGE_OPTIONS.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={printSchedule}>
+              <Printer className="h-4 w-4" aria-hidden /> Tlač / PDF
+            </Button>
+          </div>
+        </div>
         <p className="mb-3 text-xs text-muted-foreground">
-          Celý deň 7:00 – 21:00 na jednom mieste. Klikni na hodinu a uvidíš, kto tam v tom čase bude.
+          Klikni na hodinu a uvidíš, kto tam v tom čase bude. Zelená = voľné, fialová = obsadené,
+          oranžová = prekrývanie viacerých zápisov.
         </p>
 
         {/* Horizontálne scrollovateľná os hodín — od–do zostáva čitateľné aj na mobile */}
-        <div role="group" aria-label="Časová os hodín 7:00 až 21:00">
+        <div role="group" aria-label={`Časová os hodín ${range.from}:00 až ${range.to}:00`}>
           <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7 lg:grid-cols-7 xl:grid-cols-7">
-            {HOURS.map((h) => {
+            {hours.map((h) => {
               const list = entriesForHour(h);
               const isOpen = openHour === h;
+              const isOverlap = list.length > 1; // prekrývanie viacerých zápisov
+              const isBusy = list.length === 1;
               const names = list.map((e) => `${nameOf(e.user_id)} ${hhmm(e.start_time)}–${hhmm(e.end_time)}`);
               const tip = list.length
-                ? names.join(" · ")
-                : "V tejto hodine nikto nie je nahlásený";
+                ? `${list.length > 1 ? "Prekrývanie: " : ""}${names.join(" · ")}`
+                : "Voľná hodina — nikto nie je nahlásený";
               return (
                 <Tooltip key={h}>
                   <TooltipTrigger asChild>
@@ -263,10 +305,12 @@ export default function VrLiptov() {
                       className={cn(
                         "flex w-full flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-2.5 text-[11px] font-medium transition lg:py-3",
                         isOpen
-                          ? "border-vr bg-vr text-vr-foreground"
-                          : list.length > 0
-                            ? "border-vr/40 bg-vr-soft text-vr hover:border-vr"
-                            : "border-border/50 text-muted-foreground hover:bg-surface-muted"
+                          ? "border-vr bg-vr text-vr-foreground ring-2 ring-vr/40"
+                          : isOverlap
+                            ? "border-warning bg-warning/15 text-warning hover:border-warning"
+                            : isBusy
+                              ? "border-vr/50 bg-vr-soft text-vr hover:border-vr"
+                              : "border-success/40 bg-success/10 text-success hover:border-success"
                       )}
                     >
                       <span className="tabular-nums">
@@ -277,6 +321,7 @@ export default function VrLiptov() {
                       </span>
                       <span className="flex items-center gap-1 text-[10px] font-semibold">
                         <Users className="h-3 w-3" aria-hidden /> {list.length}
+                        {isOverlap && <span aria-hidden>⚠</span>}
                       </span>
                     </button>
                   </TooltipTrigger>
@@ -287,8 +332,52 @@ export default function VrLiptov() {
           </div>
         </div>
 
+        {/* Legenda stavov hodín */}
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] text-muted-foreground sm:text-[11px] print:hidden">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm border border-success/40 bg-success/20" /> Voľné
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm border border-vr/50 bg-vr-soft" /> Obsadené
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm border border-warning bg-warning/25" /> Prekrývanie (2+ zápisy)
+          </span>
+        </div>
+
+        {/* Kompletný rozpis pre tlač / PDF */}
+        <table className="mt-3 hidden w-full border-collapse text-[11px] print:table">
+          <thead>
+            <tr>
+              <th className="border border-black/30 px-2 py-1 text-left">Hodina</th>
+              <th className="border border-black/30 px-2 py-1 text-left">Stav</th>
+              <th className="border border-black/30 px-2 py-1 text-left">Nahlásení</th>
+            </tr>
+          </thead>
+          <tbody>
+            {hours.map((h) => {
+              const list = entriesForHour(h);
+              return (
+                <tr key={h}>
+                  <td className="border border-black/30 px-2 py-1 tabular-nums">
+                    {String(h).padStart(2, "0")}:00–{String(h + 1).padStart(2, "0")}:00
+                  </td>
+                  <td className="border border-black/30 px-2 py-1">
+                    {list.length === 0 ? "voľné" : list.length > 1 ? `prekrývanie (${list.length})` : "obsadené"}
+                  </td>
+                  <td className="border border-black/30 px-2 py-1">
+                    {list
+                      .map((e) => `${nameOf(e.user_id)} ${hhmm(e.start_time)}–${hhmm(e.end_time)} (${VR_KIND_META[e.kind].label})`)
+                      .join("; ") || "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
         {openHour !== null && (
-          <div className="mt-3 rounded-xl border border-vr/30 bg-vr-soft/50 p-3">
+          <div className="mt-3 rounded-xl border border-vr/30 bg-vr-soft/50 p-3 print:hidden">
             <p className="mb-2 text-xs font-semibold text-vr">
               {String(openHour).padStart(2, "0")}:00 – {String(openHour + 1).padStart(2, "0")}:00
               {openHour < 14 ? " · kancelária / práca" : " · VR sessions"}
