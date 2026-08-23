@@ -23,6 +23,8 @@ function isValidDate(d: Date): boolean {
 
 type Scope = "mine" | "all";
 type PriorityFilter = "all" | Priority;
+type StatusFilter = "open" | "done" | "all";
+type SortBy = "priority" | "due";
 
 export default function Tasks() {
   const { data: tasks = [] } = useTasks();
@@ -32,6 +34,8 @@ export default function Tasks() {
   const [scope, setScope] = useState<Scope>("mine");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
+  const [sortBy, setSortBy] = useState<SortBy>("priority");
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -121,14 +125,20 @@ export default function Tasks() {
   const myProjectIds = useMemo(() => new Set(projects.map((p) => p.id)), [projects]);
 
   const scopedBase = useMemo(() => {
-    const monthScoped = filterTasksByMonth(tasks, monthKey).filter((t) => t.status !== "done");
+    const all = filterTasksByMonth(tasks, monthKey);
+    const monthScoped =
+      statusFilter === "all"
+        ? all
+        : statusFilter === "done"
+          ? all.filter((t) => t.status === "done")
+          : all.filter((t) => t.status !== "done");
     return {
       mine: monthScoped.filter((t) => t.assignee_id === currentUserId),
       all: isAdmin
         ? monthScoped
         : monthScoped.filter((t) => t.project_id && myProjectIds.has(t.project_id)),
     };
-  }, [tasks, monthKey, myProjectIds, currentUserId, isAdmin]);
+  }, [tasks, monthKey, myProjectIds, currentUserId, isAdmin, statusFilter]);
 
   const applyPriority = (list: Task[]) =>
     priorityFilter === "all" ? list : list.filter((t) => t.priority === priorityFilter);
@@ -136,12 +146,18 @@ export default function Tasks() {
   const applyOverdue = (list: Task[]) => (overdueOnly ? list.filter(isOverdue) : list);
 
   const filtered = useMemo(() => {
+    const order = { high: 0, medium: 1, low: 2 } as const;
+    const dueVal = (t: Task) => (t.due_date ? new Date(t.due_date).getTime() : Number.POSITIVE_INFINITY);
     return applyOverdue(applyPriority(scopedBase[scope])).sort((a, b) => {
-      const order = { high: 0, medium: 1, low: 2 } as const;
-      return order[a.priority] - order[b.priority];
+      if (sortBy === "due") {
+        const diff = dueVal(a) - dueVal(b);
+        return diff !== 0 ? diff : order[a.priority] - order[b.priority];
+      }
+      const p = order[a.priority] - order[b.priority];
+      return p !== 0 ? p : dueVal(a) - dueVal(b);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopedBase, scope, priorityFilter, overdueOnly]);
+  }, [scopedBase, scope, priorityFilter, overdueOnly, sortBy]);
 
   const scopeCounts = {
     mine: applyOverdue(applyPriority(scopedBase.mine)).length,
