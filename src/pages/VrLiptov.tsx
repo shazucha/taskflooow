@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Printer, Trash2, Users } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, Plus, Printer, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -37,6 +37,8 @@ const RANGE_OPTIONS = [
   { id: "0-24", label: "Celých 24 hodín", from: 0, to: 24 },
 ] as const;
 
+const RANGE_STORAGE_KEY = "vr-liptov-range";
+
 const KIND_DEFAULT_TIME: Record<VrEntryKind, { start: string; end: string }> = {
   work: { start: "07:00", end: "14:00" },
   session: { start: "14:00", end: "20:00" },
@@ -70,7 +72,23 @@ export default function VrLiptov() {
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState(() => dayKey(new Date()));
   const [openHour, setOpenHour] = useState<number | null>(null);
-  const [rangeId, setRangeId] = useState<string>("7-20");
+  const [rangeId, setRangeId] = useState<string>(() => {
+    // Rozsah sa pamätá ako šablóna pre ďalšie dni.
+    try {
+      const saved = window.localStorage.getItem(RANGE_STORAGE_KEY);
+      if (saved && RANGE_OPTIONS.some((r) => r.id === saved)) return saved;
+    } catch { /* localStorage nemusí byť dostupné */ }
+    return "7-20";
+  });
+  const [focusHour, setFocusHour] = useState<number | null>(null);
+
+  const saveRange = (v: string) => {
+    setRangeId(v);
+    setOpenHour(null);
+    try {
+      window.localStorage.setItem(RANGE_STORAGE_KEY, v);
+    } catch { /* ignore */ }
+  };
 
   const range = RANGE_OPTIONS.find((r) => r.id === rangeId) ?? RANGE_OPTIONS[0];
   const hours = useMemo(
@@ -152,9 +170,58 @@ export default function VrLiptov() {
 
   const selectedDate = new Date(`${selected}T00:00:00`);
 
+  // Hodiny s prekrývaním viacerých zápisov
+  const conflicts = hours
+    .map((h) => ({ hour: h, list: entriesForHour(h) }))
+    .filter((c) => c.list.length > 1);
+
   // Tlač / export do PDF cez systémový dialóg prehliadača (Uložiť ako PDF)
   function printSchedule() {
     window.print();
+  }
+
+  // Export rozpisu vybraného dňa do CSV (otvoriteľné v Exceli)
+  function exportCsv() {
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const rows: string[][] = [["Hodina od", "Hodina do", "Stav", "Počet zápisov", "Nahlásení"]];
+    for (const h of hours) {
+      const list = entriesForHour(h);
+      rows.push([
+        `${String(h).padStart(2, "0")}:00`,
+        `${String(h + 1).padStart(2, "0")}:00`,
+        list.length === 0 ? "voľné" : list.length > 1 ? "prekrývanie" : "obsadené",
+        String(list.length),
+        list
+          .map((e) => `${nameOf(e.user_id)} ${hhmm(e.start_time)}-${hhmm(e.end_time)} (${VR_KIND_META[e.kind].label})`)
+          .join("; "),
+      ]);
+    }
+    const csv = "\uFEFF" + rows.map((r) => r.map(esc).join(";")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `vr-liptov-${selected}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV stiahnuté.");
+  }
+
+  // Klávesnica: šípky menia hodinu, Enter otvorí detail, Esc zatvorí
+  function onHoursKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    const idx = hours.indexOf(focusHour ?? openHour ?? hours[0]);
+    const move = (delta: number) => {
+      e.preventDefault();
+      const next = hours[Math.min(hours.length - 1, Math.max(0, idx + delta))];
+      setFocusHour(next);
+      document.getElementById(`vr-hour-${next}`)?.focus();
+    };
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") move(1);
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") move(-1);
+    else if (e.key === "Home") move(-hours.length);
+    else if (e.key === "End") move(hours.length);
+    else if (e.key === "Escape") {
+      setOpenHour(null);
+    }
   }
 
   return (
@@ -262,7 +329,7 @@ export default function VrLiptov() {
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             <label htmlFor="vr-range" className="sr-only">Rozsah hodín</label>
-            <Select value={rangeId} onValueChange={(v) => { setRangeId(v); setOpenHour(null); }}>
+            <Select value={rangeId} onValueChange={saveRange}>
               <SelectTrigger id="vr-range" className="h-9 w-[170px] text-xs" aria-label="Rozsah hodín rozpisu">
                 <SelectValue />
               </SelectTrigger>
@@ -272,6 +339,9 @@ export default function VrLiptov() {
                 ))}
               </SelectContent>
             </Select>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={exportCsv}>
+              <Download className="h-4 w-4" aria-hidden /> CSV
+            </Button>
             <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={printSchedule}>
               <Printer className="h-4 w-4" aria-hidden /> Tlač / PDF
             </Button>
@@ -279,11 +349,15 @@ export default function VrLiptov() {
         </div>
         <p className="mb-3 text-xs text-muted-foreground">
           Klikni na hodinu a uvidíš, kto tam v tom čase bude. Zelená = voľné, fialová = obsadené,
-          oranžová = prekrývanie viacerých zápisov.
+          oranžová = prekrývanie viacerých zápisov. Ovládanie klávesnicou: šípky menia hodinu, Enter otvorí detail, Esc zatvorí.
         </p>
 
         {/* Horizontálne scrollovateľná os hodín — od–do zostáva čitateľné aj na mobile */}
-        <div role="group" aria-label={`Časová os hodín ${range.from}:00 až ${range.to}:00`}>
+        <div
+          role="group"
+          aria-label={`Časová os hodín ${range.from}:00 až ${range.to}:00`}
+          onKeyDown={onHoursKeyDown}
+        >
           <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7 lg:grid-cols-7 xl:grid-cols-7">
             {hours.map((h) => {
               const list = entriesForHour(h);
@@ -299,6 +373,8 @@ export default function VrLiptov() {
                   <TooltipTrigger asChild>
                     <button
                       type="button"
+                      id={`vr-hour-${h}`}
+                      onFocus={() => setFocusHour(h)}
                       onClick={() => setOpenHour(isOpen ? null : h)}
                       aria-pressed={isOpen}
                       aria-label={`${String(h).padStart(2, "0")}:00 – ${String(h + 1).padStart(2, "0")}:00, nahlásených ${list.length}`}
@@ -320,7 +396,8 @@ export default function VrLiptov() {
                         –{String(h + 1).padStart(2, "0")}:00
                       </span>
                       <span className="flex items-center gap-1 text-[10px] font-semibold">
-                        <Users className="h-3 w-3" aria-hidden /> {list.length}
+                        <Users className="h-3 w-3" aria-hidden />
+                        {list.length} {list.length === 1 ? "zápis" : list.length < 5 ? "zápisy" : "zápisov"}
                         {isOverlap && <span aria-hidden>⚠</span>}
                       </span>
                     </button>
@@ -331,6 +408,30 @@ export default function VrLiptov() {
             })}
           </div>
         </div>
+
+        {/* Prehľad konfliktov */}
+        {conflicts.length > 0 && (
+          <div className="mt-3 rounded-xl border border-warning/50 bg-warning/10 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-warning">
+              <AlertTriangle className="h-4 w-4" aria-hidden />
+              Prekrývanie v {conflicts.length} {conflicts.length === 1 ? "hodine" : conflicts.length < 5 ? "hodinách" : "hodinách"}
+            </p>
+            <ul className="mt-1.5 space-y-1">
+              {conflicts.map((c) => (
+                <li key={c.hour} className="text-[11px] text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => setOpenHour(c.hour)}
+                    className="font-semibold text-foreground underline-offset-2 hover:underline"
+                  >
+                    {String(c.hour).padStart(2, "0")}:00–{String(c.hour + 1).padStart(2, "0")}:00
+                  </button>{" "}
+                  — {c.list.map((e) => `${nameOf(e.user_id)} ${hhmm(e.start_time)}–${hhmm(e.end_time)}`).join(" × ")}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Legenda stavov hodín */}
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] text-muted-foreground sm:text-[11px] print:hidden">
