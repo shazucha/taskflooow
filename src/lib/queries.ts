@@ -721,6 +721,27 @@ export function useDeleteTask() {
   });
 }
 
+export function useUpdateTasksBulk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: Array<{ id: string; patch: Partial<Task> }>) => {
+      await updateTasksBulk(updates);
+      // Best-effort push do Google — nikdy neblokuje výsledok.
+      await Promise.all(
+        updates.map((u) =>
+          syncTaskToGoogle(u.id, "upsert").catch((err) => {
+            console.warn("Google upsert sync failed for", u.id, err);
+          })
+        )
+      );
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["project_tasks"] });
+    },
+  });
+}
+
 export function useDeleteTasks() {
   const qc = useQueryClient();
   return useMutation({
