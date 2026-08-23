@@ -2,135 +2,149 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Cloud White design system — Podio-inspired, mobile-first */
+/* TaskFlow design system — premium editorial, mobile-first */
 @layer base {
   :root {
-    --background: 210 33% 99%;
-    --foreground: 222 47% 11%;
+    --background: 220 30% 98%;
+    --foreground: 224 45% 12%;
 
     --surface: 0 0% 100%;
-    --surface-muted: 214 32% 95%;
+    --surface-muted: 220 28% 95%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 224 45% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 224 45% 12%;
 
-    --primary: 217 91% 60%;
+    --primary: 233 78% 56%;
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 214 100% 96%;
+    --primary-soft: 233 100% 96%;
+    --primary-glow: 258 82% 66%;
 
-    --secondary: 214 32% 95%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 220 28% 95%;
+    --secondary-foreground: 224 45% 12%;
 
-    --muted: 214 32% 95%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 220 28% 95%;
+    --muted-foreground: 222 14% 46%;
 
-    --accent: 214 100% 96%;
-    --accent-foreground: 217 91% 40%;
+    --accent: 233 100% 96%;
+    --accent-foreground: 233 78% 44%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 356 78% 55%;
     --destructive-foreground: 0 0% 100%;
 
     /* Priority palette */
-    --priority-high: 0 84% 60%;
-    --priority-high-soft: 0 100% 96%;
-    --priority-medium: 217 91% 60%;
-    --priority-medium-soft: 214 100% 96%;
-    --priority-low: 199 89% 70%;
-    --priority-low-soft: 199 100% 96%;
+    --priority-high: 356 78% 55%;
+    --priority-high-soft: 356 100% 96%;
+    --priority-medium: 33 92% 54%;
+    --priority-medium-soft: 33 100% 95%;
+    --priority-low: 190 82% 45%;
+    --priority-low-soft: 190 90% 95%;
 
-    --success: 142 71% 45%;
+    --success: 158 68% 40%;
 
     /* VR Liptov brand */
     --vr: 275 85% 60%;
     --vr-soft: 275 100% 96%;
     --vr-foreground: 0 0% 100%;
 
+    --border: 220 24% 91%;
+    --input: 220 24% 91%;
+    --ring: 233 78% 56%;
 
-    --border: 214 27% 90%;
-    --input: 214 27% 90%;
-    --ring: 217 91% 60%;
+    --radius: 1rem;
 
-    --radius: 0.875rem;
+    /* Gradients & elevation */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-surface: linear-gradient(160deg, hsl(0 0% 100%), hsl(220 40% 99%));
+    --gradient-page: radial-gradient(1200px 600px at 15% -10%, hsl(233 90% 94% / 0.75), transparent 60%),
+                     radial-gradient(900px 500px at 100% 0%, hsl(275 90% 94% / 0.6), transparent 55%);
 
-    --shadow-sm: 0 1px 2px hsl(222 47% 11% / 0.04);
-    --shadow-md: 0 4px 16px -4px hsl(222 47% 11% / 0.08);
-    --shadow-lg: 0 12px 40px -12px hsl(222 47% 11% / 0.12);
+    --shadow-sm: 0 1px 2px hsl(224 45% 12% / 0.05), 0 1px 3px hsl(224 45% 12% / 0.04);
+    --shadow-md: 0 6px 20px -8px hsl(224 45% 12% / 0.14), 0 2px 6px -2px hsl(224 45% 12% / 0.06);
+    --shadow-lg: 0 24px 60px -22px hsl(233 60% 25% / 0.28), 0 6px 18px -8px hsl(224 45% 12% / 0.10);
+    --shadow-glow: 0 12px 36px -12px hsl(var(--primary) / 0.45);
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 224 20% 30%;
+    --sidebar-primary: 233 78% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 233 100% 96%;
+    --sidebar-accent-foreground: 233 78% 44%;
+    --sidebar-border: 220 24% 91%;
+    --sidebar-ring: 233 78% 56%;
   }
 
   .dark {
-    --background: 222 47% 7%;
-    --foreground: 210 33% 98%;
+    --background: 230 40% 7%;
+    --foreground: 220 30% 97%;
 
-    --surface: 222 47% 10%;
-    --surface-muted: 222 32% 14%;
+    --surface: 230 34% 11%;
+    --surface-muted: 230 28% 15%;
 
-    --card: 222 47% 10%;
-    --card-foreground: 210 33% 98%;
+    --card: 230 34% 11%;
+    --card-foreground: 220 30% 97%;
 
-    --popover: 222 47% 10%;
-    --popover-foreground: 210 33% 98%;
+    --popover: 230 34% 11%;
+    --popover-foreground: 220 30% 97%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-soft: 217 60% 18%;
+    --primary: 233 85% 68%;
+    --primary-foreground: 230 45% 9%;
+    --primary-soft: 233 45% 20%;
+    --primary-glow: 262 85% 72%;
 
-    --secondary: 222 32% 16%;
-    --secondary-foreground: 210 33% 98%;
+    --secondary: 230 28% 17%;
+    --secondary-foreground: 220 30% 97%;
 
-    --muted: 222 32% 16%;
-    --muted-foreground: 215 16% 65%;
+    --muted: 230 28% 17%;
+    --muted-foreground: 220 14% 68%;
 
-    --accent: 217 60% 18%;
-    --accent-foreground: 217 91% 75%;
+    --accent: 233 45% 20%;
+    --accent-foreground: 233 90% 82%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 356 72% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --priority-high: 0 84% 60%;
-    --priority-high-soft: 0 60% 18%;
-    --priority-medium: 217 91% 60%;
-    --priority-medium-soft: 217 60% 18%;
-    --priority-low: 199 89% 70%;
-    --priority-low-soft: 199 60% 18%;
+    --priority-high: 356 80% 62%;
+    --priority-high-soft: 356 45% 20%;
+    --priority-medium: 33 90% 60%;
+    --priority-medium-soft: 33 45% 19%;
+    --priority-low: 190 80% 55%;
+    --priority-low-soft: 190 45% 18%;
 
-    --success: 142 60% 50%;
+    --success: 158 62% 48%;
 
     /* VR Liptov brand */
-    --vr: 275 85% 70%;
-    --vr-soft: 275 50% 20%;
-    --vr-foreground: 0 0% 100%;
+    --vr: 275 85% 72%;
+    --vr-soft: 275 45% 22%;
+    --vr-foreground: 275 45% 12%;
 
+    --border: 230 24% 21%;
+    --input: 230 24% 21%;
+    --ring: 233 85% 68%;
 
-    --border: 222 32% 20%;
-    --input: 222 32% 20%;
-    --ring: 217 91% 60%;
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-surface: linear-gradient(160deg, hsl(230 34% 13%), hsl(230 34% 10%));
+    --gradient-page: radial-gradient(1200px 600px at 15% -10%, hsl(233 70% 30% / 0.35), transparent 60%),
+                     radial-gradient(900px 500px at 100% 0%, hsl(275 70% 32% / 0.28), transparent 55%);
 
-    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.4);
-    --shadow-md: 0 4px 16px -4px hsl(0 0% 0% / 0.5);
-    --shadow-lg: 0 12px 40px -12px hsl(0 0% 0% / 0.6);
+    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.5);
+    --shadow-md: 0 8px 24px -10px hsl(0 0% 0% / 0.65);
+    --shadow-lg: 0 26px 64px -24px hsl(0 0% 0% / 0.8);
+    --shadow-glow: 0 12px 36px -12px hsl(var(--primary) / 0.5);
 
-    --sidebar-background: 222 47% 9%;
-    --sidebar-foreground: 210 33% 90%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 32% 16%;
-    --sidebar-accent-foreground: 210 33% 98%;
-    --sidebar-border: 222 32% 20%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-background: 230 36% 9%;
+    --sidebar-foreground: 220 22% 82%;
+    --sidebar-primary: 233 85% 68%;
+    --sidebar-primary-foreground: 230 45% 9%;
+    --sidebar-accent: 233 45% 20%;
+    --sidebar-accent-foreground: 233 90% 85%;
+    --sidebar-border: 230 24% 21%;
+    --sidebar-ring: 233 85% 68%;
   }
 }
+
 
 @layer base {
   * {
