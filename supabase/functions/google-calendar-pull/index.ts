@@ -114,6 +114,14 @@ function inferProjectId(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Rozsah synchronizácie dozadu (dni) — klient ho posiela v tele požiadavky.
+  let daysBack = 7;
+  try {
+    const b = await req.clone().json();
+    const raw = Number(b?.days_back);
+    if (Number.isFinite(raw)) daysBack = Math.min(90, Math.max(0, Math.round(raw)));
+  } catch (_) { /* no json body */ }
+
   try {
     const user = await getUserFromJwtPayload(req) ?? await getUserFromAuthHeader(req);
     if (!user) {
@@ -169,9 +177,9 @@ Deno.serve(async (req) => {
       if (usedSyncToken) {
         url.searchParams.set("syncToken", tokenRow.sync_token!);
       } else {
-        // Pull only from posledných 7 dní dozadu dopredu — nikdy neimportujeme
+        // Pull len z posledných `daysBack` dní dozadu — nikdy neimportujeme
         // celú históriu kalendára (používateľ to explicitne nechce).
-        const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const from = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
         from.setHours(0, 0, 0, 0);
         const to = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
         url.searchParams.set("timeMin", from.toISOString());
@@ -279,10 +287,10 @@ Deno.serve(async (req) => {
       const end = pickEnd(ev);
       if (!start) continue; // ignore events with no time at all
 
-      // Skip events that started viac ako 7 dní dozadu — používateľ nechce
-      // importovať celú históriu, max týždeň dozadu.
+      // Skip events that started viac ako `daysBack` dní dozadu — používateľ
+      // nechce importovať celú históriu.
       const startMs = new Date(start).getTime();
-      const lookbackStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const lookbackStart = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
       lookbackStart.setHours(0, 0, 0, 0);
       if (startMs < lookbackStart.getTime() && !byEventId.get(ev.id)) {
         // Only skip NEW imports. If we already imported it earlier, keep updating it.
