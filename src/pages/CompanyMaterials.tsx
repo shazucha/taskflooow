@@ -71,6 +71,10 @@ import AiNewsSection from "@/components/AiNewsSection";
 import type { CompanyMaterial } from "@/lib/types";
 
 // Hlavné sekcie firemných materiálov — jasná hierarchia stránky.
+const PRESETS_KEY = "materials-filter-presets";
+
+type FilterPreset = { name: string; filter: MaterialGroup | "all"; subFilter: string | "all" };
+
 const SECTIONS = [
   {
     id: "materials",
@@ -439,6 +443,30 @@ export default function CompanyMaterials() {
   const [subFilter, setSubFilter] = useState<string | "all">("all");
   const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [search, setSearch] = useState("");
+  // Uložené presety filtrov (typ + podkategória) v localStorage.
+  const [presets, setPresets] = useState<FilterPreset[]>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(PRESETS_KEY) ?? "[]") as FilterPreset[];
+    } catch {
+      return [];
+    }
+  });
+
+  const persistPresets = (next: FilterPreset[]) => {
+    setPresets(next);
+    try {
+      window.localStorage.setItem(PRESETS_KEY, JSON.stringify(next));
+    } catch { /* ignore */ }
+  };
+
+  const saveCurrentPreset = () => {
+    const suggested = `${GROUP_LABEL[filter]}${subFilter !== "all" ? ` · ${prettySubcategory(subFilter)}` : ""}`;
+    const name = window.prompt("Názov presetu:", suggested)?.trim();
+    if (!name) return;
+    persistPresets([...presets.filter((p) => p.name !== name), { name, filter, subFilter }]);
+    toast.success("Preset uložený.");
+  };
 
   // Synchronizujeme lokálne poradie s dátami zo servera.
   useEffect(() => {
@@ -463,9 +491,14 @@ export default function CompanyMaterials() {
       orderedMaterials.filter((m) => {
         if (filter !== "all" && detectGroup(m.url) !== filter) return false;
         if (subFilter !== "all" && (m.subcategory ?? "") !== subFilter) return false;
+        const q = search.trim().toLowerCase();
+        if (q) {
+          const hay = `${m.label ?? ""} ${m.url} ${m.subcategory ?? ""}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
         return true;
       }),
-    [orderedMaterials, filter, subFilter],
+    [orderedMaterials, filter, subFilter, search],
   );
 
   // Existujúce podkategórie v rámci zvoleného hlavného filtra (na chip-y a do selectu).
@@ -719,6 +752,49 @@ export default function CompanyMaterials() {
 
           <div className="mt-4">
         <div className="mb-4 space-y-3 rounded-2xl border border-border/60 bg-card/40 p-3">
+        {/* Vyhľadávanie v materiáloch (rešpektuje aktívne filtre) */}
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Hľadať v názvoch, odkazoch a podkategóriách…"
+            aria-label="Hľadať v materiáloch"
+            className="pl-9"
+          />
+        </div>
+        {/* Uložené presety filtrov */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[11px] uppercase tracking-wide text-muted-foreground">Presety:</span>
+          {presets.length === 0 && (
+            <span className="text-[11px] text-muted-foreground">zatiaľ žiadne</span>
+          )}
+          {presets.map((p) => (
+            <span
+              key={p.name}
+              className="inline-flex items-center gap-1 rounded-full bg-surface-muted pl-2.5 pr-1 py-0.5 text-[11px] font-medium text-muted-foreground"
+            >
+              <button
+                type="button"
+                onClick={() => { setFilter(p.filter); setSubFilter(p.subFilter); }}
+                className="hover:text-foreground"
+              >
+                {p.name}
+              </button>
+              <button
+                type="button"
+                onClick={() => persistPresets(presets.filter((x) => x.name !== p.name))}
+                className="rounded-full p-0.5 opacity-60 hover:opacity-100"
+                aria-label={`Odstrániť preset ${p.name}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+          <Button variant="outline" size="sm" className="h-7 gap-1 text-[11px]" onClick={saveCurrentPreset}>
+            <Save className="h-3.5 w-3.5" aria-hidden /> Uložiť filter
+          </Button>
+        </div>
         {/* Legenda farebných označení */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-surface-muted px-3 py-2 text-[11px] text-muted-foreground">
           <span className="font-medium text-foreground">Legenda:</span>
@@ -825,7 +901,9 @@ export default function CompanyMaterials() {
         ) : visibleMaterials.length === 0 ? (
           <div className="rounded-2xl bg-surface-muted p-8 text-center">
             <p className="text-sm text-muted-foreground">
-              Pre vybranú kategóriu zatiaľ nemáš žiadne materiály.
+              {search.trim()
+                ? `Pre hľadanie „${search.trim()}“ sa nenašli žiadne materiály.`
+                : "Pre vybranú kategóriu zatiaľ nemáš žiadne materiály."}
             </p>
           </div>
         ) : (
@@ -1049,7 +1127,7 @@ function SortableMaterialRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5",
+        "flex min-h-[68px] items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5",
         isDragging && "opacity-60 shadow-lg",
         showNovice && "ring-1 ring-red-500/40 bg-red-500/5",
       )}
@@ -1110,9 +1188,9 @@ function SortableMaterialRow({
         target="_blank"
         rel="noreferrer noopener"
         onClick={onOpen}
-        className="flex flex-1 min-w-0 flex-col text-sm hover:text-primary"
+        className="flex min-w-0 flex-1 flex-col gap-0.5 py-0.5 text-sm hover:text-primary"
       >
-        <span className="flex items-center gap-1.5 truncate font-medium">
+        <span className="flex min-w-0 items-center gap-1.5 font-medium leading-tight">
           <span className="truncate">{material.label || hostOf(material.url)}</span>
           <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
           {material.subcategory && (
@@ -1127,6 +1205,7 @@ function SortableMaterialRow({
           {dateText ? ` · ${dateText}` : ""}
         </span>
       </a>
+      <span className="ml-auto flex shrink-0 items-center gap-1.5">
       <button
         type="button"
         onClick={() => setEditing(true)}
@@ -1159,6 +1238,7 @@ function SortableMaterialRow({
           <Trash2 className="h-4 w-4" />
         </button>
       )}
+      </span>
     </li>
   );
 }
