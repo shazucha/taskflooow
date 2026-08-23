@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { UserAvatar } from "@/components/UserAvatar";
 import { VrHeadsetIcon } from "@/components/VrHeadsetIcon";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCurrentUserId, useProfiles } from "@/lib/queries";
@@ -141,7 +142,7 @@ export default function VrLiptov() {
   const selectedDate = new Date(`${selected}T00:00:00`);
 
   return (
-    <main className="w-full px-3 pb-28 pt-5 sm:px-6 sm:pt-6 md:pl-72 md:pr-8">
+    <main className="w-full px-4 pb-28 pt-6 sm:px-6 md:px-10 md:pt-10 md:pb-12 xl:mx-auto xl:max-w-[1400px]">
       <header className="mb-5 rounded-2xl border border-vr/30 bg-vr-soft/60 p-4">
         <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-vr sm:text-2xl">
           <VrHeadsetIcon className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" /> VR Liptov
@@ -152,6 +153,7 @@ export default function VrLiptov() {
         </p>
       </header>
 
+      <div className="grid gap-4 lg:grid-cols-[minmax(320px,420px)_1fr] lg:items-start xl:gap-6">
       <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="truncate text-sm font-semibold sm:text-base">
@@ -224,36 +226,61 @@ export default function VrLiptov() {
       </section>
 
       {/* Časová os – rozklikni hodinu a uvidíš, kto tam bude */}
-      <section className="mt-4 rounded-2xl border border-border/60 bg-card/60 p-3 sm:mt-5 sm:p-4">
+      <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4 lg:mt-0">
         <h2 className="mb-1 text-sm font-semibold sm:text-base">
           Rozpis hodín — {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()].toLowerCase()}
         </h2>
-        <p className="mb-3 text-xs text-muted-foreground">Klikni na hodinu a uvidíš, kto tam v tom čase bude.</p>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Klikni na hodinu a uvidíš, kto tam v tom čase bude. Na menších displejoch sa rozpis dá posúvať do strán.
+        </p>
 
-        <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
-          {HOURS.map((h) => {
-            const list = entriesForHour(h);
-            const isOpen = openHour === h;
-            return (
-              <button
-                key={h}
-                onClick={() => setOpenHour(isOpen ? null : h)}
-                className={cn(
-                  "flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 text-[11px] font-medium transition",
-                  isOpen
-                    ? "border-vr bg-vr text-vr-foreground"
-                    : list.length > 0
-                      ? "border-vr/40 bg-vr-soft text-vr hover:border-vr"
-                      : "border-border/50 text-muted-foreground hover:bg-surface-muted"
-                )}
-              >
-                <span>{String(h).padStart(2, "0")}:00</span>
-                <span className="flex items-center gap-1 text-[10px] opacity-90">
-                  <Users className="h-3 w-3" /> {list.length}
-                </span>
-              </button>
-            );
-          })}
+        {/* Horizontálne scrollovateľná os hodín — od–do zostáva čitateľné aj na mobile */}
+        <div
+          className="-mx-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:px-0"
+          role="group"
+          aria-label="Časová os hodín 7:00 až 21:00"
+        >
+          <div className="flex min-w-max gap-1.5">
+            {HOURS.map((h) => {
+              const list = entriesForHour(h);
+              const isOpen = openHour === h;
+              const names = list.map((e) => `${nameOf(e.user_id)} ${hhmm(e.start_time)}–${hhmm(e.end_time)}`);
+              const tip = list.length
+                ? names.join(" · ")
+                : "V tejto hodine nikto nie je nahlásený";
+              return (
+                <Tooltip key={h}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setOpenHour(isOpen ? null : h)}
+                      aria-pressed={isOpen}
+                      aria-label={`${String(h).padStart(2, "0")}:00 – ${String(h + 1).padStart(2, "0")}:00, nahlásených ${list.length}`}
+                      className={cn(
+                        "flex w-[78px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2.5 text-[11px] font-medium transition sm:w-[86px]",
+                        isOpen
+                          ? "border-vr bg-vr text-vr-foreground"
+                          : list.length > 0
+                            ? "border-vr/40 bg-vr-soft text-vr hover:border-vr"
+                            : "border-border/50 text-muted-foreground hover:bg-surface-muted"
+                      )}
+                    >
+                      <span className="tabular-nums">
+                        {String(h).padStart(2, "0")}:00
+                      </span>
+                      <span className="text-[10px] opacity-80 tabular-nums">
+                        –{String(h + 1).padStart(2, "0")}:00
+                      </span>
+                      <span className="flex items-center gap-1 text-[10px] font-semibold">
+                        <Users className="h-3 w-3" aria-hidden /> {list.length}
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[260px] text-xs">{tip}</TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
         </div>
 
         {openHour !== null && (
@@ -261,16 +288,22 @@ export default function VrLiptov() {
             <p className="mb-2 text-xs font-semibold text-vr">
               {String(openHour).padStart(2, "0")}:00 – {String(openHour + 1).padStart(2, "0")}:00
               {openHour < 14 ? " · kancelária / práca" : " · VR sessions"}
+              <span className="ml-2 rounded-full bg-vr/15 px-2 py-0.5 text-[10px] font-bold">
+                {entriesForHour(openHour).length} nahlásených
+              </span>
             </p>
             {entriesForHour(openHour).length === 0 ? (
               <p className="text-xs text-muted-foreground">V tejto hodine nikto nie je nahlásený.</p>
             ) : (
               <ul className="space-y-1.5">
                 {entriesForHour(openHour).map((e) => (
-                  <li key={e.id} className="flex items-center gap-2 rounded-lg bg-card/70 px-2 py-1.5">
+                  <li key={e.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-card/70 px-2 py-1.5">
                     <UserAvatar profile={profiles.find((x) => x.id === e.user_id)} size="sm" />
                     <span className="min-w-0 flex-1 truncate text-xs font-medium">{nameOf(e.user_id)}</span>
-                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                    <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] font-semibold", VR_KIND_META[e.kind].badge)}>
+                      {VR_KIND_META[e.kind].label}
+                    </span>
+                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
                       {hhmm(e.start_time)}–{hhmm(e.end_time)} · {durationLabel(e)}
                     </span>
                   </li>
@@ -280,6 +313,7 @@ export default function VrLiptov() {
           </div>
         )}
       </section>
+      </div>
 
       <section className="mt-4 rounded-2xl border border-border/60 bg-card/60 p-3 sm:mt-5 sm:p-4">
         <h2 className="mb-3 text-sm font-semibold sm:text-base">
