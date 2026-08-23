@@ -376,7 +376,9 @@ export default function Tasks() {
         ] as { id: Scope; label: string; count: number }[]).map((s) => (
           <button
             key={s.id}
+            type="button"
             onClick={() => setScope(s.id)}
+            aria-pressed={scope === s.id}
             data-active={scope === s.id}
             className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors data-[active=true]:bg-foreground data-[active=true]:text-background"
           >
@@ -391,6 +393,7 @@ export default function Tasks() {
           type="button"
           onClick={() => setOverdueOnly((v) => !v)}
           data-active={overdueOnly}
+          aria-pressed={overdueOnly}
           title="Zobraziť iba úlohy po termíne"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all",
@@ -410,11 +413,49 @@ export default function Tasks() {
         </button>
       </div>
 
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div role="group" aria-label="Filter podľa stavu" className="inline-flex rounded-full bg-surface-muted p-1">
+          {([
+            { id: "open", label: "Nesplnené" },
+            { id: "done", label: "Dokončené" },
+            { id: "all", label: "Všetky" },
+          ] as { id: StatusFilter; label: string }[]).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setStatusFilter(s.id)}
+              aria-pressed={statusFilter === s.id}
+              data-active={statusFilter === s.id}
+              className="rounded-full px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors data-[active=true]:bg-foreground data-[active=true]:text-background"
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="task-sort" className="text-xs font-medium text-muted-foreground">
+            Zoradiť
+          </label>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
+            <SelectTrigger id="task-sort" className="h-8 w-[190px] text-xs" aria-label="Zoradiť úlohy">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="priority">Podľa priority</SelectItem>
+              <SelectItem value="due">Podľa najbližšieho termínu</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0">
         {chips.map((c) => (
           <button
             key={c.id}
+            type="button"
             data-active={priorityFilter === c.id}
+            aria-pressed={priorityFilter === c.id}
             onClick={() => setPriorityFilter(c.id)}
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
@@ -495,6 +536,7 @@ export default function Tasks() {
                           {selectMode && (
                             <Checkbox
                               className="mt-3"
+                              aria-label={`Vybrať úlohu ${t.title}`}
                               checked={selected.has(t.id)}
                               onCheckedChange={() => toggleSelected(t.id)}
                             />
@@ -532,6 +574,7 @@ export default function Tasks() {
                         {selectMode && (
                           <Checkbox
                             className="mt-3"
+                            aria-label={`Vybrať úlohu ${t.title}`}
                             checked={selected.has(t.id)}
                             onCheckedChange={() => toggleSelected(t.id)}
                           />
