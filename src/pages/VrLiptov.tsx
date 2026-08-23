@@ -152,6 +152,11 @@ export default function VrLiptov() {
 
   const selectedDate = new Date(`${selected}T00:00:00`);
 
+  // Tlač / export do PDF cez systémový dialóg prehliadača (Uložiť ako PDF)
+  function printSchedule() {
+    window.print();
+  }
+
   return (
     <main className="w-full px-4 pb-28 pt-6 sm:px-6 md:px-10 md:pt-10 md:pb-12 2xl:mx-auto 2xl:max-w-[1700px]">
       <header className="mb-5 rounded-2xl border border-vr/30 bg-vr-soft/60 p-4">
@@ -245,7 +250,12 @@ export default function VrLiptov() {
       </section>
 
       {/* Časová os – rozklikni hodinu a uvidíš, kto tam bude */}
-      <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4 lg:mt-0">
+      <section id="vr-print-area" className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4 lg:mt-0">
+        {/* Hlavička len pre tlač */}
+        <h2 className="mb-2 hidden text-base font-bold print:block">
+          VR Liptov — rozpis {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()].toLowerCase()}{" "}
+          {selectedDate.getFullYear()} ({range.label})
+        </h2>
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2 print:hidden">
           <h2 className="text-sm font-semibold sm:text-base">
             Rozpis hodín — {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()].toLowerCase()}
@@ -322,8 +332,52 @@ export default function VrLiptov() {
           </div>
         </div>
 
+        {/* Legenda stavov hodín */}
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] text-muted-foreground sm:text-[11px] print:hidden">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm border border-success/40 bg-success/20" /> Voľné
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm border border-vr/50 bg-vr-soft" /> Obsadené
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm border border-warning bg-warning/25" /> Prekrývanie (2+ zápisy)
+          </span>
+        </div>
+
+        {/* Kompletný rozpis pre tlač / PDF */}
+        <table className="mt-3 hidden w-full border-collapse text-[11px] print:table">
+          <thead>
+            <tr>
+              <th className="border border-black/30 px-2 py-1 text-left">Hodina</th>
+              <th className="border border-black/30 px-2 py-1 text-left">Stav</th>
+              <th className="border border-black/30 px-2 py-1 text-left">Nahlásení</th>
+            </tr>
+          </thead>
+          <tbody>
+            {hours.map((h) => {
+              const list = entriesForHour(h);
+              return (
+                <tr key={h}>
+                  <td className="border border-black/30 px-2 py-1 tabular-nums">
+                    {String(h).padStart(2, "0")}:00–{String(h + 1).padStart(2, "0")}:00
+                  </td>
+                  <td className="border border-black/30 px-2 py-1">
+                    {list.length === 0 ? "voľné" : list.length > 1 ? `prekrývanie (${list.length})` : "obsadené"}
+                  </td>
+                  <td className="border border-black/30 px-2 py-1">
+                    {list
+                      .map((e) => `${nameOf(e.user_id)} ${hhmm(e.start_time)}–${hhmm(e.end_time)} (${VR_KIND_META[e.kind].label})`)
+                      .join("; ") || "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
         {openHour !== null && (
-          <div className="mt-3 rounded-xl border border-vr/30 bg-vr-soft/50 p-3">
+          <div className="mt-3 rounded-xl border border-vr/30 bg-vr-soft/50 p-3 print:hidden">
             <p className="mb-2 text-xs font-semibold text-vr">
               {String(openHour).padStart(2, "0")}:00 – {String(openHour + 1).padStart(2, "0")}:00
               {openHour < 14 ? " · kancelária / práca" : " · VR sessions"}
