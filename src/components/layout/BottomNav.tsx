@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, FolderOpen } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, FolderOpen, Headset } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
@@ -20,6 +20,7 @@ const baseItems: NavItem[] = [
   { to: "/projects", label: "Projekty", icon: FolderKanban, badgeKey: "projects" },
   { to: "/tasks", label: "Úlohy", icon: ListChecks, badgeKey: "tasks" },
   { to: "/company-materials", label: "Materiály", icon: FolderOpen },
+  { to: "/vr-liptov", label: "VR", icon: Headset },
   { to: "/chat", label: "Chat", icon: MessageCircle, badgeKey: "dm" },
   { to: "/me", label: "Profil", icon: User },
 ];
