@@ -97,6 +97,19 @@ export default function Tasks() {
     }
   };
 
+  // Hromadná zmena stavu (dokončené / späť na nesplnené)
+  const handleBulkStatus = async (status: "done" | "todo") => {
+    if (selected.size === 0) return;
+    const updates = Array.from(selected).map((id) => ({ id, patch: { status } as Partial<Task> }));
+    try {
+      await bulkUpdate.mutateAsync(updates);
+      toast.success(status === "done" ? `Dokončených: ${updates.length}` : `Vrátených späť: ${updates.length}`);
+      exitSelectMode();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Úprava zlyhala");
+    }
+  };
+
   const selectAllVisible = (list: Task[]) => {
     setSelected((prev) => {
       const next = new Set(prev);
