@@ -43,6 +43,12 @@
 
     --success: 142 71% 45%;
 
+    /* VR Liptov brand */
+    --vr: 275 85% 60%;
+    --vr-soft: 275 100% 96%;
+    --vr-foreground: 0 0% 100%;
+
+
     --border: 214 27% 90%;
     --input: 214 27% 90%;
     --ring: 217 91% 60%;
@@ -100,6 +106,12 @@
     --priority-low-soft: 199 60% 18%;
 
     --success: 142 60% 50%;
+
+    /* VR Liptov brand */
+    --vr: 275 85% 70%;
+    --vr-soft: 275 50% 20%;
+    --vr-foreground: 0 0% 100%;
+
 
     --border: 222 32% 20%;
     --input: 222 32% 20%;

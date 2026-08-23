@@ -24,6 +24,12 @@ export default {
           muted: "hsl(var(--surface-muted))",
         },
         success: "hsl(var(--success))",
+        vr: {
+          DEFAULT: "hsl(var(--vr))",
+          soft: "hsl(var(--vr-soft))",
+          foreground: "hsl(var(--vr-foreground))",
+        },
+
         priority: {
           high: "hsl(var(--priority-high))",
           "high-soft": "hsl(var(--priority-high-soft))",
