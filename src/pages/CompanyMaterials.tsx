@@ -68,6 +68,38 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { CompanyMaterial } from "@/lib/types";
 
+// Hlavné sekcie firemných materiálov — jasná hierarchia stránky.
+const SECTIONS = [
+  {
+    id: "materials",
+    label: "Materiály",
+    short: "Odkazy a súbory",
+    desc: "Zdieľané odkazy na Disk, dokumenty a šablóny.",
+    icon: FolderOpen,
+  },
+  {
+    id: "ai",
+    label: "AI nástroje",
+    short: "AI knižnica",
+    desc: "Knižnica AI nástrojov s popisom a odkazmi.",
+    icon: Sparkles,
+  },
+  {
+    id: "guides",
+    label: "Návody",
+    short: "Postupy",
+    desc: "Interné postupy vrátane priložených materiálov.",
+    icon: BookOpen,
+  },
+  {
+    id: "worktools",
+    label: "Pracovné nástroje",
+    short: "Prístupy a tooly",
+    desc: "Nástroje tímu vrátane prihlasovacích údajov a videí.",
+    icon: Wrench,
+  },
+] as const;
+
 // Farebné označenia materiálov + ich význam (zobrazené aj v legende).
 const COLOR_OPTIONS = [
   { key: "red", label: "Google Ads", dot: "bg-red-500", ring: "ring-red-500" },
@@ -571,37 +603,38 @@ export default function CompanyMaterials() {
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-        <div className="sm:hidden">
-          <Select value={activeTab} onValueChange={setActiveTab}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Vyber záložku" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="materials">Materiály</SelectItem>
-              <SelectItem value="ai">AI knižnica nástrojov</SelectItem>
-              <SelectItem value="guides">Návody</SelectItem>
-              <SelectItem value="worktools">Pracovné nástroje</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <TabsList className="hidden sm:inline-flex sm:h-10 sm:w-auto">
-          <TabsTrigger value="materials" className="gap-1.5 whitespace-nowrap">
-            <FolderOpen className="h-4 w-4" /> Materiály
-          </TabsTrigger>
-          <TabsTrigger value="ai" className="gap-1.5 whitespace-nowrap">
-            <Sparkles className="h-4 w-4" /> AI knižnica nástrojov
-          </TabsTrigger>
-          <TabsTrigger value="guides" className="gap-1.5 whitespace-nowrap">
-            <BookOpen className="h-4 w-4" /> Návody
-          </TabsTrigger>
-          <TabsTrigger value="worktools" className="gap-1.5 whitespace-nowrap">
-            <Wrench className="h-4 w-4" /> Pracovné nástroje
-          </TabsTrigger>
+        {/* Navigácia sekcií — na mobile posúvateľná, na desktope mriežka kariet */}
+        <TabsList
+          className="-mx-4 flex h-auto w-[calc(100%+2rem)] snap-x gap-2 overflow-x-auto bg-transparent px-4 pb-1 sm:mx-0 sm:grid sm:w-full sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4"
+          aria-label="Sekcie firemných materiálov"
+        >
+          {SECTIONS.map(({ id, label, short, icon: Icon }) => (
+            <TabsTrigger
+              key={id}
+              value={id}
+              className="h-auto min-w-[150px] shrink-0 snap-start flex-col items-start gap-1 rounded-2xl border border-border/60 bg-card/60 p-3 text-left data-[state=active]:border-primary/50 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[var(--shadow-glow)] sm:min-w-0"
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <Icon className="h-4 w-4 shrink-0" aria-hidden /> {label}
+              </span>
+              <span className="text-[11px] font-medium opacity-70">{short}</span>
+            </TabsTrigger>
+          ))}
         </TabsList>
 
+        {/* Popis aktívnej sekcie */}
+        <p className="mt-3 text-xs text-muted-foreground sm:text-sm">
+          {SECTIONS.find((x) => x.id === activeTab)?.desc}
+        </p>
+
         <TabsContent value="materials">
-          <div className="mt-3 flex items-center justify-end">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+            <h2 className="text-base font-semibold tracking-tight">
+              Materiály
+              <span className="ml-2 rounded-full bg-surface-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {orderedMaterials.length}
+              </span>
+            </h2>
             {!adding && (
               <Button size="sm" onClick={() => setAdding(true)}>
                 <Plus className="mr-1 h-4 w-4" /> Pridať materiál
@@ -675,9 +708,10 @@ export default function CompanyMaterials() {
         </div>
           )}
 
-          <div className="mt-5">
+          <div className="mt-4">
+        <div className="mb-4 space-y-3 rounded-2xl border border-border/60 bg-card/40 p-3">
         {/* Legenda farebných označení */}
-        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-surface-muted px-3 py-2 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-surface-muted px-3 py-2 text-[11px] text-muted-foreground">
           <span className="font-medium text-foreground">Legenda:</span>
           {COLOR_OPTIONS.map((c) => (
             <span key={c.key} className="inline-flex items-center gap-1.5">
@@ -687,7 +721,8 @@ export default function CompanyMaterials() {
           ))}
         </div>
         {materials.length > 0 && (
-          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-[11px] uppercase tracking-wide text-muted-foreground">Typ:</span>
             {(["all", "web", "social", "docs", "video"] as const).map((g) => {
               const active = filter === g;
               const count = g === "all" ? orderedMaterials.length : counts[g];
@@ -711,7 +746,7 @@ export default function CompanyMaterials() {
           </div>
         )}
         {subcategoriesInScope.length > 0 && (
-          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="mr-1 text-[11px] uppercase tracking-wide text-muted-foreground">
               Podkategórie:
             </span>
@@ -770,6 +805,7 @@ export default function CompanyMaterials() {
             })}
           </div>
         )}
+        </div>
         {materials.length === 0 && !adding ? (
           <div className="rounded-2xl bg-surface-muted p-8 text-center">
             <FolderOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
