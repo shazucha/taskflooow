@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type React from "react";
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, FolderOpen } from "lucide-react";
 import { VrHeadsetIcon } from "@/components/VrHeadsetIcon";
@@ -103,13 +104,32 @@ export function BottomNav() {
     );
   };
 
+  // Ovládanie pásu klávesnicou: šípky presúvajú fokus medzi položkami.
+  const onStripKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+    const links = Array.from(e.currentTarget.querySelectorAll<HTMLAnchorElement>("a"));
+    const idx = links.findIndex((l) => l === document.activeElement);
+    e.preventDefault();
+    let next = idx;
+    if (e.key === "ArrowRight") next = Math.min(links.length - 1, idx + 1);
+    else if (e.key === "ArrowLeft") next = Math.max(0, idx - 1);
+    else if (e.key === "Home") next = 0;
+    else next = links.length - 1;
+    const target = links[next < 0 ? 0 : next];
+    target?.focus();
+    target?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  };
+
   return (
     <nav
       aria-label="Hlavná navigácia"
       className="fixed bottom-0 left-0 z-40 flex w-full items-stretch border-t border-border/50 bg-card/85 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_-18px_hsl(224_45%_12%/0.35)] backdrop-blur-2xl md:hidden"
     >
       {/* Posúvateľné hlavné sekcie */}
-      <ul className="flex flex-1 snap-x snap-mandatory gap-0.5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <ul
+        onKeyDown={onStripKeyDown}
+        aria-label="Hlavné sekcie (posun šípkami)"
+        className="flex flex-1 snap-x snap-mandatory gap-0.5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {scrollItems.map(renderItem)}
       </ul>
 
