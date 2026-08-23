@@ -71,6 +71,38 @@ export default function Tasks() {
     }
   };
 
+  // Spustí hromadnú zmenu a ponúkne undo toast so snapshotom pôvodných hodnôt.
+  const runBulkWithUndo = async (
+    updates: Array<{ id: string; patch: Partial<Task> }>,
+    message: string
+  ) => {
+    const byId = new Map(tasks.map((t) => [t.id, t]));
+    const undoUpdates = updates.map(({ id, patch }) => {
+      const prev = byId.get(id);
+      const revert: Partial<Task> = {};
+      for (const key of Object.keys(patch) as (keyof Task)[]) {
+        (revert as Record<string, unknown>)[key as string] = prev ? prev[key] : null;
+      }
+      return { id, patch: revert };
+    });
+    await bulkUpdate.mutateAsync(updates);
+    exitSelectMode();
+    toast.success(message, {
+      duration: 8000,
+      action: {
+        label: "Späť",
+        onClick: async () => {
+          try {
+            await bulkUpdate.mutateAsync(undoUpdates);
+            toast.success("Zmena vrátená späť");
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Vrátenie zlyhalo");
+          }
+        },
+      },
+    });
+  };
+
   // Hromadná zmena priority a/alebo termínu pre vybrané úlohy.
   const handleBulkApply = async () => {
     if (selected.size === 0) return;
@@ -90,12 +122,11 @@ export default function Tasks() {
       }
       return { id, patch };
     });
+    if (!confirm(`Odoslať zmenu pre ${updates.length} úloh?`)) return;
     try {
-      await bulkUpdate.mutateAsync(updates);
-      toast.success(`Upravených: ${updates.length}`);
+      await runBulkWithUndo(updates, `Upravených: ${updates.length}`);
       setBulkPriority("");
       setBulkDue("");
-      exitSelectMode();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Úprava zlyhala");
     }
@@ -106,9 +137,10 @@ export default function Tasks() {
     if (selected.size === 0) return;
     const updates = Array.from(selected).map((id) => ({ id, patch: { status } as Partial<Task> }));
     try {
-      await bulkUpdate.mutateAsync(updates);
-      toast.success(status === "done" ? `Dokončených: ${updates.length}` : `Vrátených späť: ${updates.length}`);
-      exitSelectMode();
+      await runBulkWithUndo(
+        updates,
+        status === "done" ? `Dokončených: ${updates.length}` : `Vrátených späť: ${updates.length}`
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Úprava zlyhala");
     }
@@ -321,7 +353,7 @@ export default function Tasks() {
               onClick={handleBulkApply}
               className="h-7 text-xs"
             >
-              Použiť na vybrané
+              Odoslať
             </Button>
           </div>
         </div>
