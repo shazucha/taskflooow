@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, FolderOpen } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, FolderOpen, Headset } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
@@ -20,6 +20,7 @@ const baseItems: NavItem[] = [
   { to: "/projects", label: "Projekty", icon: FolderKanban, badgeKey: "projects" },
   { to: "/tasks", label: "Úlohy", icon: ListChecks, badgeKey: "tasks" },
   { to: "/company-materials", label: "Materiály", icon: FolderOpen },
+  { to: "/vr-liptov", label: "VR", icon: Headset },
   { to: "/chat", label: "Chat", icon: MessageCircle, badgeKey: "dm" },
   { to: "/me", label: "Profil", icon: User },
 ];
@@ -38,7 +39,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 border-t border-border/60 bg-card/90 backdrop-blur-xl md:hidden">
-      <ul className="grid grid-cols-6">
+      <ul className="grid grid-cols-7">
         {items.map(({ to, label, icon: Icon, end, badgeKey }) => {
           const badge =
             badgeKey === "team"
