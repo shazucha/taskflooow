@@ -22,6 +22,7 @@ import {
   X,
   BookOpen,
   Wrench,
+  Newspaper,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import AiNewsSection from "@/components/AiNewsSection";
 import type { CompanyMaterial } from "@/lib/types";
 
 // Hlavné sekcie firemných materiálov — jasná hierarchia stránky.
@@ -97,6 +99,13 @@ const SECTIONS = [
     short: "Prístupy a tooly",
     desc: "Nástroje tímu vrátane prihlasovacích údajov a videí.",
     icon: Wrench,
+  },
+  {
+    id: "ainews",
+    label: "Novinky",
+    short: "AI novinky",
+    desc: "Denne aktualizované novinky z AI sveta (Claude, ChatGPT, Gemini, Higgsfield…).",
+    icon: Newspaper,
   },
 ] as const;
 
@@ -895,6 +904,10 @@ export default function CompanyMaterials() {
 
         <TabsContent value="worktools">
           <WorkToolsLibrary />
+        </TabsContent>
+
+        <TabsContent value="ainews">
+          <AiNewsSection />
         </TabsContent>
       </Tabs>
     </div>
