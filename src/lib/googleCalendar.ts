@@ -298,11 +298,11 @@ export interface GoogleSyncResult {
 }
 
 /** Pull events FROM Google INTO TaskFlow tasks. Returns counts of changes. */
-export async function pullGoogleEvents(): Promise<PullResult | null> {
+export async function pullGoogleEvents(daysBack = 7): Promise<PullResult | null> {
   // Skip if not authenticated yet — invoke would send no Authorization header
   // and the edge function would return 401.
   if (!(await hasActiveSession())) {
-    queueRetryUntilAuthenticated(() => { void pullGoogleEvents(); });
+    queueRetryUntilAuthenticated(() => { void pullGoogleEvents(daysBack); });
     return null;
   }
   // Bez pripojeného Google účtu funkciu vôbec nevoláme.
@@ -312,7 +312,7 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
-      return await callGoogleFunction<PullResult>("google-calendar-pull", {}, {
+      return await callGoogleFunction<PullResult>("google-calendar-pull", { days_back: daysBack }, {
         ok: true,
         imported: 0,
         updated: 0,
@@ -325,7 +325,7 @@ export async function pullGoogleEvents(): Promise<PullResult | null> {
     }
     // 401 = auth race. Queue a retry that fires after re-authentication.
     if (getFunctionErrorStatus(error) === 401) {
-      queueRetryUntilAuthenticated(() => { void pullGoogleEvents(); });
+      queueRetryUntilAuthenticated(() => { void pullGoogleEvents(daysBack); });
       return null;
     }
     lastErr = error;

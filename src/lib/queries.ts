@@ -22,6 +22,7 @@ import {
   deleteTaskMaterial,
   deleteProjectMaterial,
   deleteTasks,
+  updateTasksBulk,
   fetchProfiles,
   fetchProjectMembers,
   fetchProjectMonthlyBonuses,
@@ -713,6 +714,27 @@ export function useDeleteTask() {
         console.warn("Google delete sync failed (continuing with DB delete):", err);
       }
       return deleteTask(id);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["project_tasks"] });
+    },
+  });
+}
+
+export function useUpdateTasksBulk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: Array<{ id: string; patch: Partial<Task> }>) => {
+      await updateTasksBulk(updates);
+      // Best-effort push do Google — nikdy neblokuje výsledok.
+      await Promise.all(
+        updates.map((u) =>
+          syncTaskToGoogle(u.id, "upsert").catch((err) => {
+            console.warn("Google upsert sync failed for", u.id, err);
+          })
+        )
+      );
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tasks"] });

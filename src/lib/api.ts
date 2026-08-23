@@ -374,6 +374,14 @@ export async function deleteTask(id: string) {
   if (error) throw error;
 }
 
+/** Hromadná úprava úloh — každá úloha môže mať vlastný patch. */
+export async function updateTasksBulk(updates: Array<{ id: string; patch: Partial<Task> }>) {
+  for (const u of updates) {
+    const { error } = await supabase.from("tasks").update(u.patch).eq("id", u.id);
+    if (error) throw error;
+  }
+}
+
 export async function deleteTasks(ids: string[]) {
   if (ids.length === 0) return;
   const { error } = await supabase.from("tasks").delete().in("id", ids);

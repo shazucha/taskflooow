@@ -12,6 +12,7 @@ import {
   syncTaskToGoogle,
   type PullResult,
 } from "@/lib/googleCalendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -28,6 +29,8 @@ export function GoogleCalendarConnect() {
   const [lastFixCount, setLastFixCount] = useState<number>(0);
   const [rollingBack, setRollingBack] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  // Rozsah synchronizácie dozadu v dňoch — staršie udalosti sa neimportujú.
+  const [daysBack, setDaysBack] = useState<number>(7);
 
   const refresh = async () => {
     setLoading(true);
@@ -70,7 +73,7 @@ export function GoogleCalendarConnect() {
     setAuditing(true);
     setAudit(null);
     try {
-      const r = await pullGoogleEvents();
+      const r = await pullGoogleEvents(daysBack);
       if (!r) {
         toast.error("Sync zlyhal");
         return;
@@ -149,7 +152,7 @@ export function GoogleCalendarConnect() {
         return;
       }
 
-      const r = await pullGoogleEvents();
+      const r = await pullGoogleEvents(daysBack);
       if (!r) {
         toast.error("Pull z Google zlyhal — pokračujem push-om");
       } else {
@@ -165,7 +168,7 @@ export function GoogleCalendarConnect() {
       if (userId) {
         // Obmedzenie: push do Google len pre úlohy s termínom v poslednom týždni
         // alebo v budúcnosti. Predtým sa nahadzovali všetky staré úlohy naspäť.
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const cutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString();
         const { data: pending } = await supabase
           .from("tasks")
           .select("id, due_date, due_end, google_event_id, google_imported")
@@ -173,7 +176,7 @@ export function GoogleCalendarConnect() {
           .not("due_date", "is", null)
           .is("google_event_id", null)
           .neq("google_imported", true)
-          .gte("due_date", sevenDaysAgo)
+          .gte("due_date", cutoff)
           .limit(200);
         for (const t of pending ?? []) {
           try {
@@ -241,6 +244,18 @@ export function GoogleCalendarConnect() {
         {!loading && (
           connected ? (
             <div className="flex flex-col items-end gap-1.5">
+              <Select value={String(daysBack)} onValueChange={(v) => setDaysBack(Number(v))}>
+                <SelectTrigger className="h-7 w-[132px] px-2 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Len odteraz</SelectItem>
+                  <SelectItem value="1">1 deň dozadu</SelectItem>
+                  <SelectItem value="7">7 dní dozadu</SelectItem>
+                  <SelectItem value="14">14 dní dozadu</SelectItem>
+                  <SelectItem value="30">30 dní dozadu</SelectItem>
+                </SelectContent>
+              </Select>
               <Button size="sm" variant="outline" onClick={disconnect} disabled={busy} className="gap-1.5">
                 {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unlink className="h-3.5 w-3.5" />}
                 Odpojiť
@@ -253,7 +268,7 @@ export function GoogleCalendarConnect() {
                 className="h-7 gap-1.5 px-2 text-xs"
               >
                 {auditing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardCheck className="h-3.5 w-3.5" />}
-                Sync + audit
+                Synchronizovať
               </Button>
               <Button
                 size="sm"
