@@ -230,7 +230,7 @@ export default function VrLiptov() {
         </h2>
         <p className="mb-3 text-xs text-muted-foreground">Klikni na hodinu a uvidíš, kto tam v tom čase bude.</p>
 
-        <div className="grid grid-cols-3 gap-1.5 xs:grid-cols-4 sm:grid-cols-7">
+        <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
           {HOURS.map((h) => {
             const list = entriesForHour(h);
             const isOpen = openHour === h;
