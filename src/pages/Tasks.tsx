@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, CalendarOff, CheckSquare, Trash2, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, CalendarOff, CheckSquare, CheckCircle2, RotateCcw, Trash2, X } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TaskCard } from "@/components/TaskCard";
 import { NewTaskDialog } from "@/components/NewTaskDialog";
@@ -91,6 +91,19 @@ export default function Tasks() {
       toast.success(`Upravených: ${updates.length}`);
       setBulkPriority("");
       setBulkDue("");
+      exitSelectMode();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Úprava zlyhala");
+    }
+  };
+
+  // Hromadná zmena stavu (dokončené / späť na nesplnené)
+  const handleBulkStatus = async (status: "done" | "todo") => {
+    if (selected.size === 0) return;
+    const updates = Array.from(selected).map((id) => ({ id, patch: { status } as Partial<Task> }));
+    try {
+      await bulkUpdate.mutateAsync(updates);
+      toast.success(status === "done" ? `Dokončených: ${updates.length}` : `Vrátených späť: ${updates.length}`);
       exitSelectMode();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Úprava zlyhala");
@@ -237,6 +250,27 @@ export default function Tasks() {
           >
             Vyčistiť
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={selected.size === 0 || bulkUpdate.isPending}
+            onClick={() => handleBulkStatus("done")}
+            className="h-7 gap-1.5 border-success/40 bg-success/10 text-xs text-success hover:bg-success/20"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Označiť ako dokončené
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={selected.size === 0 || bulkUpdate.isPending}
+            onClick={() => handleBulkStatus("todo")}
+            className="h-7 gap-1.5 text-xs"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Vrátiť na nesplnené
+          </Button>
+
           <Button
             size="sm"
             variant="destructive"

@@ -39,7 +39,7 @@ export function BottomNav() {
   const items: NavItem[] = baseItems;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 border-t border-border/60 bg-card/90 backdrop-blur-xl md:hidden">
+    <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 border-t border-border/50 bg-card/80 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_-18px_hsl(224_45%_12%/0.35)] backdrop-blur-2xl md:hidden">
       <ul className="grid grid-cols-7">
         {items.map(({ to, label, icon: Icon, end, badgeKey }) => {
           const badge =
@@ -77,7 +77,7 @@ export function BottomNav() {
                     <span
                       className={cn(
                         "relative flex h-9 w-9 items-center justify-center rounded-xl transition-all",
-                        isActive ? "bg-primary-soft" : "bg-transparent"
+                        isActive ? "bg-gradient-primary text-primary-foreground shadow-[var(--shadow-glow)] scale-105" : "bg-transparent"
                       )}
                     >
                       <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
