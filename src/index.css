@@ -246,3 +246,30 @@
     @apply inline-block h-2.5 w-2.5 rounded-full;
   }
 }
+
+@layer base {
+  /* Viditeľný focus ring pre celú aplikáciu (klávesnicová navigácia) */
+  :where(a, button, [role="button"], [role="switch"], [role="tab"], input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Preskočiť na obsah — viditeľné až po fokuse klávesnicou */
+  .skip-link {
+    @apply sr-only;
+  }
+  .skip-link:focus-visible {
+    @apply not-sr-only fixed left-4 top-4 z-[100] rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg;
+  }
+}

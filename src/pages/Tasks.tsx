@@ -23,6 +23,8 @@ function isValidDate(d: Date): boolean {
 
 type Scope = "mine" | "all";
 type PriorityFilter = "all" | Priority;
+type StatusFilter = "open" | "done" | "all";
+type SortBy = "priority" | "due";
 
 export default function Tasks() {
   const { data: tasks = [] } = useTasks();
@@ -32,6 +34,8 @@ export default function Tasks() {
   const [scope, setScope] = useState<Scope>("mine");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
+  const [sortBy, setSortBy] = useState<SortBy>("priority");
   const [monthKey, setMonthKey] = useState<string | null>(currentMonthKey());
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -67,6 +71,38 @@ export default function Tasks() {
     }
   };
 
+  // Spustí hromadnú zmenu a ponúkne undo toast so snapshotom pôvodných hodnôt.
+  const runBulkWithUndo = async (
+    updates: Array<{ id: string; patch: Partial<Task> }>,
+    message: string
+  ) => {
+    const byId = new Map(tasks.map((t) => [t.id, t]));
+    const undoUpdates = updates.map(({ id, patch }) => {
+      const prev = byId.get(id);
+      const revert: Partial<Task> = {};
+      for (const key of Object.keys(patch) as (keyof Task)[]) {
+        (revert as Record<string, unknown>)[key as string] = prev ? prev[key] : null;
+      }
+      return { id, patch: revert };
+    });
+    await bulkUpdate.mutateAsync(updates);
+    exitSelectMode();
+    toast.success(message, {
+      duration: 8000,
+      action: {
+        label: "Späť",
+        onClick: async () => {
+          try {
+            await bulkUpdate.mutateAsync(undoUpdates);
+            toast.success("Zmena vrátená späť");
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Vrátenie zlyhalo");
+          }
+        },
+      },
+    });
+  };
+
   // Hromadná zmena priority a/alebo termínu pre vybrané úlohy.
   const handleBulkApply = async () => {
     if (selected.size === 0) return;
@@ -86,12 +122,11 @@ export default function Tasks() {
       }
       return { id, patch };
     });
+    if (!confirm(`Odoslať zmenu pre ${updates.length} úloh?`)) return;
     try {
-      await bulkUpdate.mutateAsync(updates);
-      toast.success(`Upravených: ${updates.length}`);
+      await runBulkWithUndo(updates, `Upravených: ${updates.length}`);
       setBulkPriority("");
       setBulkDue("");
-      exitSelectMode();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Úprava zlyhala");
     }
@@ -102,9 +137,10 @@ export default function Tasks() {
     if (selected.size === 0) return;
     const updates = Array.from(selected).map((id) => ({ id, patch: { status } as Partial<Task> }));
     try {
-      await bulkUpdate.mutateAsync(updates);
-      toast.success(status === "done" ? `Dokončených: ${updates.length}` : `Vrátených späť: ${updates.length}`);
-      exitSelectMode();
+      await runBulkWithUndo(
+        updates,
+        status === "done" ? `Dokončených: ${updates.length}` : `Vrátených späť: ${updates.length}`
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Úprava zlyhala");
     }
@@ -121,14 +157,20 @@ export default function Tasks() {
   const myProjectIds = useMemo(() => new Set(projects.map((p) => p.id)), [projects]);
 
   const scopedBase = useMemo(() => {
-    const monthScoped = filterTasksByMonth(tasks, monthKey).filter((t) => t.status !== "done");
+    const all = filterTasksByMonth(tasks, monthKey);
+    const monthScoped =
+      statusFilter === "all"
+        ? all
+        : statusFilter === "done"
+          ? all.filter((t) => t.status === "done")
+          : all.filter((t) => t.status !== "done");
     return {
       mine: monthScoped.filter((t) => t.assignee_id === currentUserId),
       all: isAdmin
         ? monthScoped
         : monthScoped.filter((t) => t.project_id && myProjectIds.has(t.project_id)),
     };
-  }, [tasks, monthKey, myProjectIds, currentUserId, isAdmin]);
+  }, [tasks, monthKey, myProjectIds, currentUserId, isAdmin, statusFilter]);
 
   const applyPriority = (list: Task[]) =>
     priorityFilter === "all" ? list : list.filter((t) => t.priority === priorityFilter);
@@ -136,12 +178,18 @@ export default function Tasks() {
   const applyOverdue = (list: Task[]) => (overdueOnly ? list.filter(isOverdue) : list);
 
   const filtered = useMemo(() => {
+    const order = { high: 0, medium: 1, low: 2 } as const;
+    const dueVal = (t: Task) => (t.due_date ? new Date(t.due_date).getTime() : Number.POSITIVE_INFINITY);
     return applyOverdue(applyPriority(scopedBase[scope])).sort((a, b) => {
-      const order = { high: 0, medium: 1, low: 2 } as const;
-      return order[a.priority] - order[b.priority];
+      if (sortBy === "due") {
+        const diff = dueVal(a) - dueVal(b);
+        return diff !== 0 ? diff : order[a.priority] - order[b.priority];
+      }
+      const p = order[a.priority] - order[b.priority];
+      return p !== 0 ? p : dueVal(a) - dueVal(b);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopedBase, scope, priorityFilter, overdueOnly]);
+  }, [scopedBase, scope, priorityFilter, overdueOnly, sortBy]);
 
   const scopeCounts = {
     mine: applyOverdue(applyPriority(scopedBase.mine)).length,
@@ -305,7 +353,7 @@ export default function Tasks() {
               onClick={handleBulkApply}
               className="h-7 text-xs"
             >
-              Použiť na vybrané
+              Odoslať
             </Button>
           </div>
         </div>
@@ -328,7 +376,9 @@ export default function Tasks() {
         ] as { id: Scope; label: string; count: number }[]).map((s) => (
           <button
             key={s.id}
+            type="button"
             onClick={() => setScope(s.id)}
+            aria-pressed={scope === s.id}
             data-active={scope === s.id}
             className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold text-muted-foreground transition-colors data-[active=true]:bg-foreground data-[active=true]:text-background"
           >
@@ -343,6 +393,7 @@ export default function Tasks() {
           type="button"
           onClick={() => setOverdueOnly((v) => !v)}
           data-active={overdueOnly}
+          aria-pressed={overdueOnly}
           title="Zobraziť iba úlohy po termíne"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all",
@@ -362,11 +413,49 @@ export default function Tasks() {
         </button>
       </div>
 
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div role="group" aria-label="Filter podľa stavu" className="inline-flex rounded-full bg-surface-muted p-1">
+          {([
+            { id: "open", label: "Nesplnené" },
+            { id: "done", label: "Dokončené" },
+            { id: "all", label: "Všetky" },
+          ] as { id: StatusFilter; label: string }[]).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setStatusFilter(s.id)}
+              aria-pressed={statusFilter === s.id}
+              data-active={statusFilter === s.id}
+              className="rounded-full px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors data-[active=true]:bg-foreground data-[active=true]:text-background"
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="task-sort" className="text-xs font-medium text-muted-foreground">
+            Zoradiť
+          </label>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
+            <SelectTrigger id="task-sort" className="h-8 w-[190px] text-xs" aria-label="Zoradiť úlohy">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="priority">Podľa priority</SelectItem>
+              <SelectItem value="due">Podľa najbližšieho termínu</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0">
         {chips.map((c) => (
           <button
             key={c.id}
+            type="button"
             data-active={priorityFilter === c.id}
+            aria-pressed={priorityFilter === c.id}
             onClick={() => setPriorityFilter(c.id)}
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
@@ -447,6 +536,7 @@ export default function Tasks() {
                           {selectMode && (
                             <Checkbox
                               className="mt-3"
+                              aria-label={`Vybrať úlohu ${t.title}`}
                               checked={selected.has(t.id)}
                               onCheckedChange={() => toggleSelected(t.id)}
                             />
@@ -484,6 +574,7 @@ export default function Tasks() {
                         {selectMode && (
                           <Checkbox
                             className="mt-3"
+                            aria-label={`Vybrať úlohu ${t.title}`}
                             checked={selected.has(t.id)}
                             onCheckedChange={() => toggleSelected(t.id)}
                           />

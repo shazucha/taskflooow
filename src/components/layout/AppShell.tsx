@@ -12,8 +12,12 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
+      {/* Klávesnicový skok na hlavný obsah */}
+      <a href="#main-content" className="skip-link">Preskočiť na obsah</a>
       <DesktopSidebar />
-      <Outlet />
+      <div id="main-content" tabIndex={-1}>
+        <Outlet />
+      </div>
       <BottomNav />
       <TeamMembersRail />
     </div>
