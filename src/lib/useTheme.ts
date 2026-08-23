@@ -18,35 +18,50 @@ export function getInitialTheme(): Theme {
 export function applyTheme(theme: Theme) {
   const root = document.documentElement;
   root.classList.toggle("dark", theme === "dark");
+  root.style.colorScheme = theme;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (meta) meta.content = theme === "dark" ? "#0b1220" : "#3b82f6";
 }
 
+// Jednoduchý globálny store — všetky prepínače témy v appke sú vždy zosynchronizované.
+let current: Theme = typeof window === "undefined" ? "light" : getInitialTheme();
+const listeners = new Set<(t: Theme) => void>();
+
+function setGlobalTheme(next: Theme) {
+  current = next;
+  applyTheme(next);
+  try {
+    window.localStorage.setItem(STORAGE_KEY, next);
+  } catch {
+    // Storage môže byť nedostupné v private/embedded režime.
+  }
+  listeners.forEach((l) => l(next));
+}
+
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(() => getInitialTheme());
+  const [theme, setThemeState] = useState<Theme>(current);
 
   useEffect(() => {
-    applyTheme(theme);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, theme);
-    } catch {
-      // Storage can be unavailable in embedded/private contexts.
-    }
-  }, [theme]);
-
-  useEffect(() => {
+    applyTheme(current);
+    const listener = (t: Theme) => setThemeState(t);
+    listeners.add(listener);
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && (e.newValue === "light" || e.newValue === "dark")) {
-        setThemeState(e.newValue);
+        current = e.newValue;
+        applyTheme(current);
+        listeners.forEach((l) => l(current));
       }
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    return () => {
+      listeners.delete(listener);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
   return {
     theme,
-    setTheme: setThemeState,
-    toggle: () => setThemeState((t) => (t === "dark" ? "light" : "dark")),
+    setTheme: setGlobalTheme,
+    toggle: () => setGlobalTheme(current === "dark" ? "light" : "dark"),
   };
 }
