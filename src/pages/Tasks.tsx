@@ -11,7 +11,9 @@ import { cn } from "@/lib/utils";
 import type { Priority, Task } from "@/lib/types";
 import { PRIORITY_META } from "@/lib/types";
 import { filterTasksByMonth, currentMonthKey } from "@/lib/recurring";
-import { useCurrentUserId, useIsAppAdmin, useProjects, useTasks, useDeleteTasks } from "@/lib/queries";
+import { useCurrentUserId, useIsAppAdmin, useProjects, useTasks, useDeleteTasks, useUpdateTasksBulk } from "@/lib/queries";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { formatLocalDayHeader, isSameLocalDay, localDayKey, localTodayTomorrow, startOfLocalDay } from "@/lib/dayLabels";
 import { toast } from "sonner";
 
@@ -35,6 +37,9 @@ export default function Tasks() {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const deleteTasksMutation = useDeleteTasks();
+  const bulkUpdate = useUpdateTasksBulk();
+  const [bulkPriority, setBulkPriority] = useState<Priority | "">("");
+  const [bulkDue, setBulkDue] = useState<string>("");
 
   const toggleSelected = (id: string) => {
     setSelected((prev) => {
@@ -59,6 +64,36 @@ export default function Tasks() {
       exitSelectMode();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Zmazanie zlyhalo");
+    }
+  };
+
+  // Hromadná zmena priority a/alebo termínu pre vybrané úlohy.
+  const handleBulkApply = async () => {
+    if (selected.size === 0) return;
+    if (!bulkPriority && !bulkDue) {
+      toast.error("Vyber prioritu alebo termín");
+      return;
+    }
+    const byId = new Map(tasks.map((t) => [t.id, t]));
+    const updates = Array.from(selected).map((id) => {
+      const patch: Partial<Task> = {};
+      if (bulkPriority) patch.priority = bulkPriority as Priority;
+      if (bulkDue) {
+        const prev = byId.get(id)?.due_date ? new Date(byId.get(id)!.due_date as string) : null;
+        const [y, m, d] = bulkDue.split("-").map(Number);
+        const next = new Date(y, m - 1, d, prev && isValidDate(prev) ? prev.getHours() : 9, prev && isValidDate(prev) ? prev.getMinutes() : 0, 0, 0);
+        patch.due_date = next.toISOString();
+      }
+      return { id, patch };
+    });
+    try {
+      await bulkUpdate.mutateAsync(updates);
+      toast.success(`Upravených: ${updates.length}`);
+      setBulkPriority("");
+      setBulkDue("");
+      exitSelectMode();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Úprava zlyhala");
     }
   };
 
@@ -212,6 +247,33 @@ export default function Tasks() {
             <Trash2 className="h-3.5 w-3.5" />
             Zmazať vybrané
           </Button>
+
+          <div className="flex w-full flex-wrap items-center gap-2 border-t border-primary/20 pt-2">
+            <Select value={bulkPriority} onValueChange={(v) => setBulkPriority(v as Priority)}>
+              <SelectTrigger className="h-7 w-[130px] text-xs">
+                <SelectValue placeholder="Priorita" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(PRIORITY_META) as Priority[]).map((p) => (
+                  <SelectItem key={p} value={p}>{PRIORITY_META[p].label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="date"
+              value={bulkDue}
+              onChange={(e) => setBulkDue(e.target.value)}
+              className="h-7 w-[150px] text-xs"
+            />
+            <Button
+              size="sm"
+              disabled={selected.size === 0 || bulkUpdate.isPending || (!bulkPriority && !bulkDue)}
+              onClick={handleBulkApply}
+              className="h-7 text-xs"
+            >
+              Použiť na vybrané
+            </Button>
+          </div>
         </div>
       )}
 
