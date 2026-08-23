@@ -195,6 +195,9 @@ export default function VrLiptov() {
             return (
               <button
                 key={k}
+                type="button"
+                aria-pressed={isSel}
+                aria-label={`${d.getDate()}. ${MONTHS[d.getMonth()].toLowerCase()}, nahlásených ${list.length}`}
                 onClick={() => { setSelected(k); setOpenHour(null); }}
                 className={cn(
                   "flex min-h-[52px] flex-col items-center gap-1 rounded-xl border p-1 text-[11px] transition sm:min-h-[62px] sm:p-1.5 sm:text-xs",
