@@ -141,7 +141,7 @@ export default function VrLiptov() {
   const selectedDate = new Date(`${selected}T00:00:00`);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-3 pb-28 pt-5 sm:px-4 sm:pt-6 md:pl-72 md:pr-8">
+    <main className="w-full px-3 pb-28 pt-5 sm:px-6 sm:pt-6 md:pl-72 md:pr-8">
       <header className="mb-5 rounded-2xl border border-vr/30 bg-vr-soft/60 p-4">
         <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-vr sm:text-2xl">
           <VrHeadsetIcon className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" /> VR Liptov
