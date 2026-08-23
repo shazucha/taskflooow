@@ -22,6 +22,7 @@ import {
   deleteTaskMaterial,
   deleteProjectMaterial,
   deleteTasks,
+  updateTasksBulk,
   fetchProfiles,
   fetchProjectMembers,
   fetchProjectMonthlyBonuses,
