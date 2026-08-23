@@ -93,13 +93,14 @@ export function DesktopSidebar() {
                   title={badgeTitle}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                      "group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200",
                       isActive
-                        ? "bg-primary-soft text-primary"
-                        : "text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+                        ? "bg-gradient-primary text-primary-foreground shadow-[var(--shadow-glow)]"
+                        : "text-muted-foreground hover:translate-x-0.5 hover:bg-surface-muted hover:text-foreground"
                     )
                   }
                 >
+
                   <span className="relative flex h-5 w-5 items-center justify-center">
                     <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
                     {badge > 0 && (
