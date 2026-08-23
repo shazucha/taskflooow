@@ -43,6 +43,7 @@
     --priority-low-soft: 190 90% 95%;
 
     --success: 158 68% 40%;
+    --warning: 32 95% 44%;
 
     /* VR Liptov brand */
     --vr: 275 85% 60%;
@@ -114,6 +115,7 @@
     --priority-low-soft: 190 45% 18%;
 
     --success: 158 62% 48%;
+    --warning: 38 92% 56%;
 
     /* VR Liptov brand */
     --vr: 275 85% 72%;
@@ -272,4 +274,19 @@
   .skip-link:focus-visible {
     @apply not-sr-only fixed left-4 top-4 z-[100] rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg;
   }
+}
+
+@media print {
+  /* Tlač rozpisu hodín — skryjeme navigáciu a nepotrebné prvky */
+  body * { visibility: hidden; }
+  #vr-print-area, #vr-print-area * { visibility: visible; }
+  #vr-print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+    background: #fff;
+    color: #000;
+  }
+  .print\:hidden { display: none !important; }
 }

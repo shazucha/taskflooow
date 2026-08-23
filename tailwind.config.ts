@@ -24,6 +24,7 @@ export default {
           muted: "hsl(var(--surface-muted))",
         },
         success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
         vr: {
           DEFAULT: "hsl(var(--vr))",
           soft: "hsl(var(--vr-soft))",
