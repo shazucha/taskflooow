@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { NavLink, Link } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, CalendarDays, FolderOpen, Bug, Headset } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, CalendarDays, FolderOpen, Bug } from "lucide-react";
+import { VrHeadsetIcon } from "@/components/VrHeadsetIcon";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
@@ -35,7 +36,7 @@ export function DesktopSidebar() {
     { to: "/projects", label: "Projekty", icon: FolderKanban, badgeKey: "projects" },
     { to: "/tasks", label: "Úlohy", icon: ListChecks, badgeKey: "tasks" },
     { to: "/company-materials", label: "Firemné materiály", icon: FolderOpen },
-    { to: "/vr-liptov", label: "VR Liptov", icon: Headset },
+    { to: "/vr-liptov", label: "VR Liptov", icon: VrHeadsetIcon as unknown as typeof LayoutDashboard },
     { to: "/chat", label: "Chat", icon: MessageCircle, badgeKey: "dm" },
     { to: "/me", label: "Profil", icon: User },
   ];
