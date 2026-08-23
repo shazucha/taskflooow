@@ -252,6 +252,27 @@ export default function Tasks() {
           </Button>
           <Button
             size="sm"
+            variant="outline"
+            disabled={selected.size === 0 || bulkUpdate.isPending}
+            onClick={() => handleBulkStatus("done")}
+            className="h-7 gap-1.5 border-success/40 bg-success/10 text-xs text-success hover:bg-success/20"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Označiť ako dokončené
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={selected.size === 0 || bulkUpdate.isPending}
+            onClick={() => handleBulkStatus("todo")}
+            className="h-7 gap-1.5 text-xs"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Vrátiť na nesplnené
+          </Button>
+
+          <Button
+            size="sm"
             variant="destructive"
             disabled={selected.size === 0 || deleteTasksMutation.isPending}
             onClick={handleBulkDelete}
