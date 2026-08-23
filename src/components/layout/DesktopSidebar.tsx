@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
 import { useUnreadDirect } from "@/lib/useUnreadDirect";
 import { UserAvatar } from "@/components/UserAvatar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useCurrentUserId, useFeedbackNewCount, useIsAppAdmin, useMySubscriptionPendingTotal, useProfiles, useTasks } from "@/lib/queries";
 import { pendingTasksForUser } from "@/lib/recurring";
 
@@ -61,7 +62,7 @@ export function DesktopSidebar() {
       </div>
 
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-2">
+      <nav aria-label="Hlavná navigácia" className="flex-1 overflow-y-auto px-3 pb-2">
         <ul className="space-y-1">
           {items.map(({ to, label, icon: Icon, end, badgeKey }) => {
             const badge =
@@ -102,7 +103,7 @@ export function DesktopSidebar() {
                 >
 
                   <span className="relative flex h-5 w-5 items-center justify-center">
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />
                     {badge > 0 && (
                       <span
                         className={cn(
@@ -123,6 +124,10 @@ export function DesktopSidebar() {
           })}
         </ul>
       </nav>
+
+      <div className="px-3">
+        <ThemeToggle className="w-full justify-center" withLabel />
+      </div>
 
       <Link
         to="/me"
