@@ -142,7 +142,7 @@ export default function VrLiptov() {
   const selectedDate = new Date(`${selected}T00:00:00`);
 
   return (
-    <main className="w-full px-4 pb-28 pt-6 sm:px-6 md:px-10 md:pt-10 md:pb-12 xl:mx-auto xl:max-w-[1400px]">
+    <main className="w-full px-4 pb-28 pt-6 sm:px-6 md:px-10 md:pt-10 md:pb-12 2xl:mx-auto 2xl:max-w-[1700px]">
       <header className="mb-5 rounded-2xl border border-vr/30 bg-vr-soft/60 p-4">
         <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-vr sm:text-2xl">
           <VrHeadsetIcon className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" /> VR Liptov
@@ -153,8 +153,8 @@ export default function VrLiptov() {
         </p>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(320px,420px)_1fr] lg:items-start xl:gap-6">
-      <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+      <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr] lg:items-start xl:gap-6">
+      <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4 lg:p-5">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="truncate text-sm font-semibold sm:text-base">
             {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
@@ -181,12 +181,12 @@ export default function VrLiptov() {
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-muted-foreground sm:text-[11px]">
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-muted-foreground sm:text-[11px] lg:gap-2 lg:text-xs">
           {WEEKDAYS.map((w) => (
             <div key={w} className="py-1">{w}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1 lg:gap-2">
           {cells.map((d, i) => {
             if (!d) return <div key={`e${i}`} />;
             const k = dayKey(d);
@@ -200,19 +200,24 @@ export default function VrLiptov() {
                 aria-label={`${d.getDate()}. ${MONTHS[d.getMonth()].toLowerCase()}, nahlásených ${list.length}`}
                 onClick={() => { setSelected(k); setOpenHour(null); }}
                 className={cn(
-                  "flex min-h-[52px] flex-col items-center gap-1 rounded-xl border p-1 text-[11px] transition sm:min-h-[62px] sm:p-1.5 sm:text-xs",
+                  "flex min-h-[52px] flex-col items-center gap-1 rounded-xl border p-1 text-[11px] transition sm:min-h-[62px] sm:p-1.5 sm:text-xs lg:min-h-[86px] lg:justify-start lg:gap-1.5 lg:p-2 lg:text-sm",
                   isSel
                     ? "border-vr bg-vr-soft text-vr"
                     : "border-border/50 hover:bg-surface-muted",
                   k === todayKey && !isSel && "border-vr/50"
                 )}
               >
-                <span className="font-semibold">{d.getDate()}</span>
+                <span className="font-semibold lg:text-base">{d.getDate()}</span>
                 <span className="flex flex-wrap justify-center gap-0.5">
                   {list.slice(0, 6).map((e) => (
-                    <span key={e.id} className={cn("h-1.5 w-1.5 rounded-full", VR_KIND_META[e.kind].dot)} />
+                    <span key={e.id} className={cn("h-1.5 w-1.5 rounded-full lg:h-2 lg:w-2", VR_KIND_META[e.kind].dot)} />
                   ))}
                 </span>
+                {list.length > 0 && (
+                  <span className="hidden text-[10px] font-medium text-muted-foreground lg:block">
+                    {list.length} {list.length === 1 ? "zápis" : list.length < 5 ? "zápisy" : "zápisov"}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -234,16 +239,12 @@ export default function VrLiptov() {
           Rozpis hodín — {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()].toLowerCase()}
         </h2>
         <p className="mb-3 text-xs text-muted-foreground">
-          Klikni na hodinu a uvidíš, kto tam v tom čase bude. Na menších displejoch sa rozpis dá posúvať do strán.
+          Celý deň 7:00 – 21:00 na jednom mieste. Klikni na hodinu a uvidíš, kto tam v tom čase bude.
         </p>
 
         {/* Horizontálne scrollovateľná os hodín — od–do zostáva čitateľné aj na mobile */}
-        <div
-          className="-mx-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:px-0"
-          role="group"
-          aria-label="Časová os hodín 7:00 až 21:00"
-        >
-          <div className="flex min-w-max gap-1.5">
+        <div role="group" aria-label="Časová os hodín 7:00 až 21:00">
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7 lg:grid-cols-7 xl:grid-cols-7">
             {HOURS.map((h) => {
               const list = entriesForHour(h);
               const isOpen = openHour === h;
@@ -260,7 +261,7 @@ export default function VrLiptov() {
                       aria-pressed={isOpen}
                       aria-label={`${String(h).padStart(2, "0")}:00 – ${String(h + 1).padStart(2, "0")}:00, nahlásených ${list.length}`}
                       className={cn(
-                        "flex w-[78px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2.5 text-[11px] font-medium transition sm:w-[86px]",
+                        "flex w-full flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-2.5 text-[11px] font-medium transition lg:py-3",
                         isOpen
                           ? "border-vr bg-vr text-vr-foreground"
                           : list.length > 0
