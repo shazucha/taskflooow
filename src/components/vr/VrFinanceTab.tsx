@@ -88,6 +88,7 @@ export function VrFinanceTab() {
   const SESSION_PRICE = 30;
   const sessionsNeeded = Math.ceil(toBreakeven / SESSION_PRICE);
 
+
   // Pôžičky konateľa naprieč mesiacmi (záväzok firmy = mínus).
   const { data: allLoans = [] } = useVrLoans();
   const loanTotal = allLoans.reduce(
