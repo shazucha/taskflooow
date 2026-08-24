@@ -442,6 +442,9 @@ export function VrFinanceTab() {
         <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
           <p className="text-xs text-muted-foreground">Fixné náklady mesiaca</p>
           <p className="mt-1 text-lg font-bold tabular-nums">{eur(fixedCosts)}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            Konateľ {eur(fixedByDirector)} · Firma {eur(fixedByCompany)}
+          </p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
           <p className="text-xs text-muted-foreground">Do pokrytia nákladov chýba</p>
@@ -454,6 +457,52 @@ export function VrFinanceTab() {
           <p className="mt-1 text-lg font-bold tabular-nums">{sessionsNeeded}</p>
         </div>
       </div>
+
+      {/* Sumár fixných nákladov so zdrojom úhrady */}
+      <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+        <h3 className="mb-2 text-sm font-semibold">Fixné náklady — zdroj úhrady</h3>
+        <ul className="divide-y divide-border/50">
+          {fixedBreakdown.length === 0 && (
+            <li className="py-4 text-center text-sm text-muted-foreground">
+              Žiadne pravidelné (fixné) náklady v tomto mesiaci.
+            </li>
+          )}
+          {fixedBreakdown.map(({ rec, paidBy, byDirector }) => (
+            <li key={rec.id} className="flex items-center gap-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{rec.title}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {new Date(rec.occurred_on).toLocaleDateString("sk-SK")} ·{" "}
+                  {vrCatLabel("expense", rec.category)}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                  byDirector
+                    ? "bg-priority-high-soft text-priority-high"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {byDirector ? `Z vkladu konateľa${paidBy ? ` · ${nameOf(paidBy)}` : ""}` : "Z účtu firmy"}
+              </span>
+              <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(rec.amount))}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2 flex flex-wrap justify-end gap-4 border-t border-border/50 pt-2 text-xs">
+          <span className="text-muted-foreground">
+            Z vkladu konateľa: <strong className="tabular-nums text-priority-high">{eur(fixedByDirector)}</strong>
+          </span>
+          <span className="text-muted-foreground">
+            Z účtu firmy: <strong className="tabular-nums text-foreground">{eur(fixedByCompany)}</strong>
+          </span>
+          <span className="text-muted-foreground">
+            Spolu: <strong className="tabular-nums text-foreground">{eur(fixedCosts)}</strong>
+          </span>
+        </div>
+      </section>
+
         <div className="rounded-2xl border border-priority-high/30 bg-priority-high-soft/40 p-4">
           <p className="text-xs text-muted-foreground">Dlh voči konateľovi (nesplatené)</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(-loanTotal)}</p>
