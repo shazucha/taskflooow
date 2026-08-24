@@ -18,6 +18,8 @@ import {
 } from "@/lib/vrFinanceApi";
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
+import { VrCompanySelect } from "@/components/vr/VrCompanySelect";
+
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -38,6 +40,8 @@ export function VrPartnersTab() {
   const [purpose, setPurpose] = useState("");
   const [category, setCategory] = useState("prevadzka");
   const [filterPartner, setFilterPartner] = useState("all");
+  const [search, setSearch] = useState("");
+
   const [sharedOn, setSharedOn] = useState(false);
   const [partnerId2, setPartnerId2] = useState<string>("");
   const [splitMode, setSplitMode] = useState<Exclude<VrShareMode, "single">>("half");
