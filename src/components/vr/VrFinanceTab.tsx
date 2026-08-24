@@ -365,7 +365,25 @@ export function VrFinanceTab() {
           <p className={cn("mt-1 text-xl font-bold tabular-nums", balance < 0 ? "text-priority-high" : "text-vr")}>
             {eur(balance)}
           </p>
+      </div>
+
+      {/* Breakeven — koľko treba zarobiť na pokrytie fixných nákladov */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+          <p className="text-xs text-muted-foreground">Fixné náklady mesiaca</p>
+          <p className="mt-1 text-lg font-bold tabular-nums">{eur(fixedCosts)}</p>
         </div>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+          <p className="text-xs text-muted-foreground">Do pokrytia nákladov chýba</p>
+          <p className={cn("mt-1 text-lg font-bold tabular-nums", toBreakeven > 0 ? "text-priority-high" : "text-priority-low")}>
+            {toBreakeven > 0 ? eur(toBreakeven) : "Pokryté ✓"}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+          <p className="text-xs text-muted-foreground">Potrebné sessions (á 30 €)</p>
+          <p className="mt-1 text-lg font-bold tabular-nums">{sessionsNeeded}</p>
+        </div>
+      </div>
         <div className="rounded-2xl border border-priority-high/30 bg-priority-high-soft/40 p-4">
           <p className="text-xs text-muted-foreground">Dlh voči konateľovi (nesplatené)</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(-loanTotal)}</p>
