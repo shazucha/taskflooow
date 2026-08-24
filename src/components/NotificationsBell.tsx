@@ -115,15 +115,6 @@ export function NotificationsBell({ className }: { className?: string }) {
           </ScrollArea>
         )}
 
-        <div className="border-t border-border/60 px-4 py-2 text-center">
-          <Link
-            to="/chat"
-            onClick={() => setOpen(false)}
-            className="text-xs font-medium text-primary hover:underline"
-          >
-            Otvoriť chat
-          </Link>
-        </div>
       </PopoverContent>
     </Popover>
   );

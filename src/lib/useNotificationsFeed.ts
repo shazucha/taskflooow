@@ -128,7 +128,7 @@ export function useNotificationsFeed(): {
 
       // Team chat — agregovaný do jednej položky
       const teamMsgs = (teamRes.data ?? []) as RawMsg[];
-      if (teamMsgs.length > 0) {
+      if (false && teamMsgs.length > 0) {
         const last = teamMsgs[0];
         const name = await resolveName(last.author_id!);
         out.push({
@@ -180,7 +180,7 @@ export function useNotificationsFeed(): {
         arr.push(m);
         dmGroups.set(m.sender_id, arr);
       }
-      for (const [peerId, msgs] of dmGroups) {
+      for (const [peerId, msgs] of (false ? dmGroups : new Map<string, typeof dmGroups extends Map<string, infer V> ? V : never>())) {
         const last = msgs[0];
         const name = await resolveName(peerId);
         out.push({
