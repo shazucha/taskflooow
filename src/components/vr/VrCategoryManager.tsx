@@ -96,13 +96,13 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
                     className="h-8"
                     value={editLabel}
                     onChange={(e) => setEditLabel(e.target.value)}
-                    aria-label="Nový názov kategórie"
+                    aria-label="Nový názov firmy"
                   />
                   <Button
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8"
-                    aria-label="Uložiť názov"
+                    aria-label="Uložiť názov firmy"
                     onClick={() => handleRename(c.rowId)}
                   >
                     <Check className="h-4 w-4" />
