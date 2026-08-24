@@ -218,8 +218,19 @@ export function VrPartnersTab() {
       <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold sm:text-base">Úhrady spoločníkov</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="h-9 w-[200px] pl-9 text-xs"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Hľadať firmu alebo účel…"
+                aria-label="Hľadať podľa firmy alebo účelu"
+              />
+            </div>
             <VrCategoryManager scope="contribution" />
+
             <Select value={filterPartner} onValueChange={setFilterPartner}>
               <SelectTrigger className="h-9 w-[200px] text-xs" aria-label="Filter podľa spoločníka">
                 <SelectValue />
