@@ -27,7 +27,8 @@ export interface VrContribItem {
 
 export type VrShareMode = "single" | "half" | "each";
 
-export type VrFinanceDirection = "expense" | "income";
+// 'loan' = konateľ požičal firme (záväzok firmy), 'loan_repay' = firma splatila konateľovi
+export type VrFinanceDirection = "expense" | "income" | "loan" | "loan_repay";
 
 export interface VrFinanceRecord {
   id: string;
