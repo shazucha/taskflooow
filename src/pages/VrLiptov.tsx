@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Coins, Download, Plus, Printer, Trash2, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VrPartnersTab } from "@/components/vr/VrPartnersTab";
+import { VrPartnerDepositsCard } from "@/components/vr/VrPartnerDepositsCard";
 import { VrFinanceTab } from "@/components/vr/VrFinanceTab";
 
 import { Button } from "@/components/ui/button";
@@ -259,7 +260,7 @@ export default function VrLiptov() {
               <CalendarDays className="h-4 w-4" /> Dochádzka
             </TabsTrigger>
             <TabsTrigger value="spolocnici" className="shrink-0 gap-1.5 whitespace-nowrap text-xs sm:text-sm">
-              <Users className="h-4 w-4" /> Spoločníci
+              <Users className="h-4 w-4" /> Spoločníci — investícia
             </TabsTrigger>
             <TabsTrigger value="financie" className="shrink-0 gap-1.5 whitespace-nowrap text-xs sm:text-sm">
               <Coins className="h-4 w-4" /> Výdaje a príjmy
@@ -619,7 +620,10 @@ export default function VrLiptov() {
         </TabsContent>
 
         <TabsContent value="spolocnici" className="mt-0">
-          <VrPartnersTab />
+          <div className="grid gap-4">
+            <VrPartnerDepositsCard />
+            <VrPartnersTab />
+          </div>
         </TabsContent>
 
         <TabsContent value="financie" className="mt-0">
