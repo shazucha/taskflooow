@@ -351,3 +351,69 @@ export function useVrLoans() {
     },
   });
 }
+
+/* ------------- Šablóny fixných (pravidelných) nákladov ------------- */
+
+export interface VrFixedCost {
+  id: string;
+  title: string;
+  amount: number;
+  category: string;
+  from_director: boolean;
+  active: boolean;
+  day_of_month: number;
+  note: string | null;
+  position: number;
+  created_by: string | null;
+  created_at: string;
+}
+
+const FC_COLS =
+  "id,title,amount,category,from_director,active,day_of_month,note,position,created_by,created_at";
+
+export function useVrFixedCosts() {
+  const userId = useCurrentUserId();
+  useRealtime("vr_fixed_costs", "vr_fixed_costs");
+  return useQuery({
+    queryKey: ["vr_fixed_costs"],
+    enabled: !!userId,
+    queryFn: async (): Promise<VrFixedCost[]> => {
+      const { data, error } = await supabase
+        .from("vr_fixed_costs")
+        .select(FC_COLS)
+        .order("position", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (error) {
+        console.warn("VR financie: vr_fixed_costs nedostupné", error.message);
+        return [];
+      }
+      return (data ?? []) as VrFixedCost[];
+    },
+  });
+}
+
+export function useSaveVrFixedCost() {
+  const qc = useQueryClient();
+  const userId = useCurrentUserId();
+  return useMutation({
+    mutationFn: async (input: Partial<VrFixedCost> & { id?: string }) => {
+      const { id, ...patch } = input;
+      const { error } = id
+        ? await supabase.from("vr_fixed_costs").update(patch).eq("id", id)
+        : await supabase.from("vr_fixed_costs").insert({ ...patch, created_by: userId });
+      if (error) throw new Error(dupMsg(error));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_fixed_costs"] }),
+  });
+}
+
+export function useDeleteVrFixedCost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("vr_fixed_costs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_fixed_costs"] }),
+  });
+}
