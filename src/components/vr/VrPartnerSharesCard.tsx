@@ -93,20 +93,28 @@ export function VrPartnerSharesCard() {
                   <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-surface-muted">
                     <div className="h-full rounded-full bg-vr" style={{ width: `${Math.max(pct, 1)}%` }} />
                   </div>
-                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    Spolu <span className="font-medium tabular-nums">{eur(r.sum)}</span> · úhrady{" "}
-                    <span className="tabular-nums">{eur(r.pay)}</span> · vklady{" "}
-                    <span className="tabular-nums">{eur(r.dep)}</span>
-                    {rows.length > 1 && (
-                      <>
-                        {" · "}
-                        <span className={diff >= 0 ? "text-vr" : "text-destructive"}>
-                          {diff >= 0 ? "+" : "−"}
-                          {eur(Math.abs(diff))} oproti rovnému dielu
-                        </span>
-                      </>
-                    )}
-                  </p>
+                  {/* Oddelené stĺpce: úhrady (náklad) vs. vklady (mimo nákladov) */}
+                  <div className="mt-1.5 grid grid-cols-2 gap-2 text-[11px] leading-tight">
+                    <div className="rounded-lg bg-surface-muted/60 px-2 py-1">
+                      <span className="block text-muted-foreground">Úhrady (náklad)</span>
+                      <span className="font-medium tabular-nums">{eur(r.pay)}</span>
+                    </div>
+                    <div className="rounded-lg bg-surface-muted/60 px-2 py-1">
+                      <span className="block text-muted-foreground">Vklad (mimo nákladov)</span>
+                      <span className="font-medium tabular-nums">{eur(r.dep)}</span>
+                    </div>
+                  </div>
+                  {rows.length > 1 && (
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                      Podiel spolu <span className="font-medium tabular-nums">{eur(r.sum)}</span>
+                      {" · "}
+                      <span className={diff >= 0 ? "text-vr" : "text-destructive"}>
+                        {diff >= 0 ? "+" : "−"}
+                        {eur(Math.abs(diff))} oproti rovnému dielu
+                      </span>
+                    </p>
+                  )}
+
                 </div>
               </div>
             </li>
