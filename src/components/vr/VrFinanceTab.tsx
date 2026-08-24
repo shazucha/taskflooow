@@ -332,8 +332,15 @@ export function VrFinanceTab() {
     }
   }
 
+  // Zdroj úhrady výdaja (firma vs. vklad konateľa) — podľa spárovanej pôžičky.
+  function sourceOf(r: (typeof rows)[number]) {
+    if (r.direction !== "expense") return "";
+    const l = findLoanFor(r);
+    return l ? `Z vkladu konateľa (${nameOf(l.partner_id)})` : "Z účtu firmy";
+  }
+
   function exportCsv() {
-    const head = "Dátum;Typ;Názov;Firma;Pravidelný;Suma\n";
+    const head = "Dátum;Typ;Názov;Firma;Pravidelný;Zdroj úhrady;Suma\n";
     const body = visibleRows
       .map((r) =>
         [
@@ -348,17 +355,35 @@ export function VrFinanceTab() {
           `"${r.title.replace(/"/g, '""')}"`,
           vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category),
           r.recurring ? "áno" : "nie",
+          `"${sourceOf(r)}"`,
           String(Number(r.amount).toFixed(2)).replace(".", ","),
         ].join(";")
       )
       .join("\n");
-    const url = URL.createObjectURL(new Blob([head + body], { type: "text/csv;charset=utf-8" }));
+    const fixedBlock =
+      "\n\nFIXNÉ NÁKLADY — ZDROJ ÚHRADY\nDátum;Názov;Zdroj úhrady;Suma\n" +
+      fixedBreakdown
+        .map(({ rec, paidBy, byDirector }) =>
+          [
+            rec.occurred_on,
+            `"${rec.title.replace(/"/g, '""')}"`,
+            byDirector ? `"Z vkladu konateľa (${nameOf(paidBy)}) — pôžička"` : "Z účtu firmy",
+            String(Number(rec.amount).toFixed(2)).replace(".", ","),
+          ].join(";")
+        )
+        .join("\n") +
+      `\nSpolu z vkladu konateľa;;;${fixedByDirector.toFixed(2).replace(".", ",")}` +
+      `\nSpolu z účtu firmy;;;${fixedByCompany.toFixed(2).replace(".", ",")}`;
+    const url = URL.createObjectURL(
+      new Blob([head + body + fixedBlock], { type: "text/csv;charset=utf-8" })
+    );
     const a = document.createElement("a");
     a.href = url;
     a.download = `vr-liptov-financie-${monthKey}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
+
 
   const renderList = (list: typeof rows, kind: VrFinanceDirection) => (
     <ul className="divide-y divide-border/50">
