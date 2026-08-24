@@ -157,6 +157,37 @@ export function VrFinanceTab() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [allLoans]);
 
+  // Transakcie tvoriace dlh konkrétneho konateľa (vklad vs. výdaj hradený konateľom).
+  const loanTxByPartner = useMemo(() => {
+    const m = new Map<string, typeof allLoans>();
+    for (const r of allLoans) {
+      const k = r.partner_id ?? "";
+      m.set(k, [...(m.get(k) ?? []), r]);
+    }
+    for (const [k, list] of m) m.set(k, [...list].sort((a, b) => (a.occurred_on < b.occurred_on ? 1 : -1)));
+    return m;
+  }, [allLoans]);
+
+  const [openPartner, setOpenPartner] = useState<string | null>(null);
+  const [recalcAt, setRecalcAt] = useState<Date | null>(null);
+
+  // Jedným klikom znovu načíta všetky záznamy a prepočíta dlh (po editáciách).
+  async function recalcLoans() {
+    await qc.invalidateQueries({ queryKey: ["vr_finance_records"] });
+    await qc.invalidateQueries({ queryKey: ["vr_loans"] });
+    setRecalcAt(new Date());
+    toast.success("Dlh podľa konateľa prepočítaný.");
+  }
+
+  // Skok na konkrétny záznam (prepne mesiac a vyhľadá ho).
+  function jumpToRecord(r: (typeof allLoans)[number]) {
+    const [y, mm] = r.month_key.split("-");
+    setCursor(new Date(Number(y), Number(mm) - 1, 1));
+    setSearch(r.title);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+
   const byIncomeCategory = useMemo(() => {
     const m = new Map<string, number>();
     for (const r of incomes) m.set(r.category, (m.get(r.category) ?? 0) + Number(r.amount));
