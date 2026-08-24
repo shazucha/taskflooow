@@ -510,7 +510,17 @@ export function VrFinanceTab() {
   );
 
 
+  // Pull-to-refresh — obnoví záznamy, pôžičky aj fixné náklady.
+  const refreshAll = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["vr_finance_records"] }),
+      qc.invalidateQueries({ queryKey: ["vr_finance_loans"] }),
+      qc.invalidateQueries({ queryKey: ["vr_fixed_costs"] }),
+    ]);
+  };
+
   return (
+    <PullToRefresh onRefresh={refreshAll}>
     <div className="grid min-w-0 gap-4 [&>*]:min-w-0">
       {/* Hlavička mesiaca + súhrn */}
       <div className="grid min-w-0 gap-3 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
@@ -1059,5 +1069,6 @@ export function VrFinanceTab() {
         </ul>
       </section>
     </div>
+    </PullToRefresh>
   );
 }

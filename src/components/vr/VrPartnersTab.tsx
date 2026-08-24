@@ -1,5 +1,6 @@
 // Úhrady spoločníkov na chod firmy — zápis, úprava (aj spoločný vklad) + prehľad.
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Search, Trash2, Users, Wallet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,9 @@ import {
   type VrContribItem,
 } from "@/lib/vrFinanceApi";
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import { usePersistentState } from "@/lib/usePersistentState";
+import { PullToRefresh } from "@/components/vr/PullToRefresh";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
 import { VrCompanySelect } from "@/components/vr/VrCompanySelect";
 import { VrReportDialog } from "@/components/vr/VrReportDialog";
@@ -27,6 +31,7 @@ import { VrReportDialog } from "@/components/vr/VrReportDialog";
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export function VrPartnersTab() {
+  const qc = useQueryClient();
   const userId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
   const { data: rows = [], isLoading } = useVrContributions();
@@ -44,8 +49,9 @@ export function VrPartnersTab() {
   // Položkový rozpis (napr. Meta Quest 3 – 571,49 €) + automatický súčet.
   const [items, setItems] = useState<{ name: string; price: string }[]>([]);
   const [category, setCategory] = useState("prevadzka");
-  const [filterPartner, setFilterPartner] = useState("all");
-  const [search, setSearch] = useState("");
+  const [filterPartner, setFilterPartner] = usePersistentState<string>("vr:partners:filter", "all");
+  const [search, setSearch] = usePersistentState<string>("vr:partners:search", "");
+  const searchQuery = useDebouncedValue(search, 250);
 
   const [sharedOn, setSharedOn] = useState(false);
   const [partnerId2, setPartnerId2] = useState<string>("");
@@ -104,7 +110,7 @@ export function VrPartnersTab() {
 
   // Vyhľadávanie podľa názvu firmy alebo účelu úhrady.
   const matchesSearch = (r: VrPartnerContribution) => {
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
     return (
       vrCatLabel("contribution", r.category).toLowerCase().includes(q) ||
@@ -120,7 +126,7 @@ export function VrPartnersTab() {
           e.rows.some(matchesSearch)
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entries, filterPartner, search]
+    [entries, filterPartner, searchQuery]
   );
 
   const filteredRows = useMemo(
@@ -129,7 +135,7 @@ export function VrPartnersTab() {
         (r) => (filterPartner === "all" || r.partner_id === filterPartner) && matchesSearch(r)
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rows, filterPartner, search]
+    [rows, filterPartner, searchQuery]
   );
 
 
