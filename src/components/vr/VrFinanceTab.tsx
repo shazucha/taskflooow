@@ -933,8 +933,8 @@ export function VrFinanceTab() {
         <ul className="grid gap-1.5 text-sm">
           {loanByPartner.length === 0 && <li className="text-muted-foreground">—</li>}
           {loanByPartner.map(([pid, v]) => (
-            <li key={pid || "none"} className="rounded-lg bg-surface-muted/50 px-3 py-1.5">
-              <div className="flex items-center justify-between gap-2">
+            <li key={pid || "none"} className="rounded-xl bg-surface-muted/50 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <button
                   type="button"
                   className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
@@ -949,14 +949,16 @@ export function VrFinanceTab() {
                     ({(loanTxByPartner.get(pid) ?? []).length})
                   </span>
                 </button>
-                <span className={cn("shrink-0 font-medium tabular-nums", v > 0.005 ? "text-priority-high" : "text-priority-low")}>
+                <span className={cn("shrink-0 font-semibold tabular-nums", v > 0.005 ? "text-priority-high" : "text-priority-low")}>
                   {v > 0.005 ? eur(-v) : "Vyrovnané ✓"}
                 </span>
-                <VrLoanSettleDialog
-                  partnerId={pid || null}
-                  partnerName={nameOf(pid || null)}
-                  outstanding={Math.max(0, v)}
-                />
+                <div className="w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto">
+                  <VrLoanSettleDialog
+                    partnerId={pid || null}
+                    partnerName={nameOf(pid || null)}
+                    outstanding={Math.max(0, v)}
+                  />
+                </div>
               </div>
 
               {openPartner === (pid || "none") && (
@@ -964,44 +966,49 @@ export function VrFinanceTab() {
                   {(loanTxByPartner.get(pid) ?? []).map((t) => {
                     const fromExpense = t.title.toLowerCase().includes("— hradené konateľom");
                     return (
-                      <li key={t.id} className="flex items-center gap-2 py-1.5 text-xs">
-                        <span
-                          className={cn(
-                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                            t.direction === "loan_repay"
-                              ? "bg-priority-low-soft text-priority-low"
-                              : fromExpense
-                              ? "bg-priority-high-soft text-priority-high"
-                              : "bg-muted text-muted-foreground"
-                          )}
-                        >
-                          {t.direction === "loan_repay" ? "Splátka" : fromExpense ? "Výdaj" : "Vklad"}
-                        </span>
-                        <button
-                          type="button"
-                          className="min-w-0 flex-1 truncate text-left underline-offset-2 hover:underline"
-                          onClick={() => jumpToRecord(t)}
-                          title="Zobraziť záznam"
-                        >
-                          {t.title}
-                        </button>
-                        <span className="shrink-0 text-muted-foreground">
-                          {new Date(t.occurred_on).toLocaleDateString("sk-SK")}
-                        </span>
-                        <span
-                          className={cn(
-                            "shrink-0 font-semibold tabular-nums",
-                            t.direction === "loan" ? "text-priority-high" : "text-priority-low"
-                          )}
-                        >
-                          {t.direction === "loan" ? "−" : "+"}
-                          {eur(Number(t.amount))}
-                        </span>
+                      <li key={t.id} className="py-2 text-xs">
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            type="button"
+                            className="min-w-0 flex-1 break-words text-left underline-offset-2 hover:underline"
+                            onClick={() => jumpToRecord(t)}
+                            title="Zobraziť záznam"
+                          >
+                            {t.title}
+                          </button>
+                          <span
+                            className={cn(
+                              "shrink-0 font-semibold tabular-nums",
+                              t.direction === "loan" ? "text-priority-high" : "text-priority-low"
+                            )}
+                          >
+                            {t.direction === "loan" ? "−" : "+"}
+                            {eur(Number(t.amount))}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                              t.direction === "loan_repay"
+                                ? "bg-priority-low-soft text-priority-low"
+                                : fromExpense
+                                ? "bg-priority-high-soft text-priority-high"
+                                : "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            {t.direction === "loan_repay" ? "Splátka" : fromExpense ? "Výdaj" : "Vklad"}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {new Date(t.occurred_on).toLocaleDateString("sk-SK")}
+                          </span>
+                        </div>
                       </li>
                     );
                   })}
                 </ul>
               )}
+
             </li>
           ))}
 
