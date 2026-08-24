@@ -445,47 +445,52 @@ export function VrFinanceTab() {
         </li>
       )}
       {list.map((r) => (
-        <li key={r.id} className="flex items-center gap-3 py-2.5">
+        <li key={r.id} className="flex items-start gap-3 py-3">
           <span
             className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
               kind === "expense" ? "bg-priority-high-soft text-priority-high" : "bg-priority-low-soft text-priority-low"
             )}
           >
             {kind === "expense" ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 truncate text-sm font-medium">
-              {r.title}
-              {r.recurring && <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Pravidelný" />}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
+            <div className="flex items-start justify-between gap-2">
+              <p className="flex min-w-0 items-center gap-1.5 break-words text-sm font-medium leading-snug">
+                {r.title}
+                {r.recurring && <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Pravidelný" />}
+              </p>
+              <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(r.amount))}</span>
+            </div>
+            <p className="mt-0.5 break-words text-xs text-muted-foreground">
               {new Date(r.occurred_on).toLocaleDateString("sk-SK")} · {vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category)}
             </p>
+            <div className="mt-1 flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs text-muted-foreground"
+                aria-label="Upraviť položku"
+                onClick={() => startEdit(r)}
+              >
+                <Pencil className="mr-1 h-3.5 w-3.5" /> Upraviť
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+                aria-label="Zmazať položku"
+                onClick={() => remove.mutate(r.id)}
+              >
+                <Trash2 className="mr-1 h-3.5 w-3.5" /> Zmazať
+              </Button>
+            </div>
           </div>
-          <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(r.amount))}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground"
-            aria-label="Upraviť položku"
-            onClick={() => startEdit(r)}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-            aria-label="Zmazať položku"
-            onClick={() => remove.mutate(r.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
         </li>
       ))}
     </ul>
   );
+
 
   return (
     <div className="grid gap-4">
