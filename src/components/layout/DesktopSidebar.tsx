@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { NavLink, Link } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, CalendarDays, FolderOpen, Bug } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, FolderOpen } from "lucide-react";
 import { VrHeadsetIcon } from "@/components/VrHeadsetIcon";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
@@ -30,7 +30,6 @@ export function DesktopSidebar() {
     () => pendingTasksForUser(tasks, currentUserId).all.length,
     [tasks, currentUserId]
   );
-  const isAdmin = useIsAppAdmin();
   const me = profiles.find((p) => p.id === currentUserId);
   const base: NavItem[] = [
     { to: "/", label: "Prehľad", icon: LayoutDashboard, end: true, badgeKey: "team" },
