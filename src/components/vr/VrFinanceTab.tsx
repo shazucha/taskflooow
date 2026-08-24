@@ -767,12 +767,16 @@ export function VrFinanceTab() {
             <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("najom")}>
               Nájom 350 € / mesiac
             </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("internet")}>
+              Internet 61,50 € / mesiac
+            </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("kredity")}>
               Kredity (HeroZoneVR a i.) 250 €
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={generateFixedMonth} disabled={create.isPending}>
-              Vygenerovať fixné náklady mesiaca (600 €)
+              Vygenerovať fixné náklady mesiaca (661,50 €)
             </Button>
+
           </div>
         )}
         <Input
