@@ -49,6 +49,7 @@ export function VrPartnersTab() {
   // Položkový rozpis (napr. Meta Quest 3 – 571,49 €) + automatický súčet.
   const [items, setItems] = useState<{ name: string; price: string }[]>([]);
   const [category, setCategory] = useState("prevadzka");
+  const [project, setProject] = useState(""); // projekt, na ktorý sa úhrada započíta
   const [filterPartner, setFilterPartner] = usePersistentState<string>("vr:partners:filter", "all");
   const [search, setSearch] = usePersistentState<string>("vr:partners:search", "");
   const searchQuery = useDebouncedValue(search, 250);
@@ -154,12 +155,19 @@ export function VrPartnersTab() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [filteredRows]);
 
+  // Zoznam už použitých projektov pre našepkávač.
+  const knownProjects = useMemo(
+    () => [...new Set(rows.map((r) => (r.project ?? "").trim()).filter(Boolean))].sort(),
+    [rows]
+  );
+
   function resetForm() {
     setEditingGroup(null);
     setEditingIds([]);
     setEditingGroupId(null);
     setAmount("");
     setPurpose("");
+    setProject("");
     setItems([]);
     setSharedOn(false);
     setPartnerId2("");
@@ -176,6 +184,7 @@ export function VrPartnersTab() {
     setPaidOn(first.paid_on);
     setCategory(first.category);
     setPurpose(first.purpose);
+    setProject(first.project ?? "");
     setItems(normItems(first.items).map((it) => ({ name: it.name, price: String(it.price) })));
     if (e.rows.length > 1) {
       setSharedOn(true);
@@ -231,6 +240,7 @@ export function VrPartnersTab() {
         shareMode: sharedOn ? splitMode : "single",
         purpose: purposeText,
         category: activeCategory,
+        project: project.trim() || null,
         items: hasItems ? cleanItems : null,
         note: sharedOn ? `Spoločná úhrada: ${partnerIds.map(nameOf).join(" + ")}` : null,
       });
@@ -330,6 +340,18 @@ export function VrPartnersTab() {
             onChange={(e) => setPurpose(e.target.value)}
             aria-label="Účel úhrady"
           />
+          <Input
+            list="vr-project-options"
+            placeholder="Projekt (voliteľné)"
+            value={project}
+            onChange={(e) => setProject(e.target.value)}
+            aria-label="Projekt"
+          />
+          <datalist id="vr-project-options">
+            {knownProjects.map((p2) => (
+              <option key={p2} value={p2} />
+            ))}
+          </datalist>
           {/* Položkový rozpis úhrady */}
           <div className="rounded-xl border border-border/50 bg-card/50 p-3 sm:col-span-2 lg:col-span-4">
             <div className="mb-2 flex items-center justify-between gap-2">

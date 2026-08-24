@@ -11,6 +11,7 @@ export interface VrPartnerContribution {
   amount: number;
   purpose: string;
   category: string;
+  project: string | null;
   note: string | null;
   group_id: string | null;
   share_mode: VrShareMode;
@@ -82,7 +83,7 @@ function dupMsg(error: { code?: string; message: string }) {
 }
 
 const PC_COLS =
-  "id,partner_id,paid_on,amount,purpose,category,note,group_id,share_mode,total_amount,items,created_by,created_at";
+  "id,partner_id,paid_on,amount,purpose,category,project,note,group_id,share_mode,total_amount,items,created_by,created_at";
 const FR_COLS =
   "id,month_key,occurred_on,direction,amount,title,category,recurring,note,partner_id,revenue_kind,created_by,created_at";
 
@@ -162,6 +163,7 @@ export function useSaveVrContributionGroup() {
       shareMode: VrShareMode;
       purpose: string;
       category: string;
+      project?: string | null;
       note?: string | null;
       items?: VrContribItem[] | null;
     }) => {
@@ -189,6 +191,7 @@ export function useSaveVrContributionGroup() {
           amount,
           purpose: input.purpose,
           category: input.category,
+          project: input.project?.trim() || null,
           note: input.note ?? null,
           group_id: shared ? gid : null,
           share_mode: shared ? input.shareMode : "single",
