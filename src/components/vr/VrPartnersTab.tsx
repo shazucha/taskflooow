@@ -151,7 +151,7 @@ export function VrPartnersTab() {
     if (value > 1_000_000) return toast.error("Suma je nereálne vysoká.");
     if (!paidOn) return toast.error("Vyber dátum úhrady.");
     if (new Date(paidOn) > new Date()) return toast.error("Dátum nemôže byť v budúcnosti.");
-    if (!activeCategory) return toast.error("Vyber kategóriu.");
+    if (!activeCategory) return toast.error("Vyber firmu / zdroj úhrady.");
     if (sharedOn && !partnerId2) return toast.error("Vyber druhého spoločníka.");
     if (sharedOn && partnerId2 === first) return toast.error("Vyber dvoch rôznych spoločníkov.");
 
