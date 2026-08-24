@@ -619,7 +619,10 @@ export default function VrLiptov() {
         </TabsContent>
 
         <TabsContent value="spolocnici" className="mt-0">
-          <VrPartnersTab />
+          <div className="grid gap-4">
+            <VrPartnerDepositsCard />
+            <VrPartnersTab />
+          </div>
         </TabsContent>
 
         <TabsContent value="financie" className="mt-0">
