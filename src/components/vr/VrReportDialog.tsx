@@ -21,15 +21,20 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export function VrReportDialog() {
+export type VrReportScope = "finance" | "partners";
+
+// scope: "finance" = iba výdaje/príjmy, "partners" = iba úhrady spoločníkov
+export function VrReportDialog({ scope = "finance" }: { scope?: VrReportScope }) {
+  const showFinance = scope === "finance";
+  const showPartners = scope === "partners";
   const [open, setOpen] = useState(false);
   const now = new Date();
   const [from, setFrom] = useState(() => iso(new Date(now.getFullYear(), now.getMonth(), 1)));
   const [to, setTo] = useState(() => iso(new Date(now.getFullYear(), now.getMonth() + 1, 0)));
 
   const valid = !!from && !!to && from <= to;
-  const { data: finance = [], isLoading: l1 } = useVrFinanceRange(from, to, open && valid);
-  const { data: contributions = [], isLoading: l2 } = useVrContributionsRange(from, to, open && valid);
+  const { data: finance = [], isLoading: l1 } = useVrFinanceRange(from, to, open && valid && showFinance);
+  const { data: contributions = [], isLoading: l2 } = useVrContributionsRange(from, to, open && valid && showPartners);
   const { data: profiles = [] } = useProfiles();
 
   const nameOf = (uid: string) => {
@@ -86,7 +91,7 @@ export function VrReportDialog() {
 
   function generate() {
     if (!valid) return toast.error("Zadaj platný časový interval.");
-    if (finance.length === 0 && contributions.length === 0) {
+    if ((showFinance ? finance.length : contributions.length) === 0) {
       return toast.error("V zvolenom období nie sú žiadne záznamy.");
     }
 
@@ -133,14 +138,17 @@ export function VrReportDialog() {
   @page { margin: 14mm; }
 </style></head>
 <body>
-  <h1>VR Liptov — finančný report</h1>
+  <h1>VR Liptov — ${showPartners ? "úhrady spoločníkov" : "výdaje a príjmy"}</h1>
   <div class="sub">Obdobie: ${esc(from)} – ${esc(to)} · vygenerované ${esc(new Date().toLocaleString("sk-SK"))}</div>
 
   <div class="cards">
-    <div class="card"><span>Výdaje</span><strong>${esc(eur(stats.totalExp))}</strong></div>
+    ${
+      showFinance
+        ? `<div class="card"><span>Výdaje</span><strong>${esc(eur(stats.totalExp))}</strong></div>
     <div class="card"><span>Príjmy a vklady</span><strong>${esc(eur(stats.totalInc))}</strong></div>
-    <div class="card"><span>Bilancia</span><strong>${esc(eur(stats.totalInc - stats.totalExp))}</strong></div>
-    <div class="card"><span>Úhrady spoločníkov</span><strong>${esc(eur(stats.totalContrib))}</strong></div>
+    <div class="card"><span>Bilancia</span><strong>${esc(eur(stats.totalInc - stats.totalExp))}</strong></div>`
+        : `<div class="card"><span>Úhrady spoločníkov</span><strong>${esc(eur(stats.totalContrib))}</strong></div>`
+    }
   </div>
 
   ${
@@ -154,7 +162,7 @@ export function VrReportDialog() {
       : ""
   }
   ${
-    stats.partnerRows.length
+    showPartners && stats.partnerRows.length
       ? rowsTable(
           "Úhrady spoločníkov — súhrn",
           ["Spoločník", "Suma"],
@@ -213,7 +221,7 @@ export function VrReportDialog() {
   }
 
   ${
-    contributions.length
+    showPartners && contributions.length
       ? rowsTable(
           "Úhrady spoločníkov — detail",
           ["Dátum", "Spoločník", "Účel", "Firma", "Suma"],
@@ -249,7 +257,10 @@ export function VrReportDialog() {
         <DialogHeader>
           <DialogTitle>PDF report za obdobie</DialogTitle>
           <DialogDescription>
-            Súhrny výdajov, príjmov a úhrad spoločníkov. Otvorí sa tlačové okno — zvoľ „Uložiť ako PDF“.
+            {showPartners
+              ? "Report obsahuje iba úhrady spoločníkov."
+              : "Report obsahuje iba výdaje a príjmy (bez úhrad spoločníkov)."}{" "}
+            Otvorí sa tlačové okno — zvoľ „Uložiť ako PDF“.
           </DialogDescription>
         </DialogHeader>
 
@@ -269,7 +280,9 @@ export function VrReportDialog() {
           <p className="text-xs text-muted-foreground">
             {l1 || l2
               ? "Načítavam záznamy…"
-              : `Nájdené: ${finance.length} transakcií, ${contributions.length} úhrad spoločníkov.`}
+              : showPartners
+              ? `Nájdené: ${contributions.length} úhrad spoločníkov.`
+              : `Nájdené: ${finance.length} transakcií.`}
           </p>
         )}
 

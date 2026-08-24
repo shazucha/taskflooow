@@ -256,7 +256,7 @@ export function VrPartnersTab() {
               />
             </div>
             <VrCategoryManager scope="contribution" />
-            <VrReportDialog />
+            <VrReportDialog scope="partners" />
 
             <Select value={filterPartner} onValueChange={setFilterPartner}>
               <SelectTrigger className="h-9 w-[200px] text-xs" aria-label="Filter podľa spoločníka">
