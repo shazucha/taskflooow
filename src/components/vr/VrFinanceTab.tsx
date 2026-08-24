@@ -239,12 +239,23 @@ export function VrFinanceTab() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex items-center gap-2">
-        <VrCategoryManager scope={scope} />
-        <Button variant="outline" size="sm" onClick={exportCsv} disabled={rows.length === 0}>
-          <Download className="mr-1 h-4 w-4" /> Export CSV
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-9 w-[220px] pl-9 text-xs"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Hľadať firmu alebo položku…"
+              aria-label="Hľadať podľa firmy alebo názvu položky"
+            />
+          </div>
+          <VrCategoryManager scope={scope} />
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={visibleRows.length === 0}>
+            <Download className="mr-1 h-4 w-4" /> Export CSV
+          </Button>
         </div>
+
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
