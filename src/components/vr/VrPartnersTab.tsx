@@ -52,10 +52,20 @@ export function VrPartnersTab() {
 
   const activeCategory = categories.some((c) => c.id === category) ? category : categories[0]?.id ?? "ine";
 
-  const num = (v: string) => Number(String(v).trim().replace(/\s/g, "").replace(",", "."));
+  const num = (v: string) => Number(String(v ?? "").trim().replace(/\s/g, "").replace(",", "."));
+  // Normalizácia položiek – staršie záznamy môžu mať kľúče label/amount.
+  const normItems = (arr: unknown): VrContribItem[] =>
+    (Array.isArray(arr) ? arr : []).map((raw) => {
+      const it = (raw ?? {}) as Record<string, unknown>;
+      return {
+        name: String(it.name ?? it.label ?? ""),
+        price: Number(it.price ?? it.amount ?? 0) || 0,
+      };
+    });
   const cleanItems: VrContribItem[] = items
-    .filter((it) => it.name.trim() && !Number.isNaN(num(it.price)) && num(it.price) !== 0)
-    .map((it) => ({ name: it.name.trim(), price: num(it.price) }));
+    .filter((it) => String(it.name ?? "").trim() && !Number.isNaN(num(it.price)) && num(it.price) !== 0)
+    .map((it) => ({ name: String(it.name).trim(), price: num(it.price) }));
+
   const itemsTotal = cleanItems.reduce((s2, it) => s2 + it.price, 0);
   const hasItems = cleanItems.length > 0;
 
