@@ -256,7 +256,7 @@ export function VrFinanceTab() {
   }
 
   // Rýchle šablóny pre fixné mesačné náklady hradené konateľom.
-  function applyTemplate(kind: "najom" | "kredity") {
+  function applyTemplate(kind: "najom" | "kredity" | "internet") {
     setDirection("expense");
     setFromDirector(true);
     setRecurring(true);
@@ -264,6 +264,10 @@ export function VrFinanceTab() {
       setTitle("Nájom priestorov");
       setAmount("350");
       setCategory("najom");
+    } else if (kind === "internet") {
+      setTitle("Internet");
+      setAmount("61.50");
+      setCategory("prevadzka");
     } else {
       setTitle("Kredity HeroZoneVR a iní poskytovatelia");
       setAmount("250");
@@ -271,6 +275,7 @@ export function VrFinanceTab() {
     }
     if (!partnerId) setPartnerId(profiles[0]?.id ?? "");
   }
+
 
   function resetForm() {
     setEditingId(null);
