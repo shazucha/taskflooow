@@ -21,6 +21,7 @@ import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
 import { VrCompanySelect } from "@/components/vr/VrCompanySelect";
 import { VrReportDialog } from "@/components/vr/VrReportDialog";
+import { VrLoanSettleDialog } from "@/components/vr/VrLoanSettleDialog";
 
 
 const MONTHS = [
@@ -81,6 +82,12 @@ export function VrFinanceTab() {
   const totalInc = sum(incomes);
   const balance = totalInc - totalExp;
 
+  // Breakeven: fixné (pravidelné) náklady vs. tržby mesiaca.
+  const fixedCosts = expenses.filter((r) => r.recurring).reduce((s2, r) => s2 + Number(r.amount), 0);
+  const toBreakeven = Math.max(0, fixedCosts - totalInc);
+  const SESSION_PRICE = 30;
+  const sessionsNeeded = Math.ceil(toBreakeven / SESSION_PRICE);
+
   // Pôžičky konateľa naprieč mesiacmi (záväzok firmy = mínus).
   const { data: allLoans = [] } = useVrLoans();
   const loanTotal = allLoans.reduce(
@@ -130,6 +137,46 @@ export function VrFinanceTab() {
     for (const r of incomes) m.set(r.category, (m.get(r.category) ?? 0) + Number(r.amount));
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [incomes]);
+
+  // Hromadné vygenerovanie pravidelných mesačných nákladov (nájom + kredity), hradené konateľom.
+  async function generateFixedMonth() {
+    const pid = partnerId || profiles[0]?.id;
+    if (!pid) return toast.error("Najprv vyber konateľa.");
+    const day = `${monthKey}-05`;
+    const items = [
+      { title: "Nájom priestorov", amount: 350, category: "najom" },
+      { title: "Kredity HeroZoneVR a iní poskytovatelia", amount: 250, category: "software" },
+    ];
+    let added = 0;
+    try {
+      for (const it of items) {
+        const exists = rows.some(
+          (r) => r.direction === "expense" && r.title.trim().toLowerCase() === it.title.toLowerCase()
+        );
+        if (exists) continue;
+        const base = {
+          month_key: monthKey,
+          occurred_on: day,
+          amount: it.amount,
+          category: it.category,
+          recurring: true,
+          note: null,
+          revenue_kind: null,
+        };
+        await create.mutateAsync({ ...base, direction: "expense" as VrFinanceDirection, title: it.title, partner_id: null });
+        await create.mutateAsync({
+          ...base,
+          direction: "loan" as VrFinanceDirection,
+          title: `${it.title} — hradené konateľom`,
+          partner_id: pid,
+        });
+        added++;
+      }
+      toast.success(added ? `Pridané fixné náklady (${added}).` : "Fixné náklady už v tomto mesiaci existujú.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
 
   // Rýchle šablóny pre fixné mesačné náklady hradené konateľom.
   function applyTemplate(kind: "najom" | "kredity") {
@@ -241,7 +288,13 @@ export function VrFinanceTab() {
       .map((r) =>
         [
           r.occurred_on,
-          r.direction === "expense" ? "Výdaj" : "Príjem",
+          r.direction === "expense"
+            ? "Výdaj"
+            : r.direction === "income"
+            ? "Príjem"
+            : r.direction === "loan"
+            ? "Pôžička konateľa"
+            : "Splátka konateľovi",
           `"${r.title.replace(/"/g, '""')}"`,
           vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category),
           r.recurring ? "áno" : "nie",
@@ -358,7 +411,25 @@ export function VrFinanceTab() {
           <p className={cn("mt-1 text-xl font-bold tabular-nums", balance < 0 ? "text-priority-high" : "text-vr")}>
             {eur(balance)}
           </p>
+      </div>
+
+      {/* Breakeven — koľko treba zarobiť na pokrytie fixných nákladov */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+          <p className="text-xs text-muted-foreground">Fixné náklady mesiaca</p>
+          <p className="mt-1 text-lg font-bold tabular-nums">{eur(fixedCosts)}</p>
         </div>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+          <p className="text-xs text-muted-foreground">Do pokrytia nákladov chýba</p>
+          <p className={cn("mt-1 text-lg font-bold tabular-nums", toBreakeven > 0 ? "text-priority-high" : "text-priority-low")}>
+            {toBreakeven > 0 ? eur(toBreakeven) : "Pokryté ✓"}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+          <p className="text-xs text-muted-foreground">Potrebné sessions (á 30 €)</p>
+          <p className="mt-1 text-lg font-bold tabular-nums">{sessionsNeeded}</p>
+        </div>
+      </div>
         <div className="rounded-2xl border border-priority-high/30 bg-priority-high-soft/40 p-4">
           <p className="text-xs text-muted-foreground">Dlh voči konateľovi (nesplatené)</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(-loanTotal)}</p>
@@ -456,6 +527,9 @@ export function VrFinanceTab() {
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("kredity")}>
               Kredity (HeroZoneVR a i.) 250 €
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={generateFixedMonth} disabled={create.isPending}>
+              Vygenerovať fixné náklady mesiaca (600 €)
             </Button>
           </div>
         )}
@@ -577,7 +651,14 @@ export function VrFinanceTab() {
           {loanByPartner.map(([pid, v]) => (
             <li key={pid || "none"} className="flex items-center justify-between gap-2 rounded-lg bg-surface-muted/50 px-3 py-1.5">
               <span className="truncate">{nameOf(pid || null)}</span>
-              <span className="shrink-0 font-medium tabular-nums text-priority-high">{eur(-v)}</span>
+              <span className={cn("shrink-0 font-medium tabular-nums", v > 0.005 ? "text-priority-high" : "text-priority-low")}>
+                {v > 0.005 ? eur(-v) : "Vyrovnané ✓"}
+              </span>
+              <VrLoanSettleDialog
+                partnerId={pid || null}
+                partnerName={nameOf(pid || null)}
+                outstanding={Math.max(0, v)}
+              />
             </li>
           ))}
         </ul>
