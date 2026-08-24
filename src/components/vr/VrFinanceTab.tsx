@@ -36,6 +36,8 @@ export function VrFinanceTab() {
   const remove = useDeleteVrFinanceRecord();
   const update = useUpdateVrFinanceRecord();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
 
   const [direction, setDirection] = useState<VrFinanceDirection>("expense");
   const [title, setTitle] = useState("");
@@ -49,12 +51,24 @@ export function VrFinanceTab() {
   const catValid = categories.some((c) => c.id === category);
   const activeCategory = catValid ? category : categories[0]?.id ?? "ine";
 
-  const expenses = rows.filter((r) => r.direction === "expense");
-  const incomes = rows.filter((r) => r.direction === "income");
+  // Vyhľadávanie podľa firmy/dodávateľa alebo názvu položky.
+  const visibleRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(
+      (r) =>
+        r.title.toLowerCase().includes(q) ||
+        vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category).toLowerCase().includes(q)
+    );
+  }, [rows, search]);
+
+  const expenses = visibleRows.filter((r) => r.direction === "expense");
+  const incomes = visibleRows.filter((r) => r.direction === "income");
   const sum = (arr: typeof rows) => arr.reduce((s, r) => s + Number(r.amount), 0);
   const totalExp = sum(expenses);
   const totalInc = sum(incomes);
   const balance = totalInc - totalExp;
+
 
   const byCategory = useMemo(() => {
     const m = new Map<string, number>();
