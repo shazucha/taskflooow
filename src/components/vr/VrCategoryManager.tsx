@@ -85,7 +85,7 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
         <ul className="mt-1 max-h-[320px] space-y-1 overflow-y-auto">
           {categories.length === 0 && (
             <li className="py-6 text-center text-sm text-muted-foreground">
-              Žiadne kategórie — spusti migráciu alebo pridaj vlastnú.
+              Žiadne firmy — spusti migráciu alebo pridaj vlastnú.
             </li>
           )}
           {categories.map((c) => (
