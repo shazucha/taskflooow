@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, Download, Plus, Printer, Trash2, Users } from "lucide-react";
+import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Coins, Download, Plus, Printer, Trash2, Users } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VrPartnersTab } from "@/components/vr/VrPartnersTab";
+import { VrFinanceTab } from "@/components/vr/VrFinanceTab";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -236,7 +240,22 @@ export default function VrLiptov() {
         </p>
       </header>
 
+      <Tabs defaultValue="dochadzka" className="w-full">
+        <TabsList className="mb-4 flex h-auto w-full flex-wrap justify-start gap-1 p-1">
+          <TabsTrigger value="dochadzka" className="gap-1.5 text-xs sm:text-sm">
+            <CalendarDays className="h-4 w-4" /> Dochádzka a rezervácie
+          </TabsTrigger>
+          <TabsTrigger value="spolocnici" className="gap-1.5 text-xs sm:text-sm">
+            <Users className="h-4 w-4" /> Úhrady spoločníkov
+          </TabsTrigger>
+          <TabsTrigger value="financie" className="gap-1.5 text-xs sm:text-sm">
+            <Coins className="h-4 w-4" /> Výdaje a príjmy
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dochadzka" className="mt-0">
       <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr] lg:items-start xl:gap-6">
+
       <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4 lg:p-5">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="truncate text-sm font-semibold sm:text-base">
@@ -581,6 +600,17 @@ export default function VrLiptov() {
           />
         </div>
       </section>
+        </TabsContent>
+
+        <TabsContent value="spolocnici" className="mt-0">
+          <VrPartnersTab />
+        </TabsContent>
+
+        <TabsContent value="financie" className="mt-0">
+          <VrFinanceTab />
+        </TabsContent>
+      </Tabs>
     </main>
+
   );
 }
