@@ -488,6 +488,9 @@ export function VrFinanceTab() {
             <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("kredity")}>
               Kredity (HeroZoneVR a i.) 250 €
             </Button>
+            <Button type="button" variant="outline" size="sm" onClick={generateFixedMonth} disabled={create.isPending}>
+              Vygenerovať fixné náklady mesiaca (600 €)
+            </Button>
           </div>
         )}
         <Input
