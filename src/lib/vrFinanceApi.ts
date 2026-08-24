@@ -267,3 +267,49 @@ export function useDeleteVrFinanceRecord() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_finance_records"] }),
   });
 }
+
+/* ------------------- Report za zvolený interval ------------------- */
+
+// Výdaje/príjmy za ľubovoľný rozsah dátumov (pre PDF report).
+export function useVrFinanceRange(from: string, to: string, enabled = true) {
+  const userId = useCurrentUserId();
+  return useQuery({
+    queryKey: ["vr_finance_records_range", from, to],
+    enabled: !!userId && enabled && !!from && !!to,
+    queryFn: async (): Promise<VrFinanceRecord[]> => {
+      const { data, error } = await supabase
+        .from("vr_finance_records")
+        .select(FR_COLS)
+        .gte("occurred_on", from)
+        .lte("occurred_on", to)
+        .order("occurred_on", { ascending: true });
+      if (error) {
+        console.warn("VR report: vr_finance_records nedostupné", error.message);
+        return [];
+      }
+      return (data ?? []) as VrFinanceRecord[];
+    },
+  });
+}
+
+// Úhrady spoločníkov za rozsah dátumov.
+export function useVrContributionsRange(from: string, to: string, enabled = true) {
+  const userId = useCurrentUserId();
+  return useQuery({
+    queryKey: ["vr_partner_contributions_range", from, to],
+    enabled: !!userId && enabled && !!from && !!to,
+    queryFn: async (): Promise<VrPartnerContribution[]> => {
+      const { data, error } = await supabase
+        .from("vr_partner_contributions")
+        .select(PC_COLS)
+        .gte("paid_on", from)
+        .lte("paid_on", to)
+        .order("paid_on", { ascending: true });
+      if (error) {
+        console.warn("VR report: vr_partner_contributions nedostupné", error.message);
+        return [];
+      }
+      return (data ?? []) as VrPartnerContribution[];
+    },
+  });
+}

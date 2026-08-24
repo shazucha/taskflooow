@@ -19,6 +19,7 @@ import {
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
 import { VrCompanySelect } from "@/components/vr/VrCompanySelect";
+import { VrReportDialog } from "@/components/vr/VrReportDialog";
 
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -230,6 +231,7 @@ export function VrPartnersTab() {
               />
             </div>
             <VrCategoryManager scope="contribution" />
+            <VrReportDialog />
 
             <Select value={filterPartner} onValueChange={setFilterPartner}>
               <SelectTrigger className="h-9 w-[200px] text-xs" aria-label="Filter podľa spoločníka">
