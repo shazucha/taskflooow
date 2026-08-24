@@ -242,7 +242,13 @@ export function VrFinanceTab() {
       .map((r) =>
         [
           r.occurred_on,
-          r.direction === "expense" ? "Výdaj" : "Príjem",
+          r.direction === "expense"
+            ? "Výdaj"
+            : r.direction === "income"
+            ? "Príjem"
+            : r.direction === "loan"
+            ? "Pôžička konateľa"
+            : "Splátka konateľovi",
           `"${r.title.replace(/"/g, '""')}"`,
           vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category),
           r.recurring ? "áno" : "nie",
