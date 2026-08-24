@@ -780,17 +780,37 @@ export function VrFinanceTab() {
         </Button>
       </div>
 
-      {/* Zoznamy */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-          <h3 className="mb-1 text-sm font-semibold">Výdaje mesiaca</h3>
-          {renderList(expenses, "expense")}
+      {/* Prázdny stav mesiaca */}
+      {rows.length === 0 ? (
+        <section className="rounded-2xl border border-dashed border-border/60 bg-card/40 p-6 text-center sm:p-8">
+          <p className="text-sm font-semibold">Za {MONTHS[cursor.getMonth()].toLowerCase()} zatiaľ nič nie je zapísané</p>
+          <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
+            Zapíš prvý výdaj alebo tržbu vo formulári vyššie. Výdaj hradený z peňazí konateľa sa automaticky
+            zaznamená aj ako pôžička firme.
+          </p>
         </section>
-        <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-          <h3 className="mb-1 text-sm font-semibold">Príjmy (tržby)</h3>
-          {renderList(incomes, "income")}
+      ) : visibleRows.length === 0 ? (
+        <section className="rounded-2xl border border-dashed border-border/60 bg-card/40 p-6 text-center sm:p-8">
+          <p className="text-sm font-semibold">Filtrom nič nezodpovedá</p>
+          <p className="mt-1 text-xs text-muted-foreground">Skús zmeniť obdobie, typ alebo vyhľadávanie.</p>
         </section>
-      </div>
+      ) : (
+        <div className={cn("grid gap-4", typeFilter === "all" && "lg:grid-cols-2")}>
+          {(typeFilter === "all" || typeFilter === "expense") && (
+            <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+              <h3 className="mb-1 text-sm font-semibold">Výdaje mesiaca</h3>
+              {renderList(expenses, "expense")}
+            </section>
+          )}
+          {(typeFilter === "all" || typeFilter === "income") && (
+            <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+              <h3 className="mb-1 text-sm font-semibold">Príjmy (tržby)</h3>
+              {renderList(incomes, "income")}
+            </section>
+          )}
+        </div>
+      )}
+
 
       {/* Pôžičky konateľa */}
       <section className="rounded-2xl border border-priority-high/25 bg-card/60 p-3 sm:p-4">
