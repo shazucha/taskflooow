@@ -1,7 +1,7 @@
 // Podiely spoločníkov — presný výpočet: úhrady + vklady, celkovo aj po projektoch.
 // Pri každom projekte vidno celkovú cenu a koľko z nej reálne dal ktorý spoločník.
-import { useMemo, useState } from "react";
-import { ChevronDown, PieChart } from "lucide-react";
+import { useMemo } from "react";
+import { PieChart } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useProfiles } from "@/lib/queries";
 import { eur, useVrContributions, useVrDeposits } from "@/lib/vrFinanceApi";
@@ -34,7 +34,6 @@ export function VrPartnerSharesCard() {
   const { data: profiles = [] } = useProfiles();
   const { data: contribs = [], isLoading: l1 } = useVrContributions();
   const { data: deposits = [], isLoading: l2 } = useVrDeposits();
-  const [open, setOpen] = useState<string | null>(null);
 
   const nameOf = (uid: string) => {
     const p = profiles.find((x) => x.id === uid);
@@ -61,19 +60,6 @@ export function VrPartnerSharesCard() {
   );
 
   const overall = useMemo(() => buildRows(flat), [flat]);
-
-  const projects = useMemo(() => {
-    const m = new Map<string, typeof flat>();
-    for (const e of flat) m.set(e.project, [...(m.get(e.project) ?? []), e]);
-    return [...m.entries()]
-      .map(([project, list]) => ({ project, ...buildRows(list) }))
-      .filter((p) => p.total !== 0)
-      .sort((a, b) => {
-        if (a.project === NO_PROJECT) return 1;
-        if (b.project === NO_PROJECT) return -1;
-        return b.total - a.total;
-      });
-  }, [flat]);
 
   const loading = l1 || l2;
   const fair = overall.rows.length ? overall.total / overall.rows.length : 0;
@@ -130,8 +116,8 @@ export function VrPartnerSharesCard() {
         </span>
       </div>
       <p className="mb-3 text-xs text-muted-foreground">
-        Do podielu sa počítajú úhrady spoločníkov aj ich vklady. Rovným dielom by na
-        každého pripadlo <strong className="tabular-nums">{eur(fair)}</strong>.
+        Do podielu sa počítajú úhrady spoločníkov aj ich vklady (aj nepeňažné, prevedené
+        z inej firmy — očistené o daň a dividendu). Rovným dielom by na každého pripadlo <strong className="tabular-nums">{eur(fair)}</strong>.
       </p>
 
       {loading && <VrListSkeleton rows={2} />}
@@ -144,39 +130,6 @@ export function VrPartnerSharesCard() {
 
       {!loading && overall.rows.length > 0 && renderRows(overall.rows, overall.total, true)}
 
-      {/* Rozpad podielov po projektoch */}
-      {!loading && projects.length > 0 && (
-        <div className="mt-4 border-t border-border/50 pt-3">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Podiely po projektoch
-          </h3>
-          <ul className="space-y-2">
-            {projects.map((p) => {
-              const label = p.project === NO_PROJECT ? "Bez projektu" : p.project;
-              const isOpen = open === p.project;
-              return (
-                <li key={p.project} className="rounded-xl border border-border/50 bg-surface-muted/30">
-                  <button
-                    type="button"
-                    onClick={() => setOpen(isOpen ? null : p.project)}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left"
-                    aria-expanded={isOpen}
-                  >
-                    <ChevronDown
-                      className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{label}</span>
-                    <span className="shrink-0 text-sm font-semibold tabular-nums text-vr">
-                      {eur(p.total)}
-                    </span>
-                  </button>
-                  {isOpen && <div className="px-3 pb-3">{renderRows(p.rows, p.total, false)}</div>}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
     </section>
   );
 }
