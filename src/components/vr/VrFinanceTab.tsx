@@ -608,7 +608,14 @@ export function VrFinanceTab() {
           {loanByPartner.map(([pid, v]) => (
             <li key={pid || "none"} className="flex items-center justify-between gap-2 rounded-lg bg-surface-muted/50 px-3 py-1.5">
               <span className="truncate">{nameOf(pid || null)}</span>
-              <span className="shrink-0 font-medium tabular-nums text-priority-high">{eur(-v)}</span>
+              <span className={cn("shrink-0 font-medium tabular-nums", v > 0.005 ? "text-priority-high" : "text-priority-low")}>
+                {v > 0.005 ? eur(-v) : "Vyrovnané ✓"}
+              </span>
+              <VrLoanSettleDialog
+                partnerId={pid || null}
+                partnerName={nameOf(pid || null)}
+                outstanding={Math.max(0, v)}
+              />
             </li>
           ))}
         </ul>
