@@ -96,7 +96,7 @@ export function VrFinanceTab() {
     if (value <= 0) return toast.error("Zadaj sumu väčšiu ako 0.");
     if (value > 1_000_000) return toast.error("Suma je nereálne vysoká.");
     if (!occurredOn) return toast.error("Vyber dátum.");
-    if (!categories.length) return toast.error("Najprv pridaj aspoň jednu kategóriu.");
+    if (!categories.length) return toast.error("Najprv pridaj aspoň jednu firmu / dodávateľa.");
 
     // Duplicita v rámci mesiaca
     const dup = rows.some(
