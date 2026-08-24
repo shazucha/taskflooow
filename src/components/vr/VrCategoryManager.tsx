@@ -57,14 +57,15 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5" aria-label={`Spravovať: ${VR_SCOPE_LABEL[scope]}`}>
           <Settings2 className="h-4 w-4" />
-          <span className="hidden sm:inline">Kategórie</span>
+          <span className="hidden sm:inline">Firmy</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{VR_SCOPE_LABEL[scope]}</DialogTitle>
           <DialogDescription>
-            Kategórie sú uložené v databáze a vidia ich všetci členovia firmy.
+            Zoznam firiem/dodávateľov je uložený v databáze a vidia ho všetci členovia firmy.
+            Pridaj napríklad názvy spoločností, od ktorých nakupuješ alebo ktorým fakturuješ.
           </DialogDescription>
         </DialogHeader>
 
@@ -73,8 +74,8 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            placeholder="Nová kategória…"
-            aria-label="Nová kategória"
+            placeholder="Názov firmy…"
+            aria-label="Nová firma"
           />
           <Button onClick={handleAdd} disabled={add.isPending} className="bg-vr text-vr-foreground hover:bg-vr/90">
             <Plus className="h-4 w-4" />
