@@ -1,6 +1,6 @@
-// Dialóg na správu kategórií/typov (Supabase — spoločné pre všetkých).
-import { useState } from "react";
-import { Check, Pencil, Plus, Settings2, Trash2, X } from "lucide-react";
+// Dialóg na správu firiem/dodávateľov (Supabase — spoločné pre všetkých).
+import { useMemo, useState } from "react";
+import { Check, Pencil, Plus, RotateCcw, Search, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,16 +11,43 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { VR_SCOPE_LABEL, useVrCategories, useVrCategoryActions, type VrCatScope } from "@/lib/vrCategories";
 
 export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
-  const categories = useVrCategories(scope);
-  const { add, rename, remove } = useVrCategoryActions(scope);
+  const all = useVrCategories(scope);
+  const { add, rename, remove, resetDefaults } = useVrCategoryActions(scope);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
+  const [search, setSearch] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
+
+  const categories = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? all.filter((c) => c.label.toLowerCase().includes(q)) : all;
+  }, [all, search]);
+
+  async function handleReset() {
+    try {
+      await resetDefaults.mutateAsync();
+      toast.success("Predvolené firmy obnovené.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
 
   async function handleAdd() {
     if (!draft.trim()) return;
