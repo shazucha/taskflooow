@@ -433,58 +433,71 @@ export function VrPartnersTab() {
             const first = e.rows[0];
             const shared = e.rows.length > 1;
             return (
-              <li key={e.key} className="py-2.5">
-                <div className="flex items-center gap-3">
-                {shared ? (
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-vr-soft text-vr">
-                    <Users className="h-4 w-4" />
-                  </span>
-                ) : (
-                  <UserAvatar profile={profiles.find((p) => p.id === first.partner_id)} className="h-8 w-8 shrink-0" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{first.purpose}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {e.rows.map((r) => `${nameOf(r.partner_id)} ${eur(Number(r.amount))}`).join(" + ")} ·{" "}
-                    {new Date(first.paid_on).toLocaleDateString("sk-SK")} · {vrCatLabel("contribution", first.category)}
-                  </p>
+              <li key={e.key} className="py-3">
+                <div className="flex items-start gap-3">
+                  {shared ? (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-vr-soft text-vr">
+                      <Users className="h-4 w-4" />
+                    </span>
+                  ) : (
+                    <UserAvatar profile={profiles.find((p) => p.id === first.partner_id)} className="h-9 w-9 shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 break-words text-sm font-medium leading-snug">{first.purpose}</p>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(e.total)}</span>
+                    </div>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      {new Date(first.paid_on).toLocaleDateString("sk-SK")} · {vrCatLabel("contribution", first.category)}
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      {e.rows.map((r) => (
+                        <span
+                          key={r.id}
+                          className="rounded-full bg-surface-muted/70 px-2 py-0.5 text-[11px] text-muted-foreground"
+                        >
+                          {nameOf(r.partner_id)} · <span className="tabular-nums">{eur(Number(r.amount))}</span>
+                        </span>
+                      ))}
+                    </div>
+                    {normItems(first.items).length > 0 && (
+                      <ul className="mt-2 space-y-1 border-l border-border/50 pl-3 text-xs">
+                        {normItems(first.items).map((it, i) => (
+                          <li key={i} className="flex items-start justify-between gap-3">
+                            <span className="min-w-0 break-words text-muted-foreground">{it.name}</span>
+                            <span className="shrink-0 tabular-nums">{eur(it.price)}</span>
+                          </li>
+                        ))}
+                        <li className="flex items-center justify-between gap-3 border-t border-border/50 pt-1 font-semibold">
+                          <span>Dokopy</span>
+                          <span className="tabular-nums">{eur(normItems(first.items).reduce((s3, it) => s3 + it.price, 0))}</span>
+                        </li>
+                      </ul>
+                    )}
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs text-muted-foreground"
+                        aria-label="Upraviť úhradu"
+                        onClick={() => startEdit(e)}
+                      >
+                        <Pencil className="mr-1 h-3.5 w-3.5" /> Upraviť
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+                        aria-label="Zmazať úhradu"
+                        onClick={() => e.rows.forEach((r) => remove.mutate(r.id))}
+                      >
+                        <Trash2 className="mr-1 h-3.5 w-3.5" /> Zmazať
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(e.total)}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0 text-muted-foreground"
-                  aria-label="Upraviť úhradu"
-                  onClick={() => startEdit(e)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                  aria-label="Zmazať úhradu"
-                  onClick={() => e.rows.forEach((r) => remove.mutate(r.id))}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                </div>
-                {normItems(first.items).length > 0 && (
-                  <ul className="ml-11 mt-1.5 space-y-1 border-l border-border/50 pl-3 text-xs">
-                    {normItems(first.items).map((it, i) => (
-                      <li key={i} className="flex items-center justify-between gap-3">
-                        <span className="truncate text-muted-foreground">{it.name}</span>
-                        <span className="shrink-0 tabular-nums">{eur(it.price)}</span>
-                      </li>
-                    ))}
-                    <li className="flex items-center justify-between gap-3 border-t border-border/50 pt-1 font-semibold">
-                      <span>Dokopy</span>
-                      <span className="tabular-nums">{eur(normItems(first.items).reduce((s3, it) => s3 + it.price, 0))}</span>
-                    </li>
-                  </ul>
-                )}
-
               </li>
+
             );
           })}
         </ul>
