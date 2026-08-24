@@ -1,5 +1,5 @@
 // Facebook-style "upozornenia" — zvonček s dropdown zoznamom správ.
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Bell, MessageCircle, Users, FolderKanban, CheckCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
