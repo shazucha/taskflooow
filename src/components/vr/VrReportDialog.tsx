@@ -53,6 +53,20 @@ export function VrReportDialog() {
     for (const c of contributions) {
       byPartner.set(c.partner_id, (byPartner.get(c.partner_id) ?? 0) + Number(c.amount));
     }
+    // Fixné náklady + zdroj úhrady (pôžička konateľa vs. účet firmy).
+    const loans = finance.filter((r) => r.direction === "loan");
+    const fixed = expenses
+      .filter((r) => r.recurring)
+      .map((r) => {
+        const match = loans.find(
+          (l) =>
+            l.title.toLowerCase().startsWith(`${r.title.trim().toLowerCase()} — hradené konateľom`) &&
+            Number(l.amount) === Number(r.amount)
+        );
+        return { rec: r, paidBy: match?.partner_id ?? null, byDirector: !!match };
+      });
+    const fixedByDirector = fixed.filter((f) => f.byDirector).reduce((s, f) => s + Number(f.rec.amount), 0);
+    const fixedTotal = fixed.reduce((s, f) => s + Number(f.rec.amount), 0);
     return {
       expenses,
       incomes,
@@ -62,8 +76,13 @@ export function VrReportDialog() {
       expByCat: byCat(expenses, "expense"),
       incByCat: byCat(incomes, "income"),
       partnerRows: [...byPartner.entries()].sort((a, b) => b[1] - a[1]),
+      fixed,
+      fixedByDirector,
+      fixedByCompany: fixedTotal - fixedByDirector,
+      fixedTotal,
     };
   }, [finance, contributions]);
+
 
   function generate() {
     if (!valid) return toast.error("Zadaj platný časový interval.");
