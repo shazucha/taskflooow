@@ -220,8 +220,10 @@ export function VrFinanceTab() {
     const day = `${monthKey}-05`;
     const items = [
       { title: "Nájom priestorov", amount: 350, category: "najom" },
+      { title: "Internet", amount: 61.5, category: "prevadzka" },
       { title: "Kredity HeroZoneVR a iní poskytovatelia", amount: 250, category: "software" },
     ];
+
     let added = 0;
     try {
       for (const it of items) {
@@ -254,7 +256,7 @@ export function VrFinanceTab() {
   }
 
   // Rýchle šablóny pre fixné mesačné náklady hradené konateľom.
-  function applyTemplate(kind: "najom" | "kredity") {
+  function applyTemplate(kind: "najom" | "kredity" | "internet") {
     setDirection("expense");
     setFromDirector(true);
     setRecurring(true);
@@ -262,6 +264,10 @@ export function VrFinanceTab() {
       setTitle("Nájom priestorov");
       setAmount("350");
       setCategory("najom");
+    } else if (kind === "internet") {
+      setTitle("Internet");
+      setAmount("61.50");
+      setCategory("prevadzka");
     } else {
       setTitle("Kredity HeroZoneVR a iní poskytovatelia");
       setAmount("250");
@@ -269,6 +275,7 @@ export function VrFinanceTab() {
     }
     if (!partnerId) setPartnerId(profiles[0]?.id ?? "");
   }
+
 
   function resetForm() {
     setEditingId(null);
@@ -760,12 +767,16 @@ export function VrFinanceTab() {
             <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("najom")}>
               Nájom 350 € / mesiac
             </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("internet")}>
+              Internet 61,50 € / mesiac
+            </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("kredity")}>
               Kredity (HeroZoneVR a i.) 250 €
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={generateFixedMonth} disabled={create.isPending}>
-              Vygenerovať fixné náklady mesiaca (600 €)
+              Vygenerovať fixné náklady mesiaca (661,50 €)
             </Button>
+
           </div>
         )}
         <Input
