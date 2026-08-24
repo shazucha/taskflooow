@@ -507,9 +507,9 @@ export function VrFinanceTab() {
 
 
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 gap-4 [&>*]:min-w-0">
       {/* Hlavička mesiaca + súhrn */}
-      <div className="grid gap-3 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+      <div className="grid min-w-0 gap-3 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
         <div className="sticky top-0 z-20 -mx-3 grid gap-2 border-b border-border/50 bg-card/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:-mx-4 sm:px-4 lg:static lg:mx-0 lg:flex lg:flex-wrap lg:items-center lg:justify-between lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none">
           <div className="flex items-center justify-between gap-2">
             <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Predchádzajúci mesiac"
@@ -883,7 +883,7 @@ export function VrFinanceTab() {
         <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Prehľad dlhu po mesiacoch
         </h4>
-        <div className="overflow-x-auto">
+        <div className="-mx-1 min-w-0 overflow-x-auto px-1">
           <table className="w-full min-w-[420px] text-sm">
             <thead>
               <tr className="text-left text-xs text-muted-foreground">
