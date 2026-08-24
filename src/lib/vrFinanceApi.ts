@@ -15,8 +15,14 @@ export interface VrPartnerContribution {
   group_id: string | null;
   share_mode: VrShareMode;
   total_amount: number | null;
+  items: VrContribItem[] | null;
   created_by: string | null;
   created_at: string;
+}
+
+export interface VrContribItem {
+  name: string;
+  price: number;
 }
 
 export type VrShareMode = "single" | "half" | "each";
@@ -70,7 +76,7 @@ function dupMsg(error: { code?: string; message: string }) {
 }
 
 const PC_COLS =
-  "id,partner_id,paid_on,amount,purpose,category,note,group_id,share_mode,total_amount,created_by,created_at";
+  "id,partner_id,paid_on,amount,purpose,category,note,group_id,share_mode,total_amount,items,created_by,created_at";
 const FR_COLS =
   "id,month_key,occurred_on,direction,amount,title,category,recurring,note,created_by,created_at";
 
@@ -151,6 +157,7 @@ export function useSaveVrContributionGroup() {
       purpose: string;
       category: string;
       note?: string | null;
+      items?: VrContribItem[] | null;
     }) => {
       const gid = input.groupId ?? crypto.randomUUID();
       const shared = input.partnerIds.length > 1;
@@ -180,6 +187,7 @@ export function useSaveVrContributionGroup() {
           group_id: shared ? gid : null,
           share_mode: shared ? input.shareMode : "single",
           total_amount: input.total,
+          items: input.items?.length ? input.items : null,
         };
         const match = rows[i];
         const { error } = match
