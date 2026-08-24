@@ -66,10 +66,34 @@ export function VrFinanceTab() {
 
   const expenses = visibleRows.filter((r) => r.direction === "expense");
   const incomes = visibleRows.filter((r) => r.direction === "income");
+  const loanRows = visibleRows.filter((r) => r.direction === "loan" || r.direction === "loan_repay");
   const sum = (arr: typeof rows) => arr.reduce((s, r) => s + Number(r.amount), 0);
   const totalExp = sum(expenses);
   const totalInc = sum(incomes);
   const balance = totalInc - totalExp;
+
+  // Pôžičky konateľa naprieč mesiacmi (záväzok firmy = mínus).
+  const { data: allLoans = [] } = useVrLoans();
+  const loanTotal = allLoans.reduce(
+    (s, r) => s + (r.direction === "loan" ? Number(r.amount) : -Number(r.amount)),
+    0
+  );
+  const loanByMonth = useMemo(() => {
+    const m = new Map<string, { lent: number; repaid: number }>();
+    for (const r of allLoans) {
+      const k = r.month_key;
+      const e = m.get(k) ?? { lent: 0, repaid: 0 };
+      if (r.direction === "loan") e.lent += Number(r.amount);
+      else e.repaid += Number(r.amount);
+      m.set(k, e);
+    }
+    return [...m.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  }, [allLoans]);
+  const monthLabel = (k: string) => {
+    const [y, mm] = k.split("-");
+    return `${MONTHS[Number(mm) - 1] ?? mm} ${y}`;
+  };
+
 
 
   const byCategory = useMemo(() => {
