@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, Download, Plus, Printer, Trash2, Users } from "lucide-react";
+import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Coins, Download, Plus, Printer, Trash2, Users } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VrPartnersTab } from "@/components/vr/VrPartnersTab";
+import { VrFinanceTab } from "@/components/vr/VrFinanceTab";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
