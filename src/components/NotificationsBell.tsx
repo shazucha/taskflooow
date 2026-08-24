@@ -1,5 +1,5 @@
 // Facebook-style "upozornenia" — zvonček s dropdown zoznamom správ.
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Bell, MessageCircle, Users, FolderKanban, CheckCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -115,15 +115,6 @@ export function NotificationsBell({ className }: { className?: string }) {
           </ScrollArea>
         )}
 
-        <div className="border-t border-border/60 px-4 py-2 text-center">
-          <Link
-            to="/chat"
-            onClick={() => setOpen(false)}
-            className="text-xs font-medium text-primary hover:underline"
-          >
-            Otvoriť chat
-          </Link>
-        </div>
       </PopoverContent>
     </Popover>
   );

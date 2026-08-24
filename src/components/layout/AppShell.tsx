@@ -1,7 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { BottomNav } from "./BottomNav";
 import { DesktopSidebar } from "./DesktopSidebar";
-import { TeamMembersRail } from "@/components/TeamMembersRail";
 import { useTeamPresence } from "@/lib/useTeamPresence";
 
 export function AppShell() {
@@ -19,7 +18,6 @@ export function AppShell() {
         <Outlet />
       </div>
       <BottomNav />
-      <TeamMembersRail />
     </div>
   );
 }
