@@ -31,6 +31,9 @@ const App = () => (
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/google/callback" element={<GoogleOAuthCallback />} />
+          {/* Dev-only náhľad pre vizuálnu kontrolu responzivity (nie je v produkčnom builde). */}
+          {import.meta.env.DEV && <Route path="/dev/vr-liptov" element={<VrLiptov />} />}
+
           <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/projects" element={<Projects />} />

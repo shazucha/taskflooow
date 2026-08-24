@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserAvatar } from "@/components/UserAvatar";
 import { toast } from "sonner";
 import { useCurrentUserId, useProfiles } from "@/lib/queries";
+import { VrEmptyState, VrListSkeleton } from "@/components/vr/VrListStates";
 import {
   eur,
   splitEven,
@@ -28,7 +29,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 export function VrPartnersTab() {
   const userId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
-  const { data: rows = [] } = useVrContributions();
+  const { data: rows = [], isLoading } = useVrContributions();
   const save = useSaveVrContributionGroup();
   const remove = useDeleteVrContribution();
   const categories = useVrCategories("contribution");
@@ -242,7 +243,7 @@ export function VrPartnersTab() {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
       <section className="min-w-0 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-        <div className="mb-3 grid gap-2">
+        <div className="sticky top-0 z-20 -mx-3 mb-3 grid gap-2 border-b border-border/50 bg-card/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:-mx-4 sm:px-4 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none">
           <h2 className="text-base font-semibold tracking-tight sm:text-lg">Úhrady spoločníkov</h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
             <div className="relative min-w-0 lg:w-[220px]">
@@ -268,7 +269,7 @@ export function VrPartnersTab() {
               </SelectContent>
             </Select>
 
-            <div className="flex flex-wrap items-center gap-2 [&>*]:flex-1 sm:col-span-2 lg:[&>*]:flex-none">
+            <div className="grid grid-cols-2 items-center gap-2 sm:col-span-2 lg:flex lg:flex-wrap [&>*]:h-9 [&>*]:w-full [&>*]:min-w-0 lg:[&>*]:w-auto">
               <VrCategoryManager scope="contribution" />
               <VrReportDialog scope="partners" />
             </div>
@@ -426,8 +427,23 @@ export function VrPartnersTab() {
 
         {/* Zoznam */}
         <ul className="mt-3 divide-y divide-border/50">
-          {filteredEntries.length === 0 && (
-            <li className="py-8 text-center text-sm text-muted-foreground">Zatiaľ žiadne úhrady.</li>
+          {isLoading && (
+            <li>
+              <VrListSkeleton rows={3} />
+            </li>
+          )}
+          {!isLoading && filteredEntries.length === 0 && (
+            <li>
+              <VrEmptyState
+                icon={Wallet}
+                title={rows.length === 0 ? "Zatiaľ žiadne úhrady" : "Nič nezodpovedá filtru"}
+                hint={
+                  rows.length === 0
+                    ? "Zapíš prvú úhradu vo formulári vyššie — môžeš pridať aj položkový rozpis a spoločný vklad."
+                    : "Skús zmeniť hľadaný výraz alebo filter spoločníka."
+                }
+              />
+            </li>
           )}
           {filteredEntries.map((e) => {
             const first = e.rows[0];
