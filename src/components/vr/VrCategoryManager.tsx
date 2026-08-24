@@ -27,7 +27,7 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
     try {
       await add.mutateAsync(draft);
       setDraft("");
-      toast.success("Kategória pridaná.");
+      toast.success("Firma pridaná.");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -37,7 +37,7 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
     try {
       await rename.mutateAsync({ rowId, label: editLabel });
       setEditId(null);
-      toast.success("Názov upravený.");
+      toast.success("Názov firmy upravený.");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -46,7 +46,7 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
   async function handleRemove(rowId: string) {
     try {
       await remove.mutateAsync(rowId);
-      toast.success("Kategória zmazaná.");
+      toast.success("Firma odstránená.");
     } catch (e) {
       toast.error((e as Error).message);
     }
