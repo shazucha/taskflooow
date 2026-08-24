@@ -66,20 +66,37 @@ export function VrFinanceTab() {
   const catValid = categories.some((c) => c.id === category);
   const activeCategory = catValid ? category : categories[0]?.id ?? "ine";
 
-  // Vyhľadávanie podľa firmy/dodávateľa alebo názvu položky.
+  // Rýchle filtre: obdobie v rámci mesiaca + typ záznamu.
+  type PeriodFilter = "all" | "last7" | "h1" | "h2";
+  type TypeFilter = "all" | "expense" | "income" | "loan";
+  const [period, setPeriod] = useState<PeriodFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+
+  // Vyhľadávanie podľa firmy/dodávateľa alebo názvu položky + obdobie.
   const visibleRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) =>
-        r.title.toLowerCase().includes(q) ||
-        vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category).toLowerCase().includes(q)
-    );
-  }, [rows, search]);
+    const from7 = new Date();
+    from7.setDate(from7.getDate() - 7);
+    return rows.filter((r) => {
+      if (
+        q &&
+        !r.title.toLowerCase().includes(q) &&
+        !vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category).toLowerCase().includes(q)
+      )
+        return false;
+      const d = new Date(r.occurred_on);
+      if (period === "last7" && d < from7) return false;
+      if (period === "h1" && d.getDate() > 15) return false;
+      if (period === "h2" && d.getDate() <= 15) return false;
+      return true;
+    });
+  }, [rows, search, period]);
 
   const expenses = visibleRows.filter((r) => r.direction === "expense");
   const incomes = visibleRows.filter((r) => r.direction === "income");
   const loanRows = visibleRows.filter((r) => r.direction === "loan" || r.direction === "loan_repay");
+  const filtersActive = period !== "all" || typeFilter !== "all" || search.trim() !== "";
+
   const sum = (arr: typeof rows) => arr.reduce((s, r) => s + Number(r.amount), 0);
   const totalExp = sum(expenses);
   const totalInc = sum(incomes);
@@ -471,39 +488,99 @@ export function VrFinanceTab() {
   return (
     <div className="grid gap-4">
       {/* Hlavička mesiaca + súhrn */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Predchádzajúci mesiac"
-            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="min-w-[150px] text-center text-sm font-semibold sm:text-base">
-            {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
-          </h2>
-          <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Nasledujúci mesiac"
-            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="h-9 w-[220px] pl-9 text-xs"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Hľadať firmu alebo položku…"
-              aria-label="Hľadať podľa firmy alebo názvu položky"
-            />
+      <div className="grid gap-3 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Predchádzajúci mesiac"
+              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h2 className="min-w-[130px] text-center text-sm font-semibold sm:min-w-[150px] sm:text-base">
+              {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
+            </h2>
+            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Nasledujúci mesiac"
+              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-          <VrCategoryManager scope={scope} />
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={visibleRows.length === 0}>
-            <Download className="mr-1 h-4 w-4" /> Export CSV
-          </Button>
-          <VrReportDialog />
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+            <div className="relative min-w-[180px] flex-1 sm:max-w-[240px] sm:flex-none">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="h-9 w-full pl-9 text-xs"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Hľadať firmu alebo položku…"
+                aria-label="Hľadať podľa firmy alebo názvu položky"
+              />
+            </div>
+            <VrCategoryManager scope={scope} />
+            <Button variant="outline" size="sm" className="h-9" onClick={exportCsv} disabled={visibleRows.length === 0}>
+              <Download className="mr-1 h-4 w-4" /> Export CSV
+            </Button>
+            <VrReportDialog />
+          </div>
         </div>
 
+        {/* Rýchle filtre — obdobie a typ */}
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
+          {([
+            ["all", "Celý mesiac"],
+            ["last7", "Posledných 7 dní"],
+            ["h1", "1. – 15."],
+            ["h2", "16. – koniec"],
+          ] as [PeriodFilter, string][]).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setPeriod(id)}
+              className={cn(
+                "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                period === id
+                  ? "border-vr/40 bg-vr-soft text-vr"
+                  : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+          <span className="mx-1 hidden w-px shrink-0 bg-border/60 sm:block" aria-hidden />
+          {([
+            ["all", "Všetko"],
+            ["expense", "Výdaje"],
+            ["income", "Príjmy"],
+            ["loan", "Pôžičky"],
+          ] as [TypeFilter, string][]).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTypeFilter(id)}
+              className={cn(
+                "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                typeFilter === id
+                  ? "border-vr/40 bg-vr-soft text-vr"
+                  : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={() => {
+                setPeriod("all");
+                setTypeFilter("all");
+                setSearch("");
+              }}
+              className="shrink-0 rounded-full border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              <X className="mr-1 inline h-3 w-3" /> Zrušiť filtre
+            </button>
+          )}
+        </div>
       </div>
+
 
       {/* Hlavné sumáre mesiaca */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -703,17 +780,37 @@ export function VrFinanceTab() {
         </Button>
       </div>
 
-      {/* Zoznamy */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-          <h3 className="mb-1 text-sm font-semibold">Výdaje mesiaca</h3>
-          {renderList(expenses, "expense")}
+      {/* Prázdny stav mesiaca */}
+      {rows.length === 0 ? (
+        <section className="rounded-2xl border border-dashed border-border/60 bg-card/40 p-6 text-center sm:p-8">
+          <p className="text-sm font-semibold">Za {MONTHS[cursor.getMonth()].toLowerCase()} zatiaľ nič nie je zapísané</p>
+          <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
+            Zapíš prvý výdaj alebo tržbu vo formulári vyššie. Výdaj hradený z peňazí konateľa sa automaticky
+            zaznamená aj ako pôžička firme.
+          </p>
         </section>
-        <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-          <h3 className="mb-1 text-sm font-semibold">Príjmy (tržby)</h3>
-          {renderList(incomes, "income")}
+      ) : visibleRows.length === 0 ? (
+        <section className="rounded-2xl border border-dashed border-border/60 bg-card/40 p-6 text-center sm:p-8">
+          <p className="text-sm font-semibold">Filtrom nič nezodpovedá</p>
+          <p className="mt-1 text-xs text-muted-foreground">Skús zmeniť obdobie, typ alebo vyhľadávanie.</p>
         </section>
-      </div>
+      ) : (
+        <div className={cn("grid gap-4", typeFilter === "all" && "lg:grid-cols-2")}>
+          {(typeFilter === "all" || typeFilter === "expense") && (
+            <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+              <h3 className="mb-1 text-sm font-semibold">Výdaje mesiaca</h3>
+              {renderList(expenses, "expense")}
+            </section>
+          )}
+          {(typeFilter === "all" || typeFilter === "income") && (
+            <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+              <h3 className="mb-1 text-sm font-semibold">Príjmy (tržby)</h3>
+              {renderList(incomes, "income")}
+            </section>
+          )}
+        </div>
+      )}
+
 
       {/* Pôžičky konateľa */}
       <section className="rounded-2xl border border-priority-high/25 bg-card/60 p-3 sm:p-4">
