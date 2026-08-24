@@ -22,6 +22,9 @@ import {
 import { useProfiles } from "@/lib/queries";
 import { VrEmptyState, VrListSkeleton } from "@/components/vr/VrListStates";
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import { usePersistentState } from "@/lib/usePersistentState";
+import { PullToRefresh } from "@/components/vr/PullToRefresh";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
 import { VrCompanySelect } from "@/components/vr/VrCompanySelect";
 import { VrFixedCostsManager } from "@/components/vr/VrFixedCostsManager";
@@ -48,7 +51,8 @@ export function VrFinanceTab() {
   const update = useUpdateVrFinanceRecord();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLoanId, setEditingLoanId] = useState<string | null>(null); // spárovaná pôžička konateľa
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = usePersistentState<string>("vr:finance:search", "");
+  const searchQuery = useDebouncedValue(search, 250);
 
 
   const [direction, setDirection] = useState<VrFinanceDirection>("expense");
@@ -74,12 +78,12 @@ export function VrFinanceTab() {
   // Rýchle filtre: obdobie v rámci mesiaca + typ záznamu.
   type PeriodFilter = "all" | "last7" | "h1" | "h2";
   type TypeFilter = "all" | "expense" | "income" | "loan";
-  const [period, setPeriod] = useState<PeriodFilter>("all");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [period, setPeriod] = usePersistentState<PeriodFilter>("vr:finance:period", "all");
+  const [typeFilter, setTypeFilter] = usePersistentState<TypeFilter>("vr:finance:type", "all");
 
   // Vyhľadávanie podľa firmy/dodávateľa alebo názvu položky + obdobie.
   const visibleRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     const from7 = new Date();
     from7.setDate(from7.getDate() - 7);
     return rows.filter((r) => {
@@ -95,7 +99,7 @@ export function VrFinanceTab() {
       if (period === "h2" && d.getDate() <= 15) return false;
       return true;
     });
-  }, [rows, search, period]);
+  }, [rows, searchQuery, period]);
 
   const expenses = visibleRows.filter((r) => r.direction === "expense");
   const incomes = visibleRows.filter((r) => r.direction === "income");
@@ -506,7 +510,17 @@ export function VrFinanceTab() {
   );
 
 
+  // Pull-to-refresh — obnoví záznamy, pôžičky aj fixné náklady.
+  const refreshAll = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["vr_finance_records"] }),
+      qc.invalidateQueries({ queryKey: ["vr_finance_loans"] }),
+      qc.invalidateQueries({ queryKey: ["vr_fixed_costs"] }),
+    ]);
+  };
+
   return (
+    <PullToRefresh onRefresh={refreshAll}>
     <div className="grid min-w-0 gap-4 [&>*]:min-w-0">
       {/* Hlavička mesiaca + súhrn */}
       <div className="grid min-w-0 gap-3 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
@@ -1055,5 +1069,6 @@ export function VrFinanceTab() {
         </ul>
       </section>
     </div>
+    </PullToRefresh>
   );
 }
