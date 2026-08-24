@@ -66,20 +66,37 @@ export function VrFinanceTab() {
   const catValid = categories.some((c) => c.id === category);
   const activeCategory = catValid ? category : categories[0]?.id ?? "ine";
 
-  // Vyhľadávanie podľa firmy/dodávateľa alebo názvu položky.
+  // Rýchle filtre: obdobie v rámci mesiaca + typ záznamu.
+  type PeriodFilter = "all" | "last7" | "h1" | "h2";
+  type TypeFilter = "all" | "expense" | "income" | "loan";
+  const [period, setPeriod] = useState<PeriodFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+
+  // Vyhľadávanie podľa firmy/dodávateľa alebo názvu položky + obdobie.
   const visibleRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) =>
-        r.title.toLowerCase().includes(q) ||
-        vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category).toLowerCase().includes(q)
-    );
-  }, [rows, search]);
+    const from7 = new Date();
+    from7.setDate(from7.getDate() - 7);
+    return rows.filter((r) => {
+      if (
+        q &&
+        !r.title.toLowerCase().includes(q) &&
+        !vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category).toLowerCase().includes(q)
+      )
+        return false;
+      const d = new Date(r.occurred_on);
+      if (period === "last7" && d < from7) return false;
+      if (period === "h1" && d.getDate() > 15) return false;
+      if (period === "h2" && d.getDate() <= 15) return false;
+      return true;
+    });
+  }, [rows, search, period]);
 
   const expenses = visibleRows.filter((r) => r.direction === "expense");
   const incomes = visibleRows.filter((r) => r.direction === "income");
   const loanRows = visibleRows.filter((r) => r.direction === "loan" || r.direction === "loan_repay");
+  const filtersActive = period !== "all" || typeFilter !== "all" || search.trim() !== "";
+
   const sum = (arr: typeof rows) => arr.reduce((s, r) => s + Number(r.amount), 0);
   const totalExp = sum(expenses);
   const totalInc = sum(incomes);
