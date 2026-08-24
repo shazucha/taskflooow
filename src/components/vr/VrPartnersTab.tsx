@@ -1,6 +1,6 @@
 // Úhrady spoločníkov na chod firmy — zápis, úprava (aj spoločný vklad) + prehľad.
 import { useMemo, useState } from "react";
-import { Pencil, Plus, Trash2, Users, Wallet, X } from "lucide-react";
+import { Pencil, Plus, Search, Trash2, Users, Wallet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
