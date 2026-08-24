@@ -15,9 +15,7 @@ import Auth from "./pages/Auth";
 import GoogleOAuthCallback from "./pages/GoogleOAuthCallback";
 import GoogleSyncDiag from "./pages/GoogleSyncDiag";
 import PresenceDiag from "./pages/PresenceDiag";
-import TeamCalendar from "./pages/TeamCalendar";
 import CompanyMaterials from "./pages/CompanyMaterials";
-import Feedback from "./pages/Feedback";
 import PendingDeliverables from "./pages/PendingDeliverables";
 import VrLiptov from "./pages/VrLiptov";
 import NotFound from "./pages/NotFound.tsx";
@@ -40,10 +38,8 @@ const App = () => (
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/chat" element={<Messages />} />
             <Route path="/me" element={<Profile />} />
-            <Route path="/team-calendar" element={<TeamCalendar />} />
             <Route path="/company-materials" element={<CompanyMaterials />} />
             <Route path="/vr-liptov" element={<VrLiptov />} />
-            <Route path="/feedback" element={<Feedback />} />
             <Route path="/projects/pending" element={<PendingDeliverables />} />
             <Route path="/diag/google-sync" element={<GoogleSyncDiag />} />
             <Route path="/diag/presence" element={<PresenceDiag />} />
