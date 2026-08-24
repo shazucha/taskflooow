@@ -80,18 +80,36 @@ export function VrPartnersTab() {
     return out.sort((a, b) => (a.rows[0].paid_on < b.rows[0].paid_on ? 1 : -1));
   }, [rows]);
 
+  // Vyhľadávanie podľa názvu firmy alebo účelu úhrady.
+  const matchesSearch = (r: VrPartnerContribution) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      vrCatLabel("contribution", r.category).toLowerCase().includes(q) ||
+      r.purpose.toLowerCase().includes(q)
+    );
+  };
+
   const filteredEntries = useMemo(
     () =>
-      filterPartner === "all"
-        ? entries
-        : entries.filter((e) => e.rows.some((r) => r.partner_id === filterPartner)),
-    [entries, filterPartner]
+      entries.filter(
+        (e) =>
+          (filterPartner === "all" || e.rows.some((r) => r.partner_id === filterPartner)) &&
+          e.rows.some(matchesSearch)
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [entries, filterPartner, search]
   );
 
   const filteredRows = useMemo(
-    () => (filterPartner === "all" ? rows : rows.filter((r) => r.partner_id === filterPartner)),
-    [rows, filterPartner]
+    () =>
+      rows.filter(
+        (r) => (filterPartner === "all" || r.partner_id === filterPartner) && matchesSearch(r)
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, filterPartner, search]
   );
+
 
   // Súhrny počítame vždy z jednotlivých riadkov => spoločný vklad je korektne rozpočítaný.
   const total = filteredRows.reduce((s, r) => s + Number(r.amount), 0);
