@@ -285,13 +285,13 @@ export function VrFinanceTab() {
 
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
           <p className="text-xs text-muted-foreground">Výdaje</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(totalExp)}</p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Príjmy a vklady</p>
+          <p className="text-xs text-muted-foreground">Príjmy (tržby)</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-priority-low">{eur(totalInc)}</p>
         </div>
         <div className="rounded-2xl border border-vr/30 bg-vr-soft/50 p-4">
@@ -299,6 +299,11 @@ export function VrFinanceTab() {
           <p className={cn("mt-1 text-xl font-bold tabular-nums", balance < 0 ? "text-priority-high" : "text-vr")}>
             {eur(balance)}
           </p>
+        </div>
+        <div className="rounded-2xl border border-priority-high/30 bg-priority-high-soft/40 p-4">
+          <p className="text-xs text-muted-foreground">Dlh voči konateľovi (nesplatené)</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(-loanTotal)}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Pôžička firme — konateľ si ju nárokuje späť</p>
         </div>
       </div>
 
