@@ -85,17 +85,21 @@ export function useVrCategoryActions(scope: VrCatScope) {
   const add = useMutation({
     mutationFn: async (label: string) => {
       const name = label.trim();
-      if (!name) throw new Error("Zadaj názov kategórie.");
+      if (!name) throw new Error("Zadaj názov firmy.");
+      const key = slug(name);
       const { error } = await supabase
         .from("vr_categories")
-        .insert({ scope, key: slug(name), label: name, created_by: userId });
+        .insert({ scope, key, label: name, created_by: userId });
       if (error) {
-        if (error.code === "23505") throw new Error("Taká kategória už existuje.");
+        if (error.code === "23505") throw new Error("Taká firma už existuje.");
         throw error;
       }
+      labelCache.set(`${scope}:${key}`, name);
+      return { key, label: name };
     },
     onSuccess: invalidate,
   });
+
 
   const rename = useMutation({
     mutationFn: async ({ rowId, label }: { rowId: string; label: string }) => {
