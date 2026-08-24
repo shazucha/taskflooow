@@ -122,8 +122,24 @@ export function useVrCategoryActions(scope: VrCatScope) {
     onSuccess: invalidate,
   });
 
-  return { add, rename, remove };
+  // Obnova predvolených záznamov (chýbajúce doplní, predvoleným vráti pôvodný názov).
+  const resetDefaults = useMutation({
+    mutationFn: async () => {
+      const defaults = VR_DEFAULTS.filter((d) => d.scope === scope);
+      const { error } = await supabase
+        .from("vr_categories")
+        .upsert(
+          defaults.map((d) => ({ ...d, is_default: true, created_by: userId })),
+          { onConflict: "scope,key" }
+        );
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  return { add, rename, remove, resetDefaults };
 }
+
 
 // Synchrónny popisok z cache (naplní ju useVrAllCategories).
 export function vrCatLabel(scope: VrCatScope, id: string) {
