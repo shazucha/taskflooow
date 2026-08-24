@@ -152,7 +152,7 @@ export function VrFinanceTab() {
 
   function exportCsv() {
     const head = "Dátum;Typ;Názov;Firma;Pravidelný;Suma\n";
-    const body = rows
+    const body = visibleRows
       .map((r) =>
         [
           r.occurred_on,
