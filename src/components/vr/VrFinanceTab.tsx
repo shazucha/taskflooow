@@ -14,7 +14,9 @@ import {
   useVrFinanceRecords,
   useVrLoans,
   type VrFinanceDirection,
+  type VrRevenueKind,
 } from "@/lib/vrFinanceApi";
+import { useProfiles } from "@/lib/queries";
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
 import { VrCompanySelect } from "@/components/vr/VrCompanySelect";
@@ -47,6 +49,13 @@ export function VrFinanceTab() {
   const [category, setCategory] = useState("prevadzka");
   const [occurredOn, setOccurredOn] = useState(() => new Date().toISOString().slice(0, 10));
   const [recurring, setRecurring] = useState(false);
+  const [partnerId, setPartnerId] = useState<string>("");        // konateľ pri pôžičke
+  const [revenueKind, setRevenueKind] = useState<VrRevenueKind>("vr");
+  const [fromDirector, setFromDirector] = useState(false);       // výdaj hradený z peňazí konateľa
+  const { data: profiles = [] } = useProfiles();
+  const nameOf = (id: string | null) =>
+    profiles.find((p) => p.id === id)?.display_name ?? "Nezadaný konateľ";
+  const isLoan = direction === "loan" || direction === "loan_repay";
   const scope = direction === "expense" ? "expense" : "income";
   const categories = useVrCategories(scope);
 
@@ -102,17 +111,49 @@ export function VrFinanceTab() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [expenses]);
 
+  // Tržby podľa druhu činnosti
+  const revVr = incomes.filter((r) => (r.revenue_kind ?? "vr") === "vr").reduce((s2, r) => s2 + Number(r.amount), 0);
+  const revOther = incomes.filter((r) => r.revenue_kind === "other").reduce((s2, r) => s2 + Number(r.amount), 0);
+
+  // Dlh podľa konateľa (naprieč mesiacmi)
+  const loanByPartner = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of allLoans) {
+      const k = r.partner_id ?? "";
+      m.set(k, (m.get(k) ?? 0) + (r.direction === "loan" ? Number(r.amount) : -Number(r.amount)));
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [allLoans]);
+
   const byIncomeCategory = useMemo(() => {
     const m = new Map<string, number>();
     for (const r of incomes) m.set(r.category, (m.get(r.category) ?? 0) + Number(r.amount));
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [incomes]);
 
+  // Rýchle šablóny pre fixné mesačné náklady hradené konateľom.
+  function applyTemplate(kind: "najom" | "kredity") {
+    setDirection("expense");
+    setFromDirector(true);
+    setRecurring(true);
+    if (kind === "najom") {
+      setTitle("Nájom priestorov");
+      setAmount("350");
+      setCategory("najom");
+    } else {
+      setTitle("Kredity HeroZoneVR a iní poskytovatelia");
+      setAmount("250");
+      setCategory("software");
+    }
+    if (!partnerId) setPartnerId(profiles[0]?.id ?? "");
+  }
+
   function resetForm() {
     setEditingId(null);
     setTitle("");
     setAmount("");
     setRecurring(false);
+    setFromDirector(false);
     setOccurredOn(new Date().toISOString().slice(0, 10));
   }
 
@@ -124,6 +165,9 @@ export function VrFinanceTab() {
     setCategory(r.category);
     setOccurredOn(r.occurred_on);
     setRecurring(r.recurring);
+    setPartnerId(r.partner_id ?? "");
+    setRevenueKind((r.revenue_kind as VrRevenueKind) ?? "vr");
+    setFromDirector(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -139,6 +183,9 @@ export function VrFinanceTab() {
     if (value > 1_000_000) return toast.error("Suma je nereálne vysoká.");
     if (!occurredOn) return toast.error("Vyber dátum.");
     if (!categories.length) return toast.error("Najprv pridaj aspoň jednu firmu / dodávateľa.");
+    if (isLoan && !partnerId) return toast.error("Vyber konateľa.");
+    if (fromDirector && direction === "expense" && !partnerId)
+      return toast.error("Vyber konateľa, z ktorého peňazí bol výdaj hradený.");
 
     // Duplicita v rámci mesiaca
     const dup = rows.some(
@@ -160,6 +207,8 @@ export function VrFinanceTab() {
       category: activeCategory,
       recurring,
       note: null,
+      partner_id: isLoan ? partnerId || null : null,
+      revenue_kind: direction === "income" ? revenueKind : null,
     };
 
     try {
@@ -168,6 +217,16 @@ export function VrFinanceTab() {
         toast.success("Záznam upravený.");
       } else {
         await create.mutateAsync(payload);
+        // Výdaj hradený konateľom → automaticky aj pôžička firme (dlh).
+        if (fromDirector && direction === "expense") {
+          await create.mutateAsync({
+            ...payload,
+            direction: "loan" as VrFinanceDirection,
+            title: `${title.trim()} — hradené konateľom`,
+            partner_id: partnerId,
+            revenue_kind: null,
+          });
+        }
         toast.success(direction === "expense" ? "Výdaj zapísaný." : "Príjem zapísaný.");
       }
       resetForm();
@@ -344,6 +403,62 @@ export function VrFinanceTab() {
           />
           Pravidelný mesačne
         </label>
+        {isLoan && (
+          <Select value={partnerId} onValueChange={setPartnerId}>
+            <SelectTrigger aria-label="Konateľ">
+              <SelectValue placeholder="Konateľ (kto požičal)" />
+            </SelectTrigger>
+            <SelectContent>
+              {profiles.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.display_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {direction === "income" && (
+          <Select value={revenueKind} onValueChange={(v) => setRevenueKind(v as VrRevenueKind)}>
+            <SelectTrigger aria-label="Druh tržby"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vr">Tržba — VR herňa (sessions)</SelectItem>
+              <SelectItem value="other">Tržba — iná činnosť</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        {direction === "expense" && (
+          <div className="grid gap-2 sm:col-span-2 lg:col-span-5 lg:grid-cols-[auto_1fr]">
+            <label className="flex items-center gap-2 rounded-md border border-border/50 px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={fromDirector}
+                onChange={(e) => setFromDirector(e.target.checked)}
+                className="h-4 w-4 accent-current"
+              />
+              Hradené z peňazí konateľa (pridá aj pôžičku)
+            </label>
+            {fromDirector && (
+              <Select value={partnerId} onValueChange={setPartnerId}>
+                <SelectTrigger aria-label="Konateľ, ktorý platil">
+                  <SelectValue placeholder="Ktorý konateľ platil?" />
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.display_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
+        {direction === "expense" && !editingId && (
+          <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-5">
+            <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("najom")}>
+              Nájom 350 € / mesiac
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("kredity")}>
+              Kredity (HeroZoneVR a i.) 250 €
+            </Button>
+          </div>
+        )}
         <Input
           className="sm:col-span-2 lg:col-span-4"
           placeholder="Názov položky (napr. nájom priestorov, internet, poistenie…)"
@@ -381,7 +496,7 @@ export function VrFinanceTab() {
                 <p className="truncate text-sm font-medium">{r.title}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {new Date(r.occurred_on).toLocaleDateString("sk-SK")} ·{" "}
-                  {r.direction === "loan" ? "pôžička firme" : "splátka konateľovi"}
+                  {r.direction === "loan" ? "pôžička firme" : "splátka konateľovi"} · {nameOf(r.partner_id)}
                 </p>
               </div>
               <span
@@ -443,6 +558,30 @@ export function VrFinanceTab() {
         </div>
       </section>
 
+
+      <section className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+          <p className="text-xs text-muted-foreground">Tržby — VR herňa</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-vr">{eur(revVr)}</p>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+          <p className="text-xs text-muted-foreground">Tržby — iná činnosť</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-priority-low">{eur(revOther)}</p>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dlh podľa konateľa</h3>
+        <ul className="grid gap-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          {loanByPartner.length === 0 && <li className="text-muted-foreground">—</li>}
+          {loanByPartner.map(([pid, v]) => (
+            <li key={pid || "none"} className="flex items-center justify-between gap-2 rounded-lg bg-surface-muted/50 px-3 py-1.5">
+              <span className="truncate">{nameOf(pid || null)}</span>
+              <span className="shrink-0 font-medium tabular-nums text-priority-high">{eur(-v)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Výdaje podľa firmy / dodávateľa</h3>
