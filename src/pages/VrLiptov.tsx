@@ -345,14 +345,14 @@ export default function VrLiptov() {
           VR Liptov — rozpis {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()].toLowerCase()}{" "}
           {selectedDate.getFullYear()} ({range.label})
         </h2>
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-2 print:hidden">
+        <div className="mb-2 grid gap-2 print:hidden sm:flex sm:flex-wrap sm:items-center sm:justify-between">
           <h2 className="text-sm font-semibold sm:text-base">
             Rozpis hodín — {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()].toLowerCase()}
           </h2>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
             <label htmlFor="vr-range" className="sr-only">Rozsah hodín</label>
             <Select value={rangeId} onValueChange={saveRange}>
-              <SelectTrigger id="vr-range" className="h-9 w-[170px] text-xs" aria-label="Rozsah hodín rozpisu">
+              <SelectTrigger id="vr-range" className="col-span-2 h-9 w-full text-xs sm:w-[170px]" aria-label="Rozsah hodín rozpisu">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -361,14 +361,15 @@ export default function VrLiptov() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={exportCsv}>
+            <Button variant="outline" size="sm" className="h-9 w-full gap-1.5 text-xs sm:w-auto" onClick={exportCsv}>
               <Download className="h-4 w-4" aria-hidden /> CSV
             </Button>
-            <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={printSchedule}>
+            <Button variant="outline" size="sm" className="h-9 w-full gap-1.5 text-xs sm:w-auto" onClick={printSchedule}>
               <Printer className="h-4 w-4" aria-hidden /> Tlač / PDF
             </Button>
           </div>
         </div>
+
         <p className="mb-3 text-xs text-muted-foreground">
           Klikni na hodinu a uvidíš, kto tam v tom čase bude. Zelená = voľné, fialová = obsadené,
           oranžová = prekrývanie viacerých zápisov. Ovládanie klávesnicou: šípky menia hodinu, Enter otvorí detail, Esc zatvorí.
