@@ -52,10 +52,20 @@ export function VrPartnersTab() {
 
   const activeCategory = categories.some((c) => c.id === category) ? category : categories[0]?.id ?? "ine";
 
-  const num = (v: string) => Number(String(v).trim().replace(/\s/g, "").replace(",", "."));
+  const num = (v: string) => Number(String(v ?? "").trim().replace(/\s/g, "").replace(",", "."));
+  // Normalizácia položiek – staršie záznamy môžu mať kľúče label/amount.
+  const normItems = (arr: unknown): VrContribItem[] =>
+    (Array.isArray(arr) ? arr : []).map((raw) => {
+      const it = (raw ?? {}) as Record<string, unknown>;
+      return {
+        name: String(it.name ?? it.label ?? ""),
+        price: Number(it.price ?? it.amount ?? 0) || 0,
+      };
+    });
   const cleanItems: VrContribItem[] = items
-    .filter((it) => it.name.trim() && !Number.isNaN(num(it.price)) && num(it.price) !== 0)
-    .map((it) => ({ name: it.name.trim(), price: num(it.price) }));
+    .filter((it) => String(it.name ?? "").trim() && !Number.isNaN(num(it.price)) && num(it.price) !== 0)
+    .map((it) => ({ name: String(it.name).trim(), price: num(it.price) }));
+
   const itemsTotal = cleanItems.reduce((s2, it) => s2 + it.price, 0);
   const hasItems = cleanItems.length > 0;
 
@@ -159,7 +169,7 @@ export function VrPartnersTab() {
     setPaidOn(first.paid_on);
     setCategory(first.category);
     setPurpose(first.purpose);
-    setItems((first.items ?? []).map((it) => ({ name: it.name, price: String(it.price) })));
+    setItems(normItems(first.items).map((it) => ({ name: it.name, price: String(it.price) })));
     if (e.rows.length > 1) {
       setSharedOn(true);
       setPartnerId2(e.rows[1].partner_id);
@@ -454,9 +464,9 @@ export function VrPartnersTab() {
                   <Trash2 className="h-4 w-4" />
                 </Button>
                 </div>
-                {(first.items?.length ?? 0) > 0 && (
+                {normItems(first.items).length > 0 && (
                   <ul className="ml-11 mt-1.5 space-y-1 border-l border-border/50 pl-3 text-xs">
-                    {first.items!.map((it, i) => (
+                    {normItems(first.items).map((it, i) => (
                       <li key={i} className="flex items-center justify-between gap-3">
                         <span className="truncate text-muted-foreground">{it.name}</span>
                         <span className="shrink-0 tabular-nums">{eur(it.price)}</span>
@@ -464,10 +474,11 @@ export function VrPartnersTab() {
                     ))}
                     <li className="flex items-center justify-between gap-3 border-t border-border/50 pt-1 font-semibold">
                       <span>Dokopy</span>
-                      <span className="tabular-nums">{eur(first.items!.reduce((s3, it) => s3 + Number(it.price), 0))}</span>
+                      <span className="tabular-nums">{eur(normItems(first.items).reduce((s3, it) => s3 + it.price, 0))}</span>
                     </li>
                   </ul>
                 )}
+
               </li>
             );
           })}
