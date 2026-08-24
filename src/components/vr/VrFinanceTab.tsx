@@ -96,7 +96,7 @@ export function VrFinanceTab() {
     if (value <= 0) return toast.error("Zadaj sumu väčšiu ako 0.");
     if (value > 1_000_000) return toast.error("Suma je nereálne vysoká.");
     if (!occurredOn) return toast.error("Vyber dátum.");
-    if (!categories.length) return toast.error("Najprv pridaj aspoň jednu kategóriu.");
+    if (!categories.length) return toast.error("Najprv pridaj aspoň jednu firmu / dodávateľa.");
 
     // Duplicita v rámci mesiaca
     const dup = rows.some(
@@ -135,7 +135,7 @@ export function VrFinanceTab() {
   }
 
   function exportCsv() {
-    const head = "Dátum;Typ;Názov;Kategória;Pravidelný;Suma\n";
+    const head = "Dátum;Typ;Názov;Firma;Pravidelný;Suma\n";
     const body = rows
       .map((r) =>
         [
@@ -268,7 +268,7 @@ export function VrFinanceTab() {
         <Input type="date" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} aria-label="Dátum" />
         <Input inputMode="decimal" placeholder="Suma v €" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Suma" />
         <Select value={activeCategory} onValueChange={setCategory}>
-          <SelectTrigger aria-label="Kategória"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label={direction === "expense" ? "Dodávateľ / firma" : "Od koho / firma"}><SelectValue /></SelectTrigger>
           <SelectContent>
             {categories.map((c) => (
               <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
@@ -309,7 +309,7 @@ export function VrFinanceTab() {
       </div>
 
       <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Výdaje podľa kategórie</h3>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Výdaje podľa firmy / dodávateľa</h3>
         <ul className="grid gap-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
           {byCategory.length === 0 && <li className="text-muted-foreground">—</li>}
           {byCategory.map(([c, v]) => (
@@ -322,7 +322,7 @@ export function VrFinanceTab() {
       </section>
 
       <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Príjmy podľa typu</h3>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Príjmy podľa firmy / zdroja</h3>
         <ul className="grid gap-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
           {byIncomeCategory.length === 0 && <li className="text-muted-foreground">—</li>}
           {byIncomeCategory.map(([c, v]) => (

@@ -151,7 +151,7 @@ export function VrPartnersTab() {
     if (value > 1_000_000) return toast.error("Suma je nereálne vysoká.");
     if (!paidOn) return toast.error("Vyber dátum úhrady.");
     if (new Date(paidOn) > new Date()) return toast.error("Dátum nemôže byť v budúcnosti.");
-    if (!activeCategory) return toast.error("Vyber kategóriu.");
+    if (!activeCategory) return toast.error("Vyber firmu / zdroj úhrady.");
     if (sharedOn && !partnerId2) return toast.error("Vyber druhého spoločníka.");
     if (sharedOn && partnerId2 === first) return toast.error("Vyber dvoch rôznych spoločníkov.");
 
@@ -239,7 +239,7 @@ export function VrPartnersTab() {
             aria-label="Suma"
           />
           <Select value={activeCategory} onValueChange={setCategory}>
-            <SelectTrigger aria-label="Kategória"><SelectValue placeholder="Kategória" /></SelectTrigger>
+            <SelectTrigger aria-label="Firma / zdroj úhrady"><SelectValue placeholder="Firma / zdroj" /></SelectTrigger>
             <SelectContent>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
@@ -367,7 +367,7 @@ export function VrPartnersTab() {
         </div>
 
         <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Podľa kategórie</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Podľa firmy / zdroja</h3>
           <ul className="space-y-1.5 text-sm">
             {byCategory.length === 0 && <li className="text-muted-foreground">—</li>}
             {byCategory.map(([c, sum]) => (

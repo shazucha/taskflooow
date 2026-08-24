@@ -14,9 +14,9 @@ export interface VrCategory {
 }
 
 export const VR_SCOPE_LABEL: Record<VrCatScope, string> = {
-  contribution: "Typ úhrady",
-  expense: "Typ výdavku",
-  income: "Typ príjmu",
+  contribution: "Firma / zdroj úhrady",
+  expense: "Dodávateľ / firma",
+  income: "Od koho / firma",
 };
 
 const QK = ["vr_categories"] as const;

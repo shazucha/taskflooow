@@ -27,7 +27,7 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
     try {
       await add.mutateAsync(draft);
       setDraft("");
-      toast.success("Kategória pridaná.");
+      toast.success("Firma pridaná.");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -37,7 +37,7 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
     try {
       await rename.mutateAsync({ rowId, label: editLabel });
       setEditId(null);
-      toast.success("Názov upravený.");
+      toast.success("Názov firmy upravený.");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -46,7 +46,7 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
   async function handleRemove(rowId: string) {
     try {
       await remove.mutateAsync(rowId);
-      toast.success("Kategória zmazaná.");
+      toast.success("Firma odstránená.");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -57,14 +57,15 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5" aria-label={`Spravovať: ${VR_SCOPE_LABEL[scope]}`}>
           <Settings2 className="h-4 w-4" />
-          <span className="hidden sm:inline">Kategórie</span>
+          <span className="hidden sm:inline">Firmy</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{VR_SCOPE_LABEL[scope]}</DialogTitle>
           <DialogDescription>
-            Kategórie sú uložené v databáze a vidia ich všetci členovia firmy.
+            Zoznam firiem/dodávateľov je uložený v databáze a vidia ho všetci členovia firmy.
+            Pridaj napríklad názvy spoločností, od ktorých nakupuješ alebo ktorým fakturuješ.
           </DialogDescription>
         </DialogHeader>
 
@@ -73,8 +74,8 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            placeholder="Nová kategória…"
-            aria-label="Nová kategória"
+            placeholder="Názov firmy…"
+            aria-label="Nová firma"
           />
           <Button onClick={handleAdd} disabled={add.isPending} className="bg-vr text-vr-foreground hover:bg-vr/90">
             <Plus className="h-4 w-4" />
@@ -84,7 +85,7 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
         <ul className="mt-1 max-h-[320px] space-y-1 overflow-y-auto">
           {categories.length === 0 && (
             <li className="py-6 text-center text-sm text-muted-foreground">
-              Žiadne kategórie — spusti migráciu alebo pridaj vlastnú.
+              Žiadne firmy — spusti migráciu alebo pridaj vlastnú.
             </li>
           )}
           {categories.map((c) => (
@@ -95,13 +96,13 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
                     className="h-8"
                     value={editLabel}
                     onChange={(e) => setEditLabel(e.target.value)}
-                    aria-label="Nový názov kategórie"
+                    aria-label="Nový názov firmy"
                   />
                   <Button
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8"
-                    aria-label="Uložiť názov"
+                    aria-label="Uložiť názov firmy"
                     onClick={() => handleRename(c.rowId)}
                   >
                     <Check className="h-4 w-4" />
