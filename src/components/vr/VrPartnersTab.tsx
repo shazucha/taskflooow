@@ -1,6 +1,6 @@
 // Úhrady spoločníkov na chod firmy — zápis, úprava (aj spoločný vklad) + prehľad.
 import { useMemo, useState } from "react";
-import { Pencil, Plus, Trash2, Users, Wallet, X } from "lucide-react";
+import { Pencil, Plus, Search, Trash2, Users, Wallet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +18,8 @@ import {
 } from "@/lib/vrFinanceApi";
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
+import { VrCompanySelect } from "@/components/vr/VrCompanySelect";
+
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -38,6 +40,8 @@ export function VrPartnersTab() {
   const [purpose, setPurpose] = useState("");
   const [category, setCategory] = useState("prevadzka");
   const [filterPartner, setFilterPartner] = useState("all");
+  const [search, setSearch] = useState("");
+
   const [sharedOn, setSharedOn] = useState(false);
   const [partnerId2, setPartnerId2] = useState<string>("");
   const [splitMode, setSplitMode] = useState<Exclude<VrShareMode, "single">>("half");
@@ -76,18 +80,36 @@ export function VrPartnersTab() {
     return out.sort((a, b) => (a.rows[0].paid_on < b.rows[0].paid_on ? 1 : -1));
   }, [rows]);
 
+  // Vyhľadávanie podľa názvu firmy alebo účelu úhrady.
+  const matchesSearch = (r: VrPartnerContribution) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      vrCatLabel("contribution", r.category).toLowerCase().includes(q) ||
+      r.purpose.toLowerCase().includes(q)
+    );
+  };
+
   const filteredEntries = useMemo(
     () =>
-      filterPartner === "all"
-        ? entries
-        : entries.filter((e) => e.rows.some((r) => r.partner_id === filterPartner)),
-    [entries, filterPartner]
+      entries.filter(
+        (e) =>
+          (filterPartner === "all" || e.rows.some((r) => r.partner_id === filterPartner)) &&
+          e.rows.some(matchesSearch)
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [entries, filterPartner, search]
   );
 
   const filteredRows = useMemo(
-    () => (filterPartner === "all" ? rows : rows.filter((r) => r.partner_id === filterPartner)),
-    [rows, filterPartner]
+    () =>
+      rows.filter(
+        (r) => (filterPartner === "all" || r.partner_id === filterPartner) && matchesSearch(r)
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, filterPartner, search]
   );
+
 
   // Súhrny počítame vždy z jednotlivých riadkov => spoločný vklad je korektne rozpočítaný.
   const total = filteredRows.reduce((s, r) => s + Number(r.amount), 0);
@@ -196,8 +218,19 @@ export function VrPartnersTab() {
       <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold sm:text-base">Úhrady spoločníkov</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="h-9 w-[200px] pl-9 text-xs"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Hľadať firmu alebo účel…"
+                aria-label="Hľadať podľa firmy alebo účelu"
+              />
+            </div>
             <VrCategoryManager scope="contribution" />
+
             <Select value={filterPartner} onValueChange={setFilterPartner}>
               <SelectTrigger className="h-9 w-[200px] text-xs" aria-label="Filter podľa spoločníka">
                 <SelectValue />
@@ -238,14 +271,13 @@ export function VrPartnersTab() {
             onChange={(e) => setAmount(e.target.value)}
             aria-label="Suma"
           />
-          <Select value={activeCategory} onValueChange={setCategory}>
-            <SelectTrigger aria-label="Firma / zdroj úhrady"><SelectValue placeholder="Firma / zdroj" /></SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <VrCompanySelect
+            scope="contribution"
+            value={activeCategory}
+            onChange={setCategory}
+            label="Firma / zdroj úhrady"
+          />
+
           <Input
             className="sm:col-span-2 lg:col-span-3"
             placeholder="Za čo bola úhrada (napr. nákup VR headsetu, nájom za august…)"

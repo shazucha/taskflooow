@@ -1,6 +1,6 @@
 // Mesačné výdaje a príjmy (vrátane vkladov konateľa).
 import { useMemo, useState } from "react";
-import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Download, Pencil, Plus, Repeat, Trash2, X } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Download, Pencil, Plus, Repeat, Search, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +16,8 @@ import {
 } from "@/lib/vrFinanceApi";
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
+import { VrCompanySelect } from "@/components/vr/VrCompanySelect";
+
 
 const MONTHS = [
   "Január", "Február", "Marec", "Apríl", "Máj", "Jún",
@@ -34,6 +36,8 @@ export function VrFinanceTab() {
   const remove = useDeleteVrFinanceRecord();
   const update = useUpdateVrFinanceRecord();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
 
   const [direction, setDirection] = useState<VrFinanceDirection>("expense");
   const [title, setTitle] = useState("");
@@ -47,12 +51,24 @@ export function VrFinanceTab() {
   const catValid = categories.some((c) => c.id === category);
   const activeCategory = catValid ? category : categories[0]?.id ?? "ine";
 
-  const expenses = rows.filter((r) => r.direction === "expense");
-  const incomes = rows.filter((r) => r.direction === "income");
+  // Vyhľadávanie podľa firmy/dodávateľa alebo názvu položky.
+  const visibleRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(
+      (r) =>
+        r.title.toLowerCase().includes(q) ||
+        vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category).toLowerCase().includes(q)
+    );
+  }, [rows, search]);
+
+  const expenses = visibleRows.filter((r) => r.direction === "expense");
+  const incomes = visibleRows.filter((r) => r.direction === "income");
   const sum = (arr: typeof rows) => arr.reduce((s, r) => s + Number(r.amount), 0);
   const totalExp = sum(expenses);
   const totalInc = sum(incomes);
   const balance = totalInc - totalExp;
+
 
   const byCategory = useMemo(() => {
     const m = new Map<string, number>();
@@ -136,7 +152,7 @@ export function VrFinanceTab() {
 
   function exportCsv() {
     const head = "Dátum;Typ;Názov;Firma;Pravidelný;Suma\n";
-    const body = rows
+    const body = visibleRows
       .map((r) =>
         [
           r.occurred_on,
@@ -223,12 +239,23 @@ export function VrFinanceTab() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex items-center gap-2">
-        <VrCategoryManager scope={scope} />
-        <Button variant="outline" size="sm" onClick={exportCsv} disabled={rows.length === 0}>
-          <Download className="mr-1 h-4 w-4" /> Export CSV
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-9 w-[220px] pl-9 text-xs"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Hľadať firmu alebo položku…"
+              aria-label="Hľadať podľa firmy alebo názvu položky"
+            />
+          </div>
+          <VrCategoryManager scope={scope} />
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={visibleRows.length === 0}>
+            <Download className="mr-1 h-4 w-4" /> Export CSV
+          </Button>
         </div>
+
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -267,14 +294,13 @@ export function VrFinanceTab() {
         </Select>
         <Input type="date" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} aria-label="Dátum" />
         <Input inputMode="decimal" placeholder="Suma v €" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Suma" />
-        <Select value={activeCategory} onValueChange={setCategory}>
-          <SelectTrigger aria-label={direction === "expense" ? "Dodávateľ / firma" : "Od koho / firma"}><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <VrCompanySelect
+          scope={scope}
+          value={activeCategory}
+          onChange={setCategory}
+          label={direction === "expense" ? "Dodávateľ / firma" : "Od koho / firma"}
+        />
+
         <label className="flex items-center gap-2 rounded-md border border-border/50 px-3 text-sm">
           <input
             type="checkbox"
