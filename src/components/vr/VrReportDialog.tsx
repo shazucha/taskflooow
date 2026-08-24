@@ -53,6 +53,20 @@ export function VrReportDialog() {
     for (const c of contributions) {
       byPartner.set(c.partner_id, (byPartner.get(c.partner_id) ?? 0) + Number(c.amount));
     }
+    // Fixné náklady + zdroj úhrady (pôžička konateľa vs. účet firmy).
+    const loans = finance.filter((r) => r.direction === "loan");
+    const fixed = expenses
+      .filter((r) => r.recurring)
+      .map((r) => {
+        const match = loans.find(
+          (l) =>
+            l.title.toLowerCase().startsWith(`${r.title.trim().toLowerCase()} — hradené konateľom`) &&
+            Number(l.amount) === Number(r.amount)
+        );
+        return { rec: r, paidBy: match?.partner_id ?? null, byDirector: !!match };
+      });
+    const fixedByDirector = fixed.filter((f) => f.byDirector).reduce((s, f) => s + Number(f.rec.amount), 0);
+    const fixedTotal = fixed.reduce((s, f) => s + Number(f.rec.amount), 0);
     return {
       expenses,
       incomes,
@@ -62,8 +76,13 @@ export function VrReportDialog() {
       expByCat: byCat(expenses, "expense"),
       incByCat: byCat(incomes, "income"),
       partnerRows: [...byPartner.entries()].sort((a, b) => b[1] - a[1]),
+      fixed,
+      fixedByDirector,
+      fixedByCompany: fixedTotal - fixedByDirector,
+      fixedTotal,
     };
   }, [finance, contributions]);
+
 
   function generate() {
     if (!valid) return toast.error("Zadaj platný časový interval.");
@@ -145,20 +164,54 @@ export function VrReportDialog() {
       : ""
   }
   ${
+    stats.fixed.length
+      ? rowsTable(
+          "Fixné náklady — zdroj úhrady",
+          ["Dátum", "Názov", "Zdroj úhrady", "Suma"],
+          stats.fixed.map(({ rec, paidBy, byDirector }) => [
+            esc(rec.occurred_on),
+            esc(rec.title),
+            byDirector
+              ? esc(`Z vkladu konateľa (${paidBy ? nameOf(paidBy) : "nezadaný"}) — pôžička firme`)
+              : "Z účtu firmy",
+            esc(eur(Number(rec.amount))),
+          ]),
+          stats.fixedTotal
+        ) +
+        `<p class="sub">Z vkladu konateľa: <strong>${esc(eur(stats.fixedByDirector))}</strong> · Z účtu firmy: <strong>${esc(eur(stats.fixedByCompany))}</strong></p>`
+      : ""
+  }
+  ${
     finance.length
       ? rowsTable(
           "Zoznam transakcií",
-          ["Dátum", "Typ", "Názov", "Firma", "Suma"],
-          finance.map((r) => [
-            esc(r.occurred_on),
-            r.direction === "expense" ? "Výdaj" : "Príjem",
-            esc(r.title),
-            esc(vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category)),
-            esc(eur(Number(r.amount))),
-          ])
+          ["Dátum", "Typ", "Názov", "Firma", "Zdroj úhrady", "Suma"],
+          finance.map((r) => {
+            const src =
+              r.direction === "expense"
+                ? stats.fixed.find((f) => f.rec.id === r.id)?.byDirector
+                  ? "Z vkladu konateľa"
+                  : "Z účtu firmy"
+                : "—";
+            return [
+              esc(r.occurred_on),
+              r.direction === "expense"
+                ? "Výdaj"
+                : r.direction === "income"
+                ? "Príjem"
+                : r.direction === "loan"
+                ? "Pôžička konateľa"
+                : "Splátka konateľovi",
+              esc(r.title),
+              esc(vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category)),
+              esc(src),
+              esc(eur(Number(r.amount))),
+            ];
+          })
         )
       : ""
   }
+
   ${
     contributions.length
       ? rowsTable(
