@@ -180,7 +180,9 @@ export function VrPartnersTab() {
 
     // Validácie
     if (!first) return toast.error("Vyber spoločníka.");
-    if (!purpose.trim()) return toast.error("Doplň, za čo bola úhrada.");
+    const purposeText =
+      purpose.trim() || (hasItems ? cleanItems.map((it) => it.name).join(", ").slice(0, 200) : "");
+    if (!purposeText) return toast.error("Doplň, za čo bola úhrada, alebo pridaj položky.");
     if (!raw || Number.isNaN(value)) return toast.error("Suma musí byť číslo.");
     if (value <= 0) return toast.error("Zadaj sumu väčšiu ako 0.");
     if (value > 1_000_000) return toast.error("Suma je nereálne vysoká.");
@@ -198,7 +200,7 @@ export function VrPartnersTab() {
         (editingGroup ? (r.group_id ?? r.id) !== editingGroup : true) &&
         partnerIds.includes(r.partner_id) &&
         r.paid_on === paidOn &&
-        r.purpose.trim().toLowerCase() === purpose.trim().toLowerCase()
+        r.purpose.trim().toLowerCase() === purposeText.toLowerCase()
     );
     if (dup) return toast.error("Rovnaká úhrada už je zapísaná.");
 
@@ -210,7 +212,7 @@ export function VrPartnersTab() {
         paid_on: paidOn,
         total: value,
         shareMode: sharedOn ? splitMode : "single",
-        purpose: purpose.trim(),
+        purpose: purposeText,
         category: activeCategory,
         items: hasItems ? cleanItems : null,
         note: sharedOn ? `Spoločná úhrada: ${partnerIds.map(nameOf).join(" + ")}` : null,
