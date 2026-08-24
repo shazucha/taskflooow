@@ -4,6 +4,7 @@ import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Coins, Download
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VrPartnersTab } from "@/components/vr/VrPartnersTab";
 import { VrPartnerDepositsCard } from "@/components/vr/VrPartnerDepositsCard";
+import { VrPartnerSharesCard } from "@/components/vr/VrPartnerSharesCard";
 import { VrFinanceTab } from "@/components/vr/VrFinanceTab";
 
 import { Button } from "@/components/ui/button";
@@ -621,8 +622,9 @@ export default function VrLiptov() {
 
         <TabsContent value="spolocnici" className="mt-0">
           <div className="grid gap-4">
-            <VrPartnerDepositsCard />
+            <VrPartnerSharesCard />
             <VrPartnersTab />
+            <VrPartnerDepositsCard />
           </div>
         </TabsContent>
 
