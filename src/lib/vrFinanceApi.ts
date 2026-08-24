@@ -417,3 +417,67 @@ export function useDeleteVrFixedCost() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_fixed_costs"] }),
   });
 }
+
+/* ------------------- Vklady spoločníkov (deposits) ------------------- */
+
+export interface VrPartnerDeposit {
+  id: string;
+  partner_id: string;
+  deposited_on: string;
+  amount: number;
+  source: string | null;
+  base_amount: number | null;
+  share_pct: number | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+const PD_COLS =
+  "id,partner_id,deposited_on,amount,source,base_amount,share_pct,note,created_by,created_at";
+
+export function useVrDeposits() {
+  const userId = useCurrentUserId();
+  useRealtime("vr_partner_deposits", "vr_partner_deposits");
+  return useQuery({
+    queryKey: ["vr_partner_deposits"],
+    enabled: !!userId,
+    queryFn: async (): Promise<VrPartnerDeposit[]> => {
+      const { data, error } = await supabase
+        .from("vr_partner_deposits")
+        .select(PD_COLS)
+        .order("deposited_on", { ascending: false });
+      if (error) {
+        console.warn("VR financie: vr_partner_deposits nedostupné", error.message);
+        return [];
+      }
+      return (data ?? []) as VrPartnerDeposit[];
+    },
+  });
+}
+
+export function useSaveVrDeposit() {
+  const qc = useQueryClient();
+  const userId = useCurrentUserId();
+  return useMutation({
+    mutationFn: async (input: Partial<VrPartnerDeposit> & { id?: string }) => {
+      const { id, ...patch } = input;
+      const { error } = id
+        ? await supabase.from("vr_partner_deposits").update(patch).eq("id", id)
+        : await supabase.from("vr_partner_deposits").insert({ ...patch, created_by: userId });
+      if (error) throw new Error(dupMsg(error));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_partner_deposits"] }),
+  });
+}
+
+export function useDeleteVrDeposit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("vr_partner_deposits").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_partner_deposits"] }),
+  });
+}
