@@ -296,24 +296,35 @@ export function VrFinanceTab() {
       revenue_kind: direction === "income" ? revenueKind : null,
     };
 
+    const loanPayload = {
+      ...payload,
+      direction: "loan" as VrFinanceDirection,
+      title: `${title.trim()} — hradené konateľom`,
+      partner_id: partnerId,
+      revenue_kind: null,
+      recurring: false,
+    };
+
     try {
       if (editingId) {
         await update.mutateAsync({ id: editingId, patch: payload });
+        // Synchronizácia spárovanej pôžičky konateľa.
+        if (direction === "expense" && fromDirector) {
+          if (editingLoanId) await update.mutateAsync({ id: editingLoanId, patch: loanPayload });
+          else await create.mutateAsync(loanPayload);
+        } else if (editingLoanId) {
+          await remove.mutateAsync(editingLoanId);
+        }
         toast.success("Záznam upravený.");
       } else {
         await create.mutateAsync(payload);
         // Výdaj hradený konateľom → automaticky aj pôžička firme (dlh).
         if (fromDirector && direction === "expense") {
-          await create.mutateAsync({
-            ...payload,
-            direction: "loan" as VrFinanceDirection,
-            title: `${title.trim()} — hradené konateľom`,
-            partner_id: partnerId,
-            revenue_kind: null,
-          });
+          await create.mutateAsync(loanPayload);
         }
         toast.success(direction === "expense" ? "Výdaj zapísaný." : "Príjem zapísaný.");
       }
+
       resetForm();
     } catch (e) {
       toast.error((e as Error).message);
