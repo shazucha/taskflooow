@@ -138,6 +138,46 @@ export function VrFinanceTab() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [incomes]);
 
+  // Hromadné vygenerovanie pravidelných mesačných nákladov (nájom + kredity), hradené konateľom.
+  async function generateFixedMonth() {
+    const pid = partnerId || profiles[0]?.id;
+    if (!pid) return toast.error("Najprv vyber konateľa.");
+    const day = `${monthKey}-05`;
+    const items = [
+      { title: "Nájom priestorov", amount: 350, category: "najom" },
+      { title: "Kredity HeroZoneVR a iní poskytovatelia", amount: 250, category: "software" },
+    ];
+    let added = 0;
+    try {
+      for (const it of items) {
+        const exists = rows.some(
+          (r) => r.direction === "expense" && r.title.trim().toLowerCase() === it.title.toLowerCase()
+        );
+        if (exists) continue;
+        const base = {
+          month_key: monthKey,
+          occurred_on: day,
+          amount: it.amount,
+          category: it.category,
+          recurring: true,
+          note: null,
+          revenue_kind: null,
+        };
+        await create.mutateAsync({ ...base, direction: "expense" as VrFinanceDirection, title: it.title, partner_id: null });
+        await create.mutateAsync({
+          ...base,
+          direction: "loan" as VrFinanceDirection,
+          title: `${it.title} — hradené konateľom`,
+          partner_id: pid,
+        });
+        added++;
+      }
+      toast.success(added ? `Pridané fixné náklady (${added}).` : "Fixné náklady už v tomto mesiaci existujú.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
   // Rýchle šablóny pre fixné mesačné náklady hradené konateľom.
   function applyTemplate(kind: "najom" | "kredity") {
     setDirection("expense");
