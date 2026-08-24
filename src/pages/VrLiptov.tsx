@@ -260,7 +260,7 @@ export default function VrLiptov() {
               <CalendarDays className="h-4 w-4" /> Dochádzka
             </TabsTrigger>
             <TabsTrigger value="spolocnici" className="shrink-0 gap-1.5 whitespace-nowrap text-xs sm:text-sm">
-              <Users className="h-4 w-4" /> Spoločníci
+              <Users className="h-4 w-4" /> Spoločníci — investícia
             </TabsTrigger>
             <TabsTrigger value="financie" className="shrink-0 gap-1.5 whitespace-nowrap text-xs sm:text-sm">
               <Coins className="h-4 w-4" /> Výdaje a príjmy
