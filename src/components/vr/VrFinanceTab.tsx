@@ -834,33 +834,36 @@ export function VrFinanceTab() {
             <li className="py-4 text-center text-sm text-muted-foreground">Žiadne pôžičky ani splátky v tomto mesiaci.</li>
           )}
           {loanRows.map((r) => (
-            <li key={r.id} className="flex items-center gap-3 py-2.5">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{r.title}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {new Date(r.occurred_on).toLocaleDateString("sk-SK")} ·{" "}
-                  {r.direction === "loan" ? "pôžička firme" : "splátka konateľovi"} · {nameOf(r.partner_id)}
-                </p>
+            <li key={r.id} className="py-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 break-words text-sm font-medium leading-snug">{r.title}</p>
+                <span
+                  className={cn(
+                    "shrink-0 text-sm font-semibold tabular-nums",
+                    r.direction === "loan" ? "text-priority-high" : "text-priority-low"
+                  )}
+                >
+                  {r.direction === "loan" ? "−" : "+"}
+                  {eur(Number(r.amount))}
+                </span>
               </div>
-              <span
-                className={cn(
-                  "shrink-0 text-sm font-semibold tabular-nums",
-                  r.direction === "loan" ? "text-priority-high" : "text-priority-low"
-                )}
-              >
-                {r.direction === "loan" ? "−" : "+"}
-                {eur(Number(r.amount))}
-              </span>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground"
-                aria-label="Upraviť pôžičku" onClick={() => startEdit(r)}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                aria-label="Zmazať pôžičku" onClick={() => remove.mutate(r.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <p className="mt-0.5 break-words text-xs text-muted-foreground">
+                {new Date(r.occurred_on).toLocaleDateString("sk-SK")} ·{" "}
+                {r.direction === "loan" ? "pôžička firme" : "splátka konateľovi"} · {nameOf(r.partner_id)}
+              </p>
+              <div className="mt-1 flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground"
+                  aria-label="Upraviť pôžičku" onClick={() => startEdit(r)}>
+                  <Pencil className="mr-1 h-3.5 w-3.5" /> Upraviť
+                </Button>
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+                  aria-label="Zmazať pôžičku" onClick={() => remove.mutate(r.id)}>
+                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Zmazať
+                </Button>
+              </div>
             </li>
           ))}
+
         </ul>
 
         <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
