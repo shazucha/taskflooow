@@ -222,6 +222,7 @@ export function VrFinanceTab() {
 
   function resetForm() {
     setEditingId(null);
+    setEditingLoanId(null);
     setTitle("");
     setAmount("");
     setRecurring(false);
