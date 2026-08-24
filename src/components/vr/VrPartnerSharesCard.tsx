@@ -14,8 +14,6 @@ interface Row {
   sum: number;
 }
 
-const NO_PROJECT = "__none__";
-
 function buildRows(entries: { uid: string; key: "pay" | "dep"; value: number }[]) {
   const m = new Map<string, { pay: number; dep: number }>();
   for (const e of entries) {
@@ -44,13 +42,11 @@ export function VrPartnerSharesCard() {
   const flat = useMemo(
     () => [
       ...contribs.map((r) => ({
-        project: (r.project ?? "").trim() || NO_PROJECT,
         uid: r.partner_id,
         key: "pay" as const,
         value: Number(r.amount) || 0,
       })),
       ...deposits.map((d) => ({
-        project: (d.source ?? "").trim() || NO_PROJECT,
         uid: d.partner_id,
         key: "dep" as const,
         value: Number(d.amount) || 0,
