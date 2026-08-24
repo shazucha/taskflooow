@@ -367,7 +367,7 @@ export function VrPartnersTab() {
         </div>
 
         <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Podľa kategórie</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Podľa firmy / zdroja</h3>
           <ul className="space-y-1.5 text-sm">
             {byCategory.length === 0 && <li className="text-muted-foreground">—</li>}
             {byCategory.map(([c, sum]) => (
