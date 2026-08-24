@@ -1,6 +1,6 @@
 // Mesačné výdaje a príjmy (vrátane vkladov konateľa).
 import { useMemo, useState } from "react";
-import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Download, Plus, Repeat, Trash2 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Download, Pencil, Plus, Repeat, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +10,7 @@ import {
   eur,
   useCreateVrFinanceRecord,
   useDeleteVrFinanceRecord,
+  useUpdateVrFinanceRecord,
   useVrFinanceRecords,
   type VrFinanceDirection,
 } from "@/lib/vrFinanceApi";
@@ -31,6 +32,8 @@ export function VrFinanceTab() {
   const { data: rows = [] } = useVrFinanceRecords(monthKey);
   const create = useCreateVrFinanceRecord();
   const remove = useDeleteVrFinanceRecord();
+  const update = useUpdateVrFinanceRecord();
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [direction, setDirection] = useState<VrFinanceDirection>("expense");
   const [title, setTitle] = useState("");
@@ -63,24 +66,69 @@ export function VrFinanceTab() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [incomes]);
 
+  function resetForm() {
+    setEditingId(null);
+    setTitle("");
+    setAmount("");
+    setRecurring(false);
+    setOccurredOn(new Date().toISOString().slice(0, 10));
+  }
+
+  function startEdit(r: (typeof rows)[number]) {
+    setEditingId(r.id);
+    setDirection(r.direction);
+    setTitle(r.title);
+    setAmount(String(Number(r.amount)));
+    setCategory(r.category);
+    setOccurredOn(r.occurred_on);
+    setRecurring(r.recurring);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   async function submit() {
-    const value = Number(String(amount).replace(",", "."));
+    const raw = String(amount).trim().replace(",", ".");
+    const value = Number(raw);
+
+    // Validácie
     if (!title.trim()) return toast.error("Doplň názov položky.");
-    if (!value || value <= 0) return toast.error("Zadaj sumu väčšiu ako 0.");
+    if (title.trim().length < 2) return toast.error("Názov je príliš krátky.");
+    if (!raw || Number.isNaN(value)) return toast.error("Suma musí byť číslo.");
+    if (value <= 0) return toast.error("Zadaj sumu väčšiu ako 0.");
+    if (value > 1_000_000) return toast.error("Suma je nereálne vysoká.");
+    if (!occurredOn) return toast.error("Vyber dátum.");
+    if (!categories.length) return toast.error("Najprv pridaj aspoň jednu kategóriu.");
+
+    // Duplicita v rámci mesiaca
+    const dup = rows.some(
+      (r) =>
+        r.id !== editingId &&
+        r.direction === direction &&
+        r.occurred_on === occurredOn &&
+        Number(r.amount) === value &&
+        r.title.trim().toLowerCase() === title.trim().toLowerCase()
+    );
+    if (dup) return toast.error("Taký záznam už v tomto mesiaci existuje.");
+
+    const payload = {
+      month_key: monthKeyOf(new Date(occurredOn)),
+      occurred_on: occurredOn,
+      direction,
+      amount: value,
+      title: title.trim(),
+      category: activeCategory,
+      recurring,
+      note: null,
+    };
+
     try {
-      await create.mutateAsync({
-        month_key: monthKeyOf(new Date(occurredOn)),
-        occurred_on: occurredOn,
-        direction,
-        amount: value,
-        title: title.trim(),
-        category: activeCategory,
-        recurring,
-        note: null,
-      });
-      setTitle("");
-      setAmount("");
-      toast.success(direction === "expense" ? "Výdaj zapísaný." : "Príjem zapísaný.");
+      if (editingId) {
+        await update.mutateAsync({ id: editingId, patch: payload });
+        toast.success("Záznam upravený.");
+      } else {
+        await create.mutateAsync(payload);
+        toast.success(direction === "expense" ? "Výdaj zapísaný." : "Príjem zapísaný.");
+      }
+      resetForm();
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -135,6 +183,15 @@ export function VrFinanceTab() {
             </p>
           </div>
           <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(r.amount))}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-muted-foreground"
+            aria-label="Upraviť položku"
+            onClick={() => startEdit(r)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -193,6 +250,14 @@ export function VrFinanceTab() {
 
       {/* Formulár */}
       <div className="grid gap-2 rounded-2xl border border-border/60 bg-surface-muted/40 p-3 sm:grid-cols-2 lg:grid-cols-5">
+        {editingId && (
+          <p className="flex items-center justify-between gap-2 rounded-md bg-vr-soft/60 px-3 py-1.5 text-xs sm:col-span-2 lg:col-span-5">
+            Upravuješ existujúci záznam.
+            <Button variant="ghost" size="sm" className="h-7" onClick={resetForm}>
+              <X className="mr-1 h-3.5 w-3.5" /> Zrušiť úpravu
+            </Button>
+          </p>
+        )}
         <Select value={direction} onValueChange={(v) => setDirection(v as VrFinanceDirection)}>
           <SelectTrigger aria-label="Typ položky"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -226,8 +291,8 @@ export function VrFinanceTab() {
           onChange={(e) => setTitle(e.target.value)}
           aria-label="Názov položky"
         />
-        <Button onClick={submit} disabled={create.isPending} className="bg-vr text-vr-foreground hover:bg-vr/90">
-          <Plus className="mr-1 h-4 w-4" /> Zapísať
+        <Button onClick={submit} disabled={create.isPending || update.isPending} className="bg-vr text-vr-foreground hover:bg-vr/90">
+          <Plus className="mr-1 h-4 w-4" /> {editingId ? "Uložiť zmeny" : "Zapísať"}
         </Button>
       </div>
 
