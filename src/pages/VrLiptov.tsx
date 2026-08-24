@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Coins, Download, Plus, Printer, Trash2, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VrPartnersTab } from "@/components/vr/VrPartnersTab";
@@ -70,9 +71,20 @@ function durationLabel(e: VrEntry) {
   return m ? `${h},${String(Math.round((m / 60) * 10))} h` : `${h} h`;
 }
 
+const VR_TABS = ["dochadzka", "spolocnici", "financie"] as const;
+
 export default function VrLiptov() {
   const userId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
+  // Aktívny tab v URL (?tab=financie) — dá sa naň odkázať jedným tapom odkiaľkoľvek.
+  const [params, setParams] = useSearchParams();
+  const tabParam = params.get("tab") ?? "";
+  const activeTab = (VR_TABS as readonly string[]).includes(tabParam) ? tabParam : "dochadzka";
+  const setActiveTab = (v: string) => {
+    const next = new URLSearchParams(params);
+    next.set("tab", v);
+    setParams(next, { replace: true });
+  };
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState(() => dayKey(new Date()));
   const [openHour, setOpenHour] = useState<number | null>(null);
@@ -240,7 +252,7 @@ export default function VrLiptov() {
         </p>
       </header>
 
-      <Tabs defaultValue="dochadzka" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="-mx-3 mb-4 overflow-x-auto px-3 pb-1 sm:mx-0 sm:overflow-visible sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsList className="inline-flex h-auto w-max min-w-full justify-start gap-1 p-1 sm:w-full">
             <TabsTrigger value="dochadzka" className="shrink-0 gap-1.5 whitespace-nowrap text-xs sm:text-sm">

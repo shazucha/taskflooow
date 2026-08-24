@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Bell, CalendarDays, FolderKanban, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, Bell, CalendarDays, FolderKanban, AlertTriangle, Coins, Users } from "lucide-react";
+import { VrHeadsetIcon } from "@/components/VrHeadsetIcon";
 import { UserAvatar } from "@/components/UserAvatar";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { SubscriptionPendingBadge } from "@/components/SubscriptionPendingBadge";
@@ -98,6 +99,31 @@ export default function Dashboard() {
           )}
         </div>
       )}
+
+      {/* Rýchly prístup do VR Liptov — jedným tapom priamo do konkrétnej sekcie */}
+      <section className="mt-6 md:mt-8">
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="inline-flex items-center gap-2 text-base font-semibold">
+              <VrHeadsetIcon className="h-4 w-4" /> VR Liptov
+            </h2>
+            <Link to="/vr-liptov" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+              Otvoriť <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <Link to="/vr-liptov?tab=dochadzka" className="flex flex-col items-center gap-1.5 rounded-xl border border-border/60 bg-surface-muted/50 p-3 text-center text-xs font-medium transition hover:border-primary/40 hover:text-primary">
+              <CalendarDays className="h-4 w-4" /> Dochádzka
+            </Link>
+            <Link to="/vr-liptov?tab=spolocnici" className="flex flex-col items-center gap-1.5 rounded-xl border border-border/60 bg-surface-muted/50 p-3 text-center text-xs font-medium transition hover:border-primary/40 hover:text-primary">
+              <Users className="h-4 w-4" /> Spoločníci
+            </Link>
+            <Link to="/vr-liptov?tab=financie" className="flex flex-col items-center gap-1.5 rounded-xl border border-border/60 bg-surface-muted/50 p-3 text-center text-xs font-medium transition hover:border-primary/40 hover:text-primary">
+              <Coins className="h-4 w-4" /> Financie
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section className="mt-6 md:mt-8">
         <h2 className="mb-3 inline-flex items-center gap-2 text-base font-semibold">
