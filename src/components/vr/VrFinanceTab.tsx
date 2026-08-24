@@ -41,6 +41,7 @@ export function VrFinanceTab() {
   const remove = useDeleteVrFinanceRecord();
   const update = useUpdateVrFinanceRecord();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingLoanId, setEditingLoanId] = useState<string | null>(null); // spárovaná pôžička konateľa
   const [search, setSearch] = useState("");
 
 
