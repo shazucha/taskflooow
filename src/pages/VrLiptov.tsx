@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Coins, Download, Plus, Printer, Trash2, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VrPartnersTab } from "@/components/vr/VrPartnersTab";
@@ -240,7 +241,7 @@ export default function VrLiptov() {
         </p>
       </header>
 
-      <Tabs defaultValue="dochadzka" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="-mx-3 mb-4 overflow-x-auto px-3 pb-1 sm:mx-0 sm:overflow-visible sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsList className="inline-flex h-auto w-max min-w-full justify-start gap-1 p-1 sm:w-full">
             <TabsTrigger value="dochadzka" className="shrink-0 gap-1.5 whitespace-nowrap text-xs sm:text-sm">
