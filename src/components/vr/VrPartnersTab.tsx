@@ -340,9 +340,9 @@ export function VrPartnersTab() {
             ) : (
               <ul className="space-y-2">
                 {items.map((it, i) => (
-                  <li key={i} className="flex items-center gap-2">
+                  <li key={i} className="flex flex-wrap items-center gap-2">
                     <Input
-                      className="h-9 flex-1 text-sm"
+                      className="h-9 min-w-0 flex-1 basis-full text-sm sm:basis-0"
                       placeholder="Názov položky"
                       value={it.name}
                       onChange={(ev) =>
@@ -351,7 +351,8 @@ export function VrPartnersTab() {
                       aria-label={`Názov položky ${i + 1}`}
                     />
                     <Input
-                      className="h-9 w-32 text-sm"
+                      className="h-9 w-28 shrink-0 text-sm sm:w-32"
+
                       inputMode="decimal"
                       placeholder="0,00 €"
                       value={it.price}
