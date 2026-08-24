@@ -321,7 +321,9 @@ export function VrFinanceTab() {
           <SelectTrigger aria-label="Typ položky"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="expense">Výdaj / náklad</SelectItem>
-            <SelectItem value="income">Príjem / vklad konateľa</SelectItem>
+            <SelectItem value="income">Príjem / tržba</SelectItem>
+            <SelectItem value="loan">Pôžička konateľa firme (dlh −)</SelectItem>
+            <SelectItem value="loan_repay">Splátka konateľovi (zníženie dlhu)</SelectItem>
           </SelectContent>
         </Select>
         <Input type="date" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} aria-label="Dátum" />
