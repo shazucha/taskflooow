@@ -464,9 +464,9 @@ export function VrPartnersTab() {
                   <Trash2 className="h-4 w-4" />
                 </Button>
                 </div>
-                {(first.items?.length ?? 0) > 0 && (
+                {normItems(first.items).length > 0 && (
                   <ul className="ml-11 mt-1.5 space-y-1 border-l border-border/50 pl-3 text-xs">
-                    {first.items!.map((it, i) => (
+                    {normItems(first.items).map((it, i) => (
                       <li key={i} className="flex items-center justify-between gap-3">
                         <span className="truncate text-muted-foreground">{it.name}</span>
                         <span className="shrink-0 tabular-nums">{eur(it.price)}</span>
@@ -474,10 +474,11 @@ export function VrPartnersTab() {
                     ))}
                     <li className="flex items-center justify-between gap-3 border-t border-border/50 pt-1 font-semibold">
                       <span>Dokopy</span>
-                      <span className="tabular-nums">{eur(first.items!.reduce((s3, it) => s3 + Number(it.price), 0))}</span>
+                      <span className="tabular-nums">{eur(normItems(first.items).reduce((s3, it) => s3 + it.price, 0))}</span>
                     </li>
                   </ul>
                 )}
+
               </li>
             );
           })}
