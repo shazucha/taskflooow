@@ -109,6 +109,40 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
           </Button>
         </div>
 
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Hľadať firmu…"
+            aria-label="Hľadať firmu"
+          />
+        </div>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5" disabled={resetDefaults.isPending}>
+              <RotateCcw className="h-4 w-4" /> Obnoviť predvolené
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Obnoviť predvolené záznamy?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Doplní chýbajúce predvolené položky a predvoleným vráti pôvodné názvy.
+                Tvoje vlastné firmy ani zapísané sumy sa nezmažú.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Zrušiť</AlertDialogCancel>
+              <AlertDialogAction onClick={handleReset}>Obnoviť</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+
+
         <ul className="mt-1 max-h-[320px] space-y-1 overflow-y-auto">
           {categories.length === 0 && (
             <li className="py-6 text-center text-sm text-muted-foreground">
