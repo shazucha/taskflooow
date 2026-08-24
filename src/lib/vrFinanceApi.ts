@@ -143,6 +143,7 @@ export function useSaveVrContributionGroup() {
   return useMutation({
     mutationFn: async (input: {
       groupId?: string | null;
+      existingIds?: string[];
       partnerIds: string[];
       paid_on: string;
       total: number;
@@ -155,12 +156,16 @@ export function useSaveVrContributionGroup() {
       const shared = input.partnerIds.length > 1;
       const per = shared && input.shareMode === "half" ? splitEven(input.total, 2) : null;
 
-      // existujúce riadky skupiny
-      const { data: existing } = await supabase
-        .from("vr_partner_contributions")
-        .select("id,partner_id")
-        .eq("group_id", gid);
-      const rows = (existing ?? []) as { id: string; partner_id: string }[];
+      // existujúce riadky (skupina alebo konkrétne id-čka pri úprave)
+      const rows: { id: string }[] = (input.existingIds ?? []).map((id) => ({ id }));
+      if (!rows.length && input.groupId) {
+        const { data } = await supabase
+          .from("vr_partner_contributions")
+          .select("id")
+          .eq("group_id", gid);
+        rows.push(...((data ?? []) as { id: string }[]));
+      }
+
 
       for (let i = 0; i < input.partnerIds.length; i++) {
         const pid = input.partnerIds[i];
