@@ -27,7 +27,8 @@ export interface VrContribItem {
 
 export type VrShareMode = "single" | "half" | "each";
 
-export type VrFinanceDirection = "expense" | "income";
+// 'loan' = konateľ požičal firme (záväzok firmy), 'loan_repay' = firma splatila konateľovi
+export type VrFinanceDirection = "expense" | "income" | "loan" | "loan_repay";
 
 export interface VrFinanceRecord {
   id: string;
@@ -318,6 +319,30 @@ export function useVrContributionsRange(from: string, to: string, enabled = true
         return [];
       }
       return (data ?? []) as VrPartnerContribution[];
+    },
+  });
+}
+
+/* ---------------- Pôžičky konateľa (záväzok firmy) ---------------- */
+
+// Všetky pôžičky a splátky naprieč mesiacmi – pre prehľad dlhu po mesiacoch.
+export function useVrLoans() {
+  const userId = useCurrentUserId();
+  useRealtime("vr_finance_records", "vr_finance_loans");
+  return useQuery({
+    queryKey: ["vr_finance_loans"],
+    enabled: !!userId,
+    queryFn: async (): Promise<VrFinanceRecord[]> => {
+      const { data, error } = await supabase
+        .from("vr_finance_records")
+        .select(FR_COLS)
+        .in("direction", ["loan", "loan_repay"])
+        .order("occurred_on", { ascending: false });
+      if (error) {
+        console.warn("VR financie: pôžičky nedostupné", error.message);
+        return [];
+      }
+      return (data ?? []) as VrFinanceRecord[];
     },
   });
 }

@@ -12,6 +12,7 @@ import {
   useDeleteVrFinanceRecord,
   useUpdateVrFinanceRecord,
   useVrFinanceRecords,
+  useVrLoans,
   type VrFinanceDirection,
 } from "@/lib/vrFinanceApi";
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
@@ -65,10 +66,34 @@ export function VrFinanceTab() {
 
   const expenses = visibleRows.filter((r) => r.direction === "expense");
   const incomes = visibleRows.filter((r) => r.direction === "income");
+  const loanRows = visibleRows.filter((r) => r.direction === "loan" || r.direction === "loan_repay");
   const sum = (arr: typeof rows) => arr.reduce((s, r) => s + Number(r.amount), 0);
   const totalExp = sum(expenses);
   const totalInc = sum(incomes);
   const balance = totalInc - totalExp;
+
+  // Pôžičky konateľa naprieč mesiacmi (záväzok firmy = mínus).
+  const { data: allLoans = [] } = useVrLoans();
+  const loanTotal = allLoans.reduce(
+    (s, r) => s + (r.direction === "loan" ? Number(r.amount) : -Number(r.amount)),
+    0
+  );
+  const loanByMonth = useMemo(() => {
+    const m = new Map<string, { lent: number; repaid: number }>();
+    for (const r of allLoans) {
+      const k = r.month_key;
+      const e = m.get(k) ?? { lent: 0, repaid: 0 };
+      if (r.direction === "loan") e.lent += Number(r.amount);
+      else e.repaid += Number(r.amount);
+      m.set(k, e);
+    }
+    return [...m.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  }, [allLoans]);
+  const monthLabel = (k: string) => {
+    const [y, mm] = k.split("-");
+    return `${MONTHS[Number(mm) - 1] ?? mm} ${y}`;
+  };
+
 
 
   const byCategory = useMemo(() => {
@@ -260,13 +285,13 @@ export function VrFinanceTab() {
 
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
           <p className="text-xs text-muted-foreground">Výdaje</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(totalExp)}</p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Príjmy a vklady</p>
+          <p className="text-xs text-muted-foreground">Príjmy (tržby)</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-priority-low">{eur(totalInc)}</p>
         </div>
         <div className="rounded-2xl border border-vr/30 bg-vr-soft/50 p-4">
@@ -274,6 +299,11 @@ export function VrFinanceTab() {
           <p className={cn("mt-1 text-xl font-bold tabular-nums", balance < 0 ? "text-priority-high" : "text-vr")}>
             {eur(balance)}
           </p>
+        </div>
+        <div className="rounded-2xl border border-priority-high/30 bg-priority-high-soft/40 p-4">
+          <p className="text-xs text-muted-foreground">Dlh voči konateľovi (nesplatené)</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(-loanTotal)}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Pôžička firme — konateľ si ju nárokuje späť</p>
         </div>
       </div>
 
@@ -291,7 +321,9 @@ export function VrFinanceTab() {
           <SelectTrigger aria-label="Typ položky"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="expense">Výdaj / náklad</SelectItem>
-            <SelectItem value="income">Príjem / vklad konateľa</SelectItem>
+            <SelectItem value="income">Príjem / tržba</SelectItem>
+            <SelectItem value="loan">Pôžička konateľa firme (dlh −)</SelectItem>
+            <SelectItem value="loan_repay">Splátka konateľovi (zníženie dlhu)</SelectItem>
           </SelectContent>
         </Select>
         <Input type="date" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} aria-label="Dátum" />
@@ -331,10 +363,86 @@ export function VrFinanceTab() {
           {renderList(expenses, "expense")}
         </section>
         <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-          <h3 className="mb-1 text-sm font-semibold">Príjmy a vklady konateľa</h3>
+          <h3 className="mb-1 text-sm font-semibold">Príjmy (tržby)</h3>
           {renderList(incomes, "income")}
         </section>
       </div>
+
+      {/* Pôžičky konateľa */}
+      <section className="rounded-2xl border border-priority-high/25 bg-card/60 p-3 sm:p-4">
+        <h3 className="mb-1 text-sm font-semibold">Pôžičky konateľa v mesiaci</h3>
+        <ul className="divide-y divide-border/50">
+          {loanRows.length === 0 && (
+            <li className="py-4 text-center text-sm text-muted-foreground">Žiadne pôžičky ani splátky v tomto mesiaci.</li>
+          )}
+          {loanRows.map((r) => (
+            <li key={r.id} className="flex items-center gap-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{r.title}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {new Date(r.occurred_on).toLocaleDateString("sk-SK")} ·{" "}
+                  {r.direction === "loan" ? "pôžička firme" : "splátka konateľovi"}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 text-sm font-semibold tabular-nums",
+                  r.direction === "loan" ? "text-priority-high" : "text-priority-low"
+                )}
+              >
+                {r.direction === "loan" ? "−" : "+"}
+                {eur(Number(r.amount))}
+              </span>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground"
+                aria-label="Upraviť pôžičku" onClick={() => startEdit(r)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                aria-label="Zmazať pôžičku" onClick={() => remove.mutate(r.id)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+
+        <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Prehľad dlhu po mesiacoch
+        </h4>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-sm">
+            <thead>
+              <tr className="text-left text-xs text-muted-foreground">
+                <th className="py-1.5 font-medium">Mesiac</th>
+                <th className="py-1.5 text-right font-medium">Požičané</th>
+                <th className="py-1.5 text-right font-medium">Splatené</th>
+                <th className="py-1.5 text-right font-medium">Zostatok mesiaca</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {loanByMonth.length === 0 && (
+                <tr><td colSpan={4} className="py-4 text-center text-muted-foreground">Zatiaľ žiadne pôžičky.</td></tr>
+              )}
+              {loanByMonth.map(([k, v]) => (
+                <tr key={k}>
+                  <td className="py-1.5">{monthLabel(k)}</td>
+                  <td className="py-1.5 text-right tabular-nums text-priority-high">{eur(v.lent)}</td>
+                  <td className="py-1.5 text-right tabular-nums text-priority-low">{eur(v.repaid)}</td>
+                  <td className="py-1.5 text-right font-semibold tabular-nums">{eur(-(v.lent - v.repaid))}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-border">
+                <td className="py-2 text-xs font-semibold uppercase text-muted-foreground">Celkový dlh</td>
+                <td colSpan={3} className="py-2 text-right text-base font-bold tabular-nums text-priority-high">
+                  {eur(-loanTotal)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
 
       <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Výdaje podľa firmy / dodávateľa</h3>
