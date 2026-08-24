@@ -14,6 +14,8 @@ import {
   useUpdateVrFinanceRecord,
   useVrFinanceRecords,
   useVrLoans,
+  useVrFixedCosts,
+  type VrFixedCost,
   type VrFinanceDirection,
   type VrRevenueKind,
 } from "@/lib/vrFinanceApi";
@@ -56,6 +58,7 @@ export function VrFinanceTab() {
   const [partnerId, setPartnerId] = useState<string>("");        // konateľ pri pôžičke
   const [revenueKind, setRevenueKind] = useState<VrRevenueKind>("vr");
   const [fromDirector, setFromDirector] = useState(false);       // výdaj hradený z peňazí konateľa
+  const { data: fixedTemplates = [] } = useVrFixedCosts();
   const { data: profiles = [] } = useProfiles();
   const nameOf = (id: string | null) =>
     profiles.find((p) => p.id === id)?.full_name ?? profiles.find((p) => p.id === id)?.email ?? "Nezadaný konateľ";
@@ -215,7 +218,7 @@ export function VrFinanceTab() {
 
   // Hromadné vygenerovanie aktívnych šablón fixných nákladov do aktuálneho mesiaca.
   async function generateFixedMonth() {
-    const items = fixedCosts.filter((c) => c.active);
+    const items = fixedTemplates.filter((c) => c.active);
     if (!items.length) return toast.error("Najprv si pridaj šablóny fixných nákladov.");
     const pid = partnerId || profiles[0]?.id;
     if (items.some((c) => c.from_director) && !pid) return toast.error("Najprv vyber konateľa.");
