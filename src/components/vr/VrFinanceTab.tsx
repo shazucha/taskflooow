@@ -757,22 +757,22 @@ export function VrFinanceTab() {
           </div>
         )}
         {direction === "expense" && !editingId && (
-          <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-5">
-            <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("najom")}>
-              Nájom 350 € / mesiac
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("internet")}>
-              Internet 61,50 € / mesiac
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => applyTemplate("kredity")}>
-              Kredity (HeroZoneVR a i.) 250 €
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={generateFixedMonth} disabled={create.isPending}>
-              Vygenerovať fixné náklady mesiaca (661,50 €)
-            </Button>
-
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-5">
+            {fixedTemplates.filter((c) => c.active).map((c) => (
+              <Button key={c.id} type="button" variant="outline" size="sm" onClick={() => applyTemplate(c)}>
+                {c.title} {eur(Number(c.amount))}
+              </Button>
+            ))}
+            {fixedTemplates.some((c) => c.active) && (
+              <Button type="button" variant="outline" size="sm" onClick={generateFixedMonth} disabled={create.isPending}>
+                Vygenerovať fixné náklady mesiaca (
+                {eur(fixedTemplates.filter((c) => c.active).reduce((s2, c) => s2 + Number(c.amount), 0))})
+              </Button>
+            )}
+            <VrFixedCostsManager />
           </div>
         )}
+
         <Input
           className="sm:col-span-2 lg:col-span-4"
           placeholder="Názov položky (napr. nájom priestorov, internet, poistenie…)"
