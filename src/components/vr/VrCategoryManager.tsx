@@ -1,4 +1,4 @@
-// Dialóg na správu kategórií/typov (pridanie, premenovanie, zmazanie).
+// Dialóg na správu kategórií/typov (Supabase — spoločné pre všetkých).
 import { useState } from "react";
 import { Check, Pencil, Plus, Settings2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,29 +12,44 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import {
-  VR_SCOPE_LABEL,
-  addVrCategory,
-  isCustomVrCategory,
-  removeVrCategory,
-  renameVrCategory,
-  useVrCategories,
-  type VrCatScope,
-} from "@/lib/vrCategories";
+import { VR_SCOPE_LABEL, useVrCategories, useVrCategoryActions, type VrCatScope } from "@/lib/vrCategories";
 
 export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
   const categories = useVrCategories(scope);
+  const { add, rename, remove } = useVrCategoryActions(scope);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
 
-  function add() {
+  async function handleAdd() {
     if (!draft.trim()) return;
-    const created = addVrCategory(scope, draft);
-    if (!created) return toast.error("Taká kategória už existuje.");
-    setDraft("");
-    toast.success("Kategória pridaná.");
+    try {
+      await add.mutateAsync(draft);
+      setDraft("");
+      toast.success("Kategória pridaná.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function handleRename(rowId: string) {
+    try {
+      await rename.mutateAsync({ rowId, label: editLabel });
+      setEditId(null);
+      toast.success("Názov upravený.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function handleRemove(rowId: string) {
+    try {
+      await remove.mutateAsync(rowId);
+      toast.success("Kategória zmazaná.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   }
 
   return (
@@ -48,26 +63,33 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{VR_SCOPE_LABEL[scope]}</DialogTitle>
-          <DialogDescription>Pridaj, premenuj alebo zmaž kategórie použité vo formulároch a sumároch.</DialogDescription>
+          <DialogDescription>
+            Kategórie sú uložené v databáze a vidia ich všetci členovia firmy.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-2">
           <Input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && add()}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             placeholder="Nová kategória…"
             aria-label="Nová kategória"
           />
-          <Button onClick={add} className="bg-vr text-vr-foreground hover:bg-vr/90">
+          <Button onClick={handleAdd} disabled={add.isPending} className="bg-vr text-vr-foreground hover:bg-vr/90">
             <Plus className="h-4 w-4" />
           </Button>
         </div>
 
         <ul className="mt-1 max-h-[320px] space-y-1 overflow-y-auto">
+          {categories.length === 0 && (
+            <li className="py-6 text-center text-sm text-muted-foreground">
+              Žiadne kategórie — spusti migráciu alebo pridaj vlastnú.
+            </li>
+          )}
           {categories.map((c) => (
-            <li key={`${c.id}-${c.label}`} className="flex items-center gap-2 rounded-lg bg-surface-muted/50 px-3 py-1.5">
-              {editId === c.id ? (
+            <li key={c.rowId} className="flex items-center gap-2 rounded-lg bg-surface-muted/50 px-3 py-1.5">
+              {editId === c.rowId ? (
                 <>
                   <Input
                     className="h-8"
@@ -80,10 +102,7 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
                     variant="ghost"
                     className="h-8 w-8"
                     aria-label="Uložiť názov"
-                    onClick={() => {
-                      renameVrCategory(scope, c.id, editLabel);
-                      setEditId(null);
-                    }}
+                    onClick={() => handleRename(c.rowId)}
                   >
                     <Check className="h-4 w-4" />
                   </Button>
@@ -100,19 +119,19 @@ export function VrCategoryManager({ scope }: { scope: VrCatScope }) {
                     className="h-8 w-8"
                     aria-label={`Premenovať ${c.label}`}
                     onClick={() => {
-                      setEditId(c.id);
+                      setEditId(c.rowId);
                       setEditLabel(c.label);
                     }}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  {isCustomVrCategory(scope, c.id) && (
+                  {!c.isDefault && (
                     <Button
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       aria-label={`Zmazať ${c.label}`}
-                      onClick={() => removeVrCategory(scope, c.id)}
+                      onClick={() => handleRemove(c.rowId)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

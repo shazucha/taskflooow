@@ -12,9 +12,14 @@ export interface VrPartnerContribution {
   purpose: string;
   category: string;
   note: string | null;
+  group_id: string | null;
+  share_mode: VrShareMode;
+  total_amount: number | null;
   created_by: string | null;
   created_at: string;
 }
+
+export type VrShareMode = "single" | "half" | "each";
 
 export type VrFinanceDirection = "expense" | "income";
 
@@ -51,7 +56,21 @@ export function eur(n: number) {
   return new Intl.NumberFormat("sk-SK", { style: "currency", currency: "EUR" }).format(n || 0);
 }
 
-const PC_COLS = "id,partner_id,paid_on,amount,purpose,category,note,created_by,created_at";
+// Presné rozdelenie sumy na N častí bez straty centov.
+export function splitEven(total: number, parts: number): number[] {
+  const cents = Math.round(total * 100);
+  const base = Math.floor(cents / parts);
+  const rest = cents - base * parts;
+  return Array.from({ length: parts }, (_, i) => (base + (i < rest ? 1 : 0)) / 100);
+}
+
+// Zrozumiteľná hláška pri duplicite.
+function dupMsg(error: { code?: string; message: string }) {
+  return error.code === "23505" ? "Taký záznam už existuje (rovnaký dátum, suma a názov)." : error.message;
+}
+
+const PC_COLS =
+  "id,partner_id,paid_on,amount,purpose,category,note,group_id,share_mode,total_amount,created_by,created_at";
 const FR_COLS =
   "id,month_key,occurred_on,direction,amount,title,category,recurring,note,created_by,created_at";
 
@@ -100,7 +119,80 @@ export function useCreateVrContribution() {
       const { error } = await supabase
         .from("vr_partner_contributions")
         .insert({ ...input, created_by: userId });
-      if (error) throw error;
+      if (error) throw new Error(dupMsg(error));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_partner_contributions"] }),
+  });
+}
+
+export function useUpdateVrContribution() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<VrPartnerContribution> }) => {
+      const { error } = await supabase.from("vr_partner_contributions").update(patch).eq("id", id);
+      if (error) throw new Error(dupMsg(error));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_partner_contributions"] }),
+  });
+}
+
+// Uloženie/úprava spoločného vkladu — vždy prepočíta sumy podľa režimu.
+export function useSaveVrContributionGroup() {
+  const qc = useQueryClient();
+  const userId = useCurrentUserId();
+  return useMutation({
+    mutationFn: async (input: {
+      groupId?: string | null;
+      existingIds?: string[];
+      partnerIds: string[];
+      paid_on: string;
+      total: number;
+      shareMode: VrShareMode;
+      purpose: string;
+      category: string;
+      note?: string | null;
+    }) => {
+      const gid = input.groupId ?? crypto.randomUUID();
+      const shared = input.partnerIds.length > 1;
+      const per = shared && input.shareMode === "half" ? splitEven(input.total, 2) : null;
+
+      // existujúce riadky (skupina alebo konkrétne id-čka pri úprave)
+      const rows: { id: string }[] = (input.existingIds ?? []).map((id) => ({ id }));
+      if (!rows.length && input.groupId) {
+        const { data } = await supabase
+          .from("vr_partner_contributions")
+          .select("id")
+          .eq("group_id", gid);
+        rows.push(...((data ?? []) as { id: string }[]));
+      }
+
+
+      for (let i = 0; i < input.partnerIds.length; i++) {
+        const pid = input.partnerIds[i];
+        const amount = per ? per[i] : input.total;
+        const payload = {
+          partner_id: pid,
+          paid_on: input.paid_on,
+          amount,
+          purpose: input.purpose,
+          category: input.category,
+          note: input.note ?? null,
+          group_id: shared ? gid : null,
+          share_mode: shared ? input.shareMode : "single",
+          total_amount: input.total,
+        };
+        const match = rows[i];
+        const { error } = match
+          ? await supabase.from("vr_partner_contributions").update(payload).eq("id", match.id)
+          : await supabase
+              .from("vr_partner_contributions")
+              .insert({ ...payload, created_by: userId });
+        if (error) throw new Error(dupMsg(error));
+      }
+
+      // odstráň prebytočné riadky (napr. zo spoločného na jednotlivca)
+      const extra = rows.slice(input.partnerIds.length).map((r) => r.id);
+      if (extra.length) await supabase.from("vr_partner_contributions").delete().in("id", extra);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_partner_contributions"] }),
   });
@@ -148,7 +240,18 @@ export function useCreateVrFinanceRecord() {
       const { error } = await supabase
         .from("vr_finance_records")
         .insert({ ...input, created_by: userId });
-      if (error) throw error;
+      if (error) throw new Error(dupMsg(error));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_finance_records"] }),
+  });
+}
+
+export function useUpdateVrFinanceRecord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<VrFinanceRecord> }) => {
+      const { error } = await supabase.from("vr_finance_records").update(patch).eq("id", id);
+      if (error) throw new Error(dupMsg(error));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vr_finance_records"] }),
   });
