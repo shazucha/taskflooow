@@ -169,7 +169,7 @@ export function VrPartnersTab() {
     setPaidOn(first.paid_on);
     setCategory(first.category);
     setPurpose(first.purpose);
-    setItems((first.items ?? []).map((it) => ({ name: it.name, price: String(it.price) })));
+    setItems(normItems(first.items).map((it) => ({ name: it.name, price: String(it.price) })));
     if (e.rows.length > 1) {
       setSharedOn(true);
       setPartnerId2(e.rows[1].partner_id);
