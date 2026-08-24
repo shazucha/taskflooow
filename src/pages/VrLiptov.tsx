@@ -596,6 +596,17 @@ export default function VrLiptov() {
           />
         </div>
       </section>
+        </TabsContent>
+
+        <TabsContent value="spolocnici" className="mt-0">
+          <VrPartnersTab />
+        </TabsContent>
+
+        <TabsContent value="financie" className="mt-0">
+          <VrFinanceTab />
+        </TabsContent>
+      </Tabs>
     </main>
+
   );
 }
