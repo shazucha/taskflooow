@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type React from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, FolderKanban, ListChecks, MessageCircle, User, FolderOpen } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ListChecks, User, FolderOpen } from "lucide-react";
 import { VrHeadsetIcon } from "@/components/VrHeadsetIcon";
 import { cn } from "@/lib/utils";
 import { useUnreadTeamChat } from "@/lib/useUnreadChat";
@@ -17,17 +17,16 @@ type NavItem = {
   badgeKey?: "team" | "dm" | "tasks" | "projects";
 };
 
-// Hlavné sekcie sa posúvajú vodorovne, Chat a Profil sú vždy zafixované vpravo.
+// Hlavné sekcie sa posúvajú vodorovne, VR Liptov a Profil sú vždy zafixované vpravo.
 const scrollItems: NavItem[] = [
   { to: "/", label: "Prehľad", icon: LayoutDashboard, end: true, badgeKey: "team" },
   { to: "/projects", label: "Projekty", icon: FolderKanban, badgeKey: "projects" },
   { to: "/tasks", label: "Úlohy", icon: ListChecks, badgeKey: "tasks" },
   { to: "/company-materials", label: "Materiály", icon: FolderOpen },
-  { to: "/vr-liptov", label: "VR Liptov", icon: VrHeadsetIcon as unknown as typeof LayoutDashboard },
 ];
 
 const pinnedItems: NavItem[] = [
-  { to: "/chat", label: "Chat", icon: MessageCircle, badgeKey: "dm" },
+  { to: "/vr-liptov", label: "VR Liptov", icon: VrHeadsetIcon as unknown as typeof LayoutDashboard },
   { to: "/me", label: "Profil", icon: User },
 ];
 
@@ -133,7 +132,7 @@ export function BottomNav() {
         {scrollItems.map(renderItem)}
       </ul>
 
-      {/* Fixná skupina: Chat + Profil */}
+      {/* Fixná skupina: VR Liptov + Profil */}
       <ul className="flex shrink-0 gap-0.5 border-l border-border/50 bg-surface-muted/40 px-1">
         {pinnedItems.map(renderItem)}
       </ul>
