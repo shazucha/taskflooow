@@ -363,10 +363,86 @@ export function VrFinanceTab() {
           {renderList(expenses, "expense")}
         </section>
         <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-          <h3 className="mb-1 text-sm font-semibold">Príjmy a vklady konateľa</h3>
+          <h3 className="mb-1 text-sm font-semibold">Príjmy (tržby)</h3>
           {renderList(incomes, "income")}
         </section>
       </div>
+
+      {/* Pôžičky konateľa */}
+      <section className="rounded-2xl border border-priority-high/25 bg-card/60 p-3 sm:p-4">
+        <h3 className="mb-1 text-sm font-semibold">Pôžičky konateľa v mesiaci</h3>
+        <ul className="divide-y divide-border/50">
+          {loanRows.length === 0 && (
+            <li className="py-4 text-center text-sm text-muted-foreground">Žiadne pôžičky ani splátky v tomto mesiaci.</li>
+          )}
+          {loanRows.map((r) => (
+            <li key={r.id} className="flex items-center gap-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{r.title}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {new Date(r.occurred_on).toLocaleDateString("sk-SK")} ·{" "}
+                  {r.direction === "loan" ? "pôžička firme" : "splátka konateľovi"}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 text-sm font-semibold tabular-nums",
+                  r.direction === "loan" ? "text-priority-high" : "text-priority-low"
+                )}
+              >
+                {r.direction === "loan" ? "−" : "+"}
+                {eur(Number(r.amount))}
+              </span>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground"
+                aria-label="Upraviť pôžičku" onClick={() => startEdit(r)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                aria-label="Zmazať pôžičku" onClick={() => remove.mutate(r.id)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+
+        <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Prehľad dlhu po mesiacoch
+        </h4>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-sm">
+            <thead>
+              <tr className="text-left text-xs text-muted-foreground">
+                <th className="py-1.5 font-medium">Mesiac</th>
+                <th className="py-1.5 text-right font-medium">Požičané</th>
+                <th className="py-1.5 text-right font-medium">Splatené</th>
+                <th className="py-1.5 text-right font-medium">Zostatok mesiaca</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {loanByMonth.length === 0 && (
+                <tr><td colSpan={4} className="py-4 text-center text-muted-foreground">Zatiaľ žiadne pôžičky.</td></tr>
+              )}
+              {loanByMonth.map(([k, v]) => (
+                <tr key={k}>
+                  <td className="py-1.5">{monthLabel(k)}</td>
+                  <td className="py-1.5 text-right tabular-nums text-priority-high">{eur(v.lent)}</td>
+                  <td className="py-1.5 text-right tabular-nums text-priority-low">{eur(v.repaid)}</td>
+                  <td className="py-1.5 text-right font-semibold tabular-nums">{eur(-(v.lent - v.repaid))}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-border">
+                <td className="py-2 text-xs font-semibold uppercase text-muted-foreground">Celkový dlh</td>
+                <td colSpan={3} className="py-2 text-right text-base font-bold tabular-nums text-priority-high">
+                  {eur(-loanTotal)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
 
       <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Výdaje podľa firmy / dodávateľa</h3>
