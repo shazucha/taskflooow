@@ -267,14 +267,13 @@ export function VrFinanceTab() {
         </Select>
         <Input type="date" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} aria-label="Dátum" />
         <Input inputMode="decimal" placeholder="Suma v €" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Suma" />
-        <Select value={activeCategory} onValueChange={setCategory}>
-          <SelectTrigger aria-label={direction === "expense" ? "Dodávateľ / firma" : "Od koho / firma"}><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <VrCompanySelect
+          scope={scope}
+          value={activeCategory}
+          onChange={setCategory}
+          label={direction === "expense" ? "Dodávateľ / firma" : "Od koho / firma"}
+        />
+
         <label className="flex items-center gap-2 rounded-md border border-border/50 px-3 text-sm">
           <input
             type="checkbox"
