@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Coins, Download, Plus, Printer, Trash2, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VrPartnersTab } from "@/components/vr/VrPartnersTab";
+import { VrPartnerDepositsCard } from "@/components/vr/VrPartnerDepositsCard";
 import { VrFinanceTab } from "@/components/vr/VrFinanceTab";
 
 import { Button } from "@/components/ui/button";
