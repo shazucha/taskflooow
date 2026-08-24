@@ -240,26 +240,24 @@ export function VrPartnersTab() {
       : null;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px] lg:items-start">
-      <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold sm:text-base">Úhrady spoločníkov</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <section className="min-w-0 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+        <div className="mb-3 grid gap-2">
+          <h2 className="text-base font-semibold tracking-tight sm:text-lg">Úhrady spoločníkov</h2>
+          <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+            <div className="relative min-w-0 lg:w-[220px]">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="h-9 w-[200px] pl-9 text-xs"
+                className="h-9 w-full pl-9 text-xs"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Hľadať firmu alebo účel…"
                 aria-label="Hľadať podľa firmy alebo účelu"
               />
             </div>
-            <VrCategoryManager scope="contribution" />
-            <VrReportDialog scope="partners" />
 
             <Select value={filterPartner} onValueChange={setFilterPartner}>
-              <SelectTrigger className="h-9 w-[200px] text-xs" aria-label="Filter podľa spoločníka">
+              <SelectTrigger className="h-9 w-full text-xs lg:w-[200px]" aria-label="Filter podľa spoločníka">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -269,8 +267,14 @@ export function VrPartnersTab() {
                 ))}
               </SelectContent>
             </Select>
+
+            <div className="flex flex-wrap items-center gap-2 [&>*]:flex-1 sm:col-span-2 lg:[&>*]:flex-none">
+              <VrCategoryManager scope="contribution" />
+              <VrReportDialog scope="partners" />
+            </div>
           </div>
         </div>
+
 
         {/* Formulár zápisu / úpravy */}
         <div className="grid gap-2 rounded-xl border border-border/50 bg-surface-muted/40 p-3 sm:grid-cols-2 lg:grid-cols-4">
