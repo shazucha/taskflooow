@@ -100,7 +100,7 @@ export function VrFixedCostsManager() {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{c.title}</p>
                 <p className="text-xs text-muted-foreground">
-                  {vrCatLabel(cats, c.category)} · {c.day_of_month}. deň
+                  {vrCatLabel("expense", c.category)} · {c.day_of_month}. deň
                   {c.from_director ? " · hradené konateľom" : " · z účtu firmy"}
                 </p>
               </div>
@@ -151,7 +151,7 @@ export function VrFixedCostsManager() {
               </SelectTrigger>
               <SelectContent>
                 {cats.map((c) => (
-                  <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
