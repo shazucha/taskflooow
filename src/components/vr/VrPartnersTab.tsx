@@ -246,7 +246,13 @@ export function VrPartnersTab() {
       ? splitEven(Number(String(amount).replace(",", ".")), 2)
       : null;
 
+  // Pull-to-refresh — obnoví úhrady spoločníkov.
+  const refreshAll = async () => {
+    await qc.invalidateQueries({ queryKey: ["vr_partner_contributions"] });
+  };
+
   return (
+    <PullToRefresh onRefresh={refreshAll}>
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
       <section className="min-w-0 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
         <div className="sticky top-0 z-20 -mx-3 mb-3 grid gap-2 border-b border-border/50 bg-card/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:-mx-4 sm:px-4 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none">
@@ -562,5 +568,6 @@ export function VrPartnersTab() {
         </div>
       </aside>
     </div>
+    </PullToRefresh>
   );
 }
