@@ -164,20 +164,54 @@ export function VrReportDialog() {
       : ""
   }
   ${
+    stats.fixed.length
+      ? rowsTable(
+          "Fixné náklady — zdroj úhrady",
+          ["Dátum", "Názov", "Zdroj úhrady", "Suma"],
+          stats.fixed.map(({ rec, paidBy, byDirector }) => [
+            esc(rec.occurred_on),
+            esc(rec.title),
+            byDirector
+              ? esc(`Z vkladu konateľa (${paidBy ? nameOf(paidBy) : "nezadaný"}) — pôžička firme`)
+              : "Z účtu firmy",
+            esc(eur(Number(rec.amount))),
+          ]),
+          stats.fixedTotal
+        ) +
+        `<p class="sub">Z vkladu konateľa: <strong>${esc(eur(stats.fixedByDirector))}</strong> · Z účtu firmy: <strong>${esc(eur(stats.fixedByCompany))}</strong></p>`
+      : ""
+  }
+  ${
     finance.length
       ? rowsTable(
           "Zoznam transakcií",
-          ["Dátum", "Typ", "Názov", "Firma", "Suma"],
-          finance.map((r) => [
-            esc(r.occurred_on),
-            r.direction === "expense" ? "Výdaj" : "Príjem",
-            esc(r.title),
-            esc(vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category)),
-            esc(eur(Number(r.amount))),
-          ])
+          ["Dátum", "Typ", "Názov", "Firma", "Zdroj úhrady", "Suma"],
+          finance.map((r) => {
+            const src =
+              r.direction === "expense"
+                ? stats.fixed.find((f) => f.rec.id === r.id)?.byDirector
+                  ? "Z vkladu konateľa"
+                  : "Z účtu firmy"
+                : "—";
+            return [
+              esc(r.occurred_on),
+              r.direction === "expense"
+                ? "Výdaj"
+                : r.direction === "income"
+                ? "Príjem"
+                : r.direction === "loan"
+                ? "Pôžička konateľa"
+                : "Splátka konateľovi",
+              esc(r.title),
+              esc(vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category)),
+              esc(src),
+              esc(eur(Number(r.amount))),
+            ];
+          })
         )
       : ""
   }
+
   ${
     contributions.length
       ? rowsTable(
