@@ -52,7 +52,7 @@ export function VrPartnerSharesCard() {
           <PieChart className="h-4 w-4 text-vr" /> Podiely spoločníkov
         </h2>
         <span className="rounded-full bg-vr-soft px-3 py-1 text-sm font-semibold tabular-nums text-vr">
-          {eur(base)}
+          {eur(costTotal)}
         </span>
       </div>
       <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
@@ -62,9 +62,10 @@ export function VrPartnerSharesCard() {
             {" · "}vklady mimo nákladov: <strong className="tabular-nums">{eur(depTotal)}</strong>
           </>
         )}
-        . Vklady sa nepočítajú do nákladov, ale spoločníkovi sa započítavajú ako jeho podiel.
+        . Vklady sa nepripočítavajú k nákladom — vstupujú len do výpočtu podielov.
         Rovným dielom by na každého pripadlo <strong className="tabular-nums">{eur(fair)}</strong>.
       </p>
+
 
       {loading && <VrListSkeleton rows={2} />}
 
