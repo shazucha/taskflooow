@@ -220,8 +220,10 @@ export function VrFinanceTab() {
     const day = `${monthKey}-05`;
     const items = [
       { title: "Nájom priestorov", amount: 350, category: "najom" },
+      { title: "Internet", amount: 61.5, category: "prevadzka" },
       { title: "Kredity HeroZoneVR a iní poskytovatelia", amount: 250, category: "software" },
     ];
+
     let added = 0;
     try {
       for (const it of items) {
