@@ -593,45 +593,47 @@ export function VrFinanceTab() {
 
 
       {/* Hlavné sumáre mesiaca */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Výdaje</p>
-          <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(totalExp)}</p>
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Výdaje</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-priority-high sm:text-xl">{eur(totalExp)}</p>
         </div>
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Príjmy (tržby)</p>
-          <p className="mt-1 text-xl font-bold tabular-nums text-priority-low">{eur(totalInc)}</p>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Príjmy (tržby)</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-priority-low sm:text-xl">{eur(totalInc)}</p>
         </div>
-        <div className="rounded-2xl border border-vr/30 bg-vr-soft/50 p-4">
-          <p className="text-xs text-muted-foreground">Bilancia mesiaca</p>
-          <p className={cn("mt-1 text-xl font-bold tabular-nums", balance < 0 ? "text-priority-high" : "text-vr")}>
+        <div className="rounded-2xl border border-vr/30 bg-vr-soft/50 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Bilancia mesiaca</p>
+          <p className={cn("mt-1 text-lg font-bold tabular-nums sm:text-xl", balance < 0 ? "text-priority-high" : "text-vr")}>
             {eur(balance)}
           </p>
         </div>
-        <div className="rounded-2xl border border-priority-high/30 bg-priority-high-soft/40 p-4">
-          <p className="text-xs text-muted-foreground">Dlh voči konateľovi (nesplatené)</p>
-          <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(-loanTotal)}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">Pôžička firme — konateľ si ju nárokuje späť</p>
+        <div className="rounded-2xl border border-priority-high/30 bg-priority-high-soft/40 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Dlh voči konateľovi</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-priority-high sm:text-xl">{eur(-loanTotal)}</p>
+          <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground sm:text-[11px]">
+            Pôžička firme — konateľ si ju nárokuje späť
+          </p>
         </div>
       </div>
 
       {/* Breakeven — koľko treba zarobiť na pokrytie fixných nákladov */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Fixné náklady mesiaca</p>
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3">
+        <div className="col-span-2 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4 lg:col-span-1">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Fixné náklady mesiaca</p>
           <p className="mt-1 text-lg font-bold tabular-nums">{eur(fixedCosts)}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             Konateľ {eur(fixedByDirector)} · Firma {eur(fixedByCompany)}
           </p>
         </div>
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Do pokrytia nákladov chýba</p>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Do pokrytia chýba</p>
           <p className={cn("mt-1 text-lg font-bold tabular-nums", toBreakeven > 0 ? "text-priority-high" : "text-priority-low")}>
             {toBreakeven > 0 ? eur(toBreakeven) : "Pokryté ✓"}
           </p>
         </div>
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Potrebné sessions (á 30 €)</p>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Potrebné sessions (á 30 €)</p>
           <p className="mt-1 text-lg font-bold tabular-nums">{sessionsNeeded}</p>
         </div>
       </div>
@@ -646,28 +648,26 @@ export function VrFinanceTab() {
             </li>
           )}
           {fixedBreakdown.map(({ rec, paidBy, byDirector }) => (
-            <li key={rec.id} className="flex items-center gap-3 py-2.5">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{rec.title}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {new Date(rec.occurred_on).toLocaleDateString("sk-SK")} ·{" "}
-                  {vrCatLabel("expense", rec.category)}
-                </p>
+            <li key={rec.id} className="py-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 break-words text-sm font-medium leading-snug">{rec.title}</p>
+                <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(rec.amount))}</span>
               </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {new Date(rec.occurred_on).toLocaleDateString("sk-SK")} · {vrCatLabel("expense", rec.category)}
+              </p>
               <span
                 className={cn(
-                  "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
-                  byDirector
-                    ? "bg-priority-high-soft text-priority-high"
-                    : "bg-muted text-muted-foreground"
+                  "mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium",
+                  byDirector ? "bg-priority-high-soft text-priority-high" : "bg-muted text-muted-foreground"
                 )}
               >
                 {byDirector ? `Z vkladu konateľa${paidBy ? ` · ${nameOf(paidBy)}` : ""}` : "Z účtu firmy"}
               </span>
-              <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(rec.amount))}</span>
             </li>
           ))}
         </ul>
+
         <div className="mt-2 flex flex-wrap justify-end gap-4 border-t border-border/50 pt-2 text-xs">
           <span className="text-muted-foreground">
             Z vkladu konateľa: <strong className="tabular-nums text-priority-high">{eur(fixedByDirector)}</strong>
