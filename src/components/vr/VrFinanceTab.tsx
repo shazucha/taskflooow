@@ -82,6 +82,12 @@ export function VrFinanceTab() {
   const totalInc = sum(incomes);
   const balance = totalInc - totalExp;
 
+  // Breakeven: fixné (pravidelné) náklady vs. tržby mesiaca.
+  const fixedCosts = expenses.filter((r) => r.recurring).reduce((s2, r) => s2 + Number(r.amount), 0);
+  const toBreakeven = Math.max(0, fixedCosts - totalInc);
+  const SESSION_PRICE = 30;
+  const sessionsNeeded = Math.ceil(toBreakeven / SESSION_PRICE);
+
   // Pôžičky konateľa naprieč mesiacmi (záväzok firmy = mínus).
   const { data: allLoans = [] } = useVrLoans();
   const loanTotal = allLoans.reduce(
