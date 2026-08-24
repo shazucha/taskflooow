@@ -123,6 +123,29 @@ export function VrFinanceTab() {
   const revVr = incomes.filter((r) => (r.revenue_kind ?? "vr") === "vr").reduce((s2, r) => s2 + Number(r.amount), 0);
   const revOther = incomes.filter((r) => r.revenue_kind === "other").reduce((s2, r) => s2 + Number(r.amount), 0);
 
+  // Fixné (pravidelné) náklady mesiaca + zdroj úhrady (firma vs. konateľ).
+  // Výdaj považujeme za hradený konateľom, ak v tom istom mesiaci existuje pôžička
+  // s názvom "<názov výdaja> — hradené konateľom" a rovnakou sumou.
+  const fixedBreakdown = useMemo(() => {
+    const monthLoans = rows.filter((r) => r.direction === "loan");
+    return expenses
+      .filter((r) => r.recurring)
+      .map((r) => {
+        const match = monthLoans.find(
+          (l) =>
+            l.title.toLowerCase().startsWith(`${r.title.trim().toLowerCase()} — hradené konateľom`) &&
+            Number(l.amount) === Number(r.amount)
+        );
+        return { rec: r, paidBy: match?.partner_id ?? null, byDirector: !!match };
+      });
+  }, [rows, expenses]);
+
+  const fixedByDirector = fixedBreakdown
+    .filter((f) => f.byDirector)
+    .reduce((s2, f) => s2 + Number(f.rec.amount), 0);
+  const fixedByCompany = fixedCosts - fixedByDirector;
+
+
   // Dlh podľa konateľa (naprieč mesiacmi)
   const loanByPartner = useMemo(() => {
     const m = new Map<string, number>();
