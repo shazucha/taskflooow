@@ -445,59 +445,64 @@ export function VrFinanceTab() {
         </li>
       )}
       {list.map((r) => (
-        <li key={r.id} className="flex items-center gap-3 py-2.5">
+        <li key={r.id} className="flex items-start gap-3 py-3">
           <span
             className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
               kind === "expense" ? "bg-priority-high-soft text-priority-high" : "bg-priority-low-soft text-priority-low"
             )}
           >
             {kind === "expense" ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 truncate text-sm font-medium">
-              {r.title}
-              {r.recurring && <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Pravidelný" />}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
+            <div className="flex items-start justify-between gap-2">
+              <p className="flex min-w-0 items-center gap-1.5 break-words text-sm font-medium leading-snug">
+                {r.title}
+                {r.recurring && <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Pravidelný" />}
+              </p>
+              <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(r.amount))}</span>
+            </div>
+            <p className="mt-0.5 break-words text-xs text-muted-foreground">
               {new Date(r.occurred_on).toLocaleDateString("sk-SK")} · {vrCatLabel(r.direction === "expense" ? "expense" : "income", r.category)}
             </p>
+            <div className="mt-1 flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs text-muted-foreground"
+                aria-label="Upraviť položku"
+                onClick={() => startEdit(r)}
+              >
+                <Pencil className="mr-1 h-3.5 w-3.5" /> Upraviť
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+                aria-label="Zmazať položku"
+                onClick={() => remove.mutate(r.id)}
+              >
+                <Trash2 className="mr-1 h-3.5 w-3.5" /> Zmazať
+              </Button>
+            </div>
           </div>
-          <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(r.amount))}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground"
-            aria-label="Upraviť položku"
-            onClick={() => startEdit(r)}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-            aria-label="Zmazať položku"
-            onClick={() => remove.mutate(r.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
         </li>
       ))}
     </ul>
   );
 
+
   return (
     <div className="grid gap-4">
       {/* Hlavička mesiaca + súhrn */}
       <div className="grid gap-3 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+        <div className="grid gap-2 lg:flex lg:flex-wrap lg:items-center lg:justify-between">
+          <div className="flex items-center justify-between gap-2">
             <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Predchádzajúci mesiac"
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <h2 className="min-w-[130px] text-center text-sm font-semibold sm:min-w-[150px] sm:text-base">
+            <h2 className="flex-1 text-center text-sm font-semibold tracking-tight sm:text-base lg:min-w-[150px] lg:flex-none">
               {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
             </h2>
             <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Nasledujúci mesiac"
@@ -505,8 +510,8 @@ export function VrFinanceTab() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
-            <div className="relative min-w-[180px] flex-1 sm:max-w-[240px] sm:flex-none">
+          <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center lg:justify-end">
+            <div className="relative min-w-0 sm:col-span-2 lg:w-[240px]">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="h-9 w-full pl-9 text-xs"
@@ -516,13 +521,16 @@ export function VrFinanceTab() {
                 aria-label="Hľadať podľa firmy alebo názvu položky"
               />
             </div>
-            <VrCategoryManager scope={scope} />
-            <Button variant="outline" size="sm" className="h-9" onClick={exportCsv} disabled={visibleRows.length === 0}>
-              <Download className="mr-1 h-4 w-4" /> Export CSV
-            </Button>
-            <VrReportDialog />
+            <div className="flex flex-wrap items-center gap-2 [&>*]:min-w-0 [&>*]:flex-1 sm:col-span-2 lg:[&>*]:flex-none">
+              <VrCategoryManager scope={scope} />
+              <Button variant="outline" size="sm" className="h-9" onClick={exportCsv} disabled={visibleRows.length === 0}>
+                <Download className="mr-1 h-4 w-4" /> Export CSV
+              </Button>
+              <VrReportDialog />
+            </div>
           </div>
         </div>
+
 
         {/* Rýchle filtre — obdobie a typ */}
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
@@ -585,45 +593,47 @@ export function VrFinanceTab() {
 
 
       {/* Hlavné sumáre mesiaca */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Výdaje</p>
-          <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(totalExp)}</p>
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Výdaje</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-priority-high sm:text-xl">{eur(totalExp)}</p>
         </div>
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Príjmy (tržby)</p>
-          <p className="mt-1 text-xl font-bold tabular-nums text-priority-low">{eur(totalInc)}</p>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Príjmy (tržby)</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-priority-low sm:text-xl">{eur(totalInc)}</p>
         </div>
-        <div className="rounded-2xl border border-vr/30 bg-vr-soft/50 p-4">
-          <p className="text-xs text-muted-foreground">Bilancia mesiaca</p>
-          <p className={cn("mt-1 text-xl font-bold tabular-nums", balance < 0 ? "text-priority-high" : "text-vr")}>
+        <div className="rounded-2xl border border-vr/30 bg-vr-soft/50 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Bilancia mesiaca</p>
+          <p className={cn("mt-1 text-lg font-bold tabular-nums sm:text-xl", balance < 0 ? "text-priority-high" : "text-vr")}>
             {eur(balance)}
           </p>
         </div>
-        <div className="rounded-2xl border border-priority-high/30 bg-priority-high-soft/40 p-4">
-          <p className="text-xs text-muted-foreground">Dlh voči konateľovi (nesplatené)</p>
-          <p className="mt-1 text-xl font-bold tabular-nums text-priority-high">{eur(-loanTotal)}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">Pôžička firme — konateľ si ju nárokuje späť</p>
+        <div className="rounded-2xl border border-priority-high/30 bg-priority-high-soft/40 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Dlh voči konateľovi</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-priority-high sm:text-xl">{eur(-loanTotal)}</p>
+          <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground sm:text-[11px]">
+            Pôžička firme — konateľ si ju nárokuje späť
+          </p>
         </div>
       </div>
 
       {/* Breakeven — koľko treba zarobiť na pokrytie fixných nákladov */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Fixné náklady mesiaca</p>
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3">
+        <div className="col-span-2 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4 lg:col-span-1">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Fixné náklady mesiaca</p>
           <p className="mt-1 text-lg font-bold tabular-nums">{eur(fixedCosts)}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             Konateľ {eur(fixedByDirector)} · Firma {eur(fixedByCompany)}
           </p>
         </div>
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Do pokrytia nákladov chýba</p>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Do pokrytia chýba</p>
           <p className={cn("mt-1 text-lg font-bold tabular-nums", toBreakeven > 0 ? "text-priority-high" : "text-priority-low")}>
             {toBreakeven > 0 ? eur(toBreakeven) : "Pokryté ✓"}
           </p>
         </div>
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-          <p className="text-xs text-muted-foreground">Potrebné sessions (á 30 €)</p>
+        <div className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">Potrebné sessions (á 30 €)</p>
           <p className="mt-1 text-lg font-bold tabular-nums">{sessionsNeeded}</p>
         </div>
       </div>
@@ -638,28 +648,26 @@ export function VrFinanceTab() {
             </li>
           )}
           {fixedBreakdown.map(({ rec, paidBy, byDirector }) => (
-            <li key={rec.id} className="flex items-center gap-3 py-2.5">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{rec.title}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {new Date(rec.occurred_on).toLocaleDateString("sk-SK")} ·{" "}
-                  {vrCatLabel("expense", rec.category)}
-                </p>
+            <li key={rec.id} className="py-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 break-words text-sm font-medium leading-snug">{rec.title}</p>
+                <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(rec.amount))}</span>
               </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {new Date(rec.occurred_on).toLocaleDateString("sk-SK")} · {vrCatLabel("expense", rec.category)}
+              </p>
               <span
                 className={cn(
-                  "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
-                  byDirector
-                    ? "bg-priority-high-soft text-priority-high"
-                    : "bg-muted text-muted-foreground"
+                  "mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium",
+                  byDirector ? "bg-priority-high-soft text-priority-high" : "bg-muted text-muted-foreground"
                 )}
               >
                 {byDirector ? `Z vkladu konateľa${paidBy ? ` · ${nameOf(paidBy)}` : ""}` : "Z účtu firmy"}
               </span>
-              <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(rec.amount))}</span>
             </li>
           ))}
         </ul>
+
         <div className="mt-2 flex flex-wrap justify-end gap-4 border-t border-border/50 pt-2 text-xs">
           <span className="text-muted-foreground">
             Z vkladu konateľa: <strong className="tabular-nums text-priority-high">{eur(fixedByDirector)}</strong>
@@ -826,33 +834,36 @@ export function VrFinanceTab() {
             <li className="py-4 text-center text-sm text-muted-foreground">Žiadne pôžičky ani splátky v tomto mesiaci.</li>
           )}
           {loanRows.map((r) => (
-            <li key={r.id} className="flex items-center gap-3 py-2.5">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{r.title}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {new Date(r.occurred_on).toLocaleDateString("sk-SK")} ·{" "}
-                  {r.direction === "loan" ? "pôžička firme" : "splátka konateľovi"} · {nameOf(r.partner_id)}
-                </p>
+            <li key={r.id} className="py-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 break-words text-sm font-medium leading-snug">{r.title}</p>
+                <span
+                  className={cn(
+                    "shrink-0 text-sm font-semibold tabular-nums",
+                    r.direction === "loan" ? "text-priority-high" : "text-priority-low"
+                  )}
+                >
+                  {r.direction === "loan" ? "−" : "+"}
+                  {eur(Number(r.amount))}
+                </span>
               </div>
-              <span
-                className={cn(
-                  "shrink-0 text-sm font-semibold tabular-nums",
-                  r.direction === "loan" ? "text-priority-high" : "text-priority-low"
-                )}
-              >
-                {r.direction === "loan" ? "−" : "+"}
-                {eur(Number(r.amount))}
-              </span>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground"
-                aria-label="Upraviť pôžičku" onClick={() => startEdit(r)}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                aria-label="Zmazať pôžičku" onClick={() => remove.mutate(r.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <p className="mt-0.5 break-words text-xs text-muted-foreground">
+                {new Date(r.occurred_on).toLocaleDateString("sk-SK")} ·{" "}
+                {r.direction === "loan" ? "pôžička firme" : "splátka konateľovi"} · {nameOf(r.partner_id)}
+              </p>
+              <div className="mt-1 flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground"
+                  aria-label="Upraviť pôžičku" onClick={() => startEdit(r)}>
+                  <Pencil className="mr-1 h-3.5 w-3.5" /> Upraviť
+                </Button>
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+                  aria-label="Zmazať pôžičku" onClick={() => remove.mutate(r.id)}>
+                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Zmazať
+                </Button>
+              </div>
             </li>
           ))}
+
         </ul>
 
         <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -922,8 +933,8 @@ export function VrFinanceTab() {
         <ul className="grid gap-1.5 text-sm">
           {loanByPartner.length === 0 && <li className="text-muted-foreground">—</li>}
           {loanByPartner.map(([pid, v]) => (
-            <li key={pid || "none"} className="rounded-lg bg-surface-muted/50 px-3 py-1.5">
-              <div className="flex items-center justify-between gap-2">
+            <li key={pid || "none"} className="rounded-xl bg-surface-muted/50 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <button
                   type="button"
                   className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
@@ -938,14 +949,16 @@ export function VrFinanceTab() {
                     ({(loanTxByPartner.get(pid) ?? []).length})
                   </span>
                 </button>
-                <span className={cn("shrink-0 font-medium tabular-nums", v > 0.005 ? "text-priority-high" : "text-priority-low")}>
+                <span className={cn("shrink-0 font-semibold tabular-nums", v > 0.005 ? "text-priority-high" : "text-priority-low")}>
                   {v > 0.005 ? eur(-v) : "Vyrovnané ✓"}
                 </span>
-                <VrLoanSettleDialog
-                  partnerId={pid || null}
-                  partnerName={nameOf(pid || null)}
-                  outstanding={Math.max(0, v)}
-                />
+                <div className="w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto">
+                  <VrLoanSettleDialog
+                    partnerId={pid || null}
+                    partnerName={nameOf(pid || null)}
+                    outstanding={Math.max(0, v)}
+                  />
+                </div>
               </div>
 
               {openPartner === (pid || "none") && (
@@ -953,44 +966,49 @@ export function VrFinanceTab() {
                   {(loanTxByPartner.get(pid) ?? []).map((t) => {
                     const fromExpense = t.title.toLowerCase().includes("— hradené konateľom");
                     return (
-                      <li key={t.id} className="flex items-center gap-2 py-1.5 text-xs">
-                        <span
-                          className={cn(
-                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                            t.direction === "loan_repay"
-                              ? "bg-priority-low-soft text-priority-low"
-                              : fromExpense
-                              ? "bg-priority-high-soft text-priority-high"
-                              : "bg-muted text-muted-foreground"
-                          )}
-                        >
-                          {t.direction === "loan_repay" ? "Splátka" : fromExpense ? "Výdaj" : "Vklad"}
-                        </span>
-                        <button
-                          type="button"
-                          className="min-w-0 flex-1 truncate text-left underline-offset-2 hover:underline"
-                          onClick={() => jumpToRecord(t)}
-                          title="Zobraziť záznam"
-                        >
-                          {t.title}
-                        </button>
-                        <span className="shrink-0 text-muted-foreground">
-                          {new Date(t.occurred_on).toLocaleDateString("sk-SK")}
-                        </span>
-                        <span
-                          className={cn(
-                            "shrink-0 font-semibold tabular-nums",
-                            t.direction === "loan" ? "text-priority-high" : "text-priority-low"
-                          )}
-                        >
-                          {t.direction === "loan" ? "−" : "+"}
-                          {eur(Number(t.amount))}
-                        </span>
+                      <li key={t.id} className="py-2 text-xs">
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            type="button"
+                            className="min-w-0 flex-1 break-words text-left underline-offset-2 hover:underline"
+                            onClick={() => jumpToRecord(t)}
+                            title="Zobraziť záznam"
+                          >
+                            {t.title}
+                          </button>
+                          <span
+                            className={cn(
+                              "shrink-0 font-semibold tabular-nums",
+                              t.direction === "loan" ? "text-priority-high" : "text-priority-low"
+                            )}
+                          >
+                            {t.direction === "loan" ? "−" : "+"}
+                            {eur(Number(t.amount))}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                              t.direction === "loan_repay"
+                                ? "bg-priority-low-soft text-priority-low"
+                                : fromExpense
+                                ? "bg-priority-high-soft text-priority-high"
+                                : "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            {t.direction === "loan_repay" ? "Splátka" : fromExpense ? "Výdaj" : "Vklad"}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {new Date(t.occurred_on).toLocaleDateString("sk-SK")}
+                          </span>
+                        </div>
                       </li>
                     );
                   })}
                 </ul>
               )}
+
             </li>
           ))}
 
