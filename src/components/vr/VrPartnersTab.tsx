@@ -269,7 +269,7 @@ export function VrPartnersTab() {
               </SelectContent>
             </Select>
 
-            <div className="flex flex-wrap items-center gap-2 [&>*]:flex-1 sm:col-span-2 lg:[&>*]:flex-none">
+            <div className="grid grid-cols-2 items-center gap-2 sm:col-span-2 lg:flex lg:flex-wrap [&>*]:h-9 [&>*]:w-full [&>*]:min-w-0 lg:[&>*]:w-auto">
               <VrCategoryManager scope="contribution" />
               <VrReportDialog scope="partners" />
             </div>

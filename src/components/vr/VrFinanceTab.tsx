@@ -535,7 +535,7 @@ export function VrFinanceTab() {
                 aria-label="Hľadať podľa firmy alebo názvu položky"
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2 [&>*]:min-w-0 [&>*]:flex-1 sm:col-span-2 lg:[&>*]:flex-none">
+            <div className="grid grid-cols-2 items-center gap-2 sm:col-span-2 sm:grid-cols-3 lg:flex lg:flex-wrap [&>*]:h-9 [&>*]:w-full [&>*]:min-w-0 lg:[&>*]:w-auto">
               <VrCategoryManager scope={scope} />
               <Button variant="outline" size="sm" className="h-9" onClick={exportCsv} disabled={visibleRows.length === 0}>
                 <Download className="mr-1 h-4 w-4" /> Export CSV
