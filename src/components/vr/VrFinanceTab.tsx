@@ -54,7 +54,7 @@ export function VrFinanceTab() {
   const [fromDirector, setFromDirector] = useState(false);       // výdaj hradený z peňazí konateľa
   const { data: profiles = [] } = useProfiles();
   const nameOf = (id: string | null) =>
-    profiles.find((p) => p.id === id)?.display_name ?? "Nezadaný konateľ";
+    profiles.find((p) => p.id === id)?.full_name ?? profiles.find((p) => p.id === id)?.email ?? "Nezadaný konateľ";
   const isLoan = direction === "loan" || direction === "loan_repay";
   const scope = direction === "expense" ? "expense" : "income";
   const categories = useVrCategories(scope);
@@ -410,7 +410,7 @@ export function VrFinanceTab() {
             </SelectTrigger>
             <SelectContent>
               {profiles.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.display_name}</SelectItem>
+                <SelectItem key={p.id} value={p.id}>{p.full_name ?? p.email}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -442,7 +442,7 @@ export function VrFinanceTab() {
                 </SelectTrigger>
                 <SelectContent>
                   {profiles.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.display_name}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>{p.full_name ?? p.email}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
