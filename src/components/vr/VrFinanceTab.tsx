@@ -254,6 +254,7 @@ export function VrFinanceTab() {
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={visibleRows.length === 0}>
             <Download className="mr-1 h-4 w-4" /> Export CSV
           </Button>
+          <VrReportDialog />
         </div>
 
       </div>
