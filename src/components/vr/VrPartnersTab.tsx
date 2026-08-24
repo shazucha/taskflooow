@@ -238,14 +238,13 @@ export function VrPartnersTab() {
             onChange={(e) => setAmount(e.target.value)}
             aria-label="Suma"
           />
-          <Select value={activeCategory} onValueChange={setCategory}>
-            <SelectTrigger aria-label="Firma / zdroj úhrady"><SelectValue placeholder="Firma / zdroj" /></SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <VrCompanySelect
+            scope="contribution"
+            value={activeCategory}
+            onChange={setCategory}
+            label="Firma / zdroj úhrady"
+          />
+
           <Input
             className="sm:col-span-2 lg:col-span-3"
             placeholder="Za čo bola úhrada (napr. nákup VR headsetu, nájom za august…)"
