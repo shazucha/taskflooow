@@ -20,6 +20,7 @@ import {
   type VrRevenueKind,
 } from "@/lib/vrFinanceApi";
 import { useProfiles } from "@/lib/queries";
+import { VrEmptyState, VrListSkeleton } from "@/components/vr/VrListStates";
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
 import { VrCompanySelect } from "@/components/vr/VrCompanySelect";
@@ -41,7 +42,7 @@ export function VrFinanceTab() {
   const qc = useQueryClient();
   const [cursor, setCursor] = useState(() => new Date());
   const monthKey = monthKeyOf(cursor);
-  const { data: rows = [] } = useVrFinanceRecords(monthKey);
+  const { data: rows = [], isLoading } = useVrFinanceRecords(monthKey);
   const create = useCreateVrFinanceRecord();
   const remove = useDeleteVrFinanceRecord();
   const update = useUpdateVrFinanceRecord();
@@ -439,9 +440,22 @@ export function VrFinanceTab() {
 
   const renderList = (list: typeof rows, kind: VrFinanceDirection) => (
     <ul className="divide-y divide-border/50">
-      {list.length === 0 && (
-        <li className="py-6 text-center text-sm text-muted-foreground">
-          {kind === "expense" ? "Žiadne výdaje v tomto mesiaci." : "Žiadne príjmy ani vklady."}
+      {isLoading && (
+        <li>
+          <VrListSkeleton rows={3} />
+        </li>
+      )}
+      {!isLoading && list.length === 0 && (
+        <li>
+          <VrEmptyState
+            icon={kind === "expense" ? ArrowDownRight : ArrowUpRight}
+            title={kind === "expense" ? "Žiadne výdaje v tomto mesiaci" : "Žiadne príjmy ani vklady"}
+            hint={
+              kind === "expense"
+                ? "Pridaj výdaj vo formulári vyššie alebo vygeneruj pravidelné (fixné) náklady."
+                : "Zapíš tržby z VR herne, inú činnosť alebo vklad konateľa."
+            }
+          />
         </li>
       )}
       {list.map((r) => (
@@ -496,7 +510,7 @@ export function VrFinanceTab() {
     <div className="grid gap-4">
       {/* Hlavička mesiaca + súhrn */}
       <div className="grid gap-3 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-        <div className="grid gap-2 lg:flex lg:flex-wrap lg:items-center lg:justify-between">
+        <div className="sticky top-0 z-20 -mx-3 grid gap-2 border-b border-border/50 bg-card/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:-mx-4 sm:px-4 lg:static lg:mx-0 lg:flex lg:flex-wrap lg:items-center lg:justify-between lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none">
           <div className="flex items-center justify-between gap-2">
             <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Predchádzajúci mesiac"
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
