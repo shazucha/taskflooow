@@ -21,6 +21,9 @@ import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
+// Pri úprave použijeme pôvodné group_id, ak bolo (inak vznikne nové).
+const e_groupId = (v: string | null) => (v && v.includes("-") ? v : null);
+
 export function VrPartnersTab() {
   const userId = useCurrentUserId();
   const { data: profiles = [] } = useProfiles();
@@ -30,6 +33,7 @@ export function VrPartnersTab() {
   const categories = useVrCategories("contribution");
 
   const [editingGroup, setEditingGroup] = useState<string | null>(null); // group_id alebo id riadku
+  const [editingIds, setEditingIds] = useState<string[]>([]);
   const [partnerId, setPartnerId] = useState<string>("");
   const [paidOn, setPaidOn] = useState(todayIso);
   const [amount, setAmount] = useState("");
@@ -104,6 +108,7 @@ export function VrPartnersTab() {
 
   function resetForm() {
     setEditingGroup(null);
+    setEditingIds([]);
     setAmount("");
     setPurpose("");
     setSharedOn(false);
@@ -115,6 +120,7 @@ export function VrPartnersTab() {
   function startEdit(e: Entry) {
     const first = e.rows[0];
     setEditingGroup(e.groupId ?? first.id);
+    setEditingIds(e.rows.map((r) => r.id));
     setPartnerId(first.partner_id);
     setPaidOn(first.paid_on);
     setCategory(first.category);
@@ -163,7 +169,8 @@ export function VrPartnersTab() {
 
     try {
       await save.mutateAsync({
-        groupId: sharedOn ? editingGroup : null,
+        groupId: sharedOn ? (e_groupId(editingGroup)) : null,
+        existingIds: editingGroup ? editingIds : [],
         partnerIds,
         paid_on: paidOn,
         total: value,
@@ -172,7 +179,6 @@ export function VrPartnersTab() {
         category: activeCategory,
         note: sharedOn ? `Spoločná úhrada: ${partnerIds.map(nameOf).join(" + ")}` : null,
       });
-      // Ak sa upravoval jednotlivý (negrupový) záznam, dorieš to updatom cez skupinu id
       toast.success(editingGroup ? "Úhrada upravená." : sharedOn ? "Spoločná úhrada zapísaná." : "Úhrada zapísaná.");
       resetForm();
     } catch (e) {
