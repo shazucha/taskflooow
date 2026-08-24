@@ -41,13 +41,8 @@ export function DesktopSidebar() {
     { to: "/chat", label: "Chat", icon: MessageCircle, badgeKey: "dm" },
     { to: "/me", label: "Profil", icon: User },
   ];
-  const items: NavItem[] = isAdmin
-    ? [
-        ...base,
-        { to: "/team-calendar", label: "Tímový kalendár", icon: CalendarDays },
-        { to: "/feedback", label: "Chyby & vylepšenia", icon: Bug, badgeKey: "feedback" },
-      ]
-    : [...base, { to: "/feedback", label: "Chyby & vylepšenia", icon: Bug }];
+  const items: NavItem[] = base;
+
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border/50 bg-card/70 backdrop-blur-2xl md:flex">
