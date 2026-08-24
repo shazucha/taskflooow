@@ -12,6 +12,7 @@ import {
   useDeleteVrFinanceRecord,
   useUpdateVrFinanceRecord,
   useVrFinanceRecords,
+  useVrLoans,
   type VrFinanceDirection,
 } from "@/lib/vrFinanceApi";
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
