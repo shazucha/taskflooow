@@ -496,13 +496,13 @@ export function VrFinanceTab() {
     <div className="grid gap-4">
       {/* Hlavička mesiaca + súhrn */}
       <div className="grid gap-3 rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+        <div className="grid gap-2 lg:flex lg:flex-wrap lg:items-center lg:justify-between">
+          <div className="flex items-center justify-between gap-2">
             <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Predchádzajúci mesiac"
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <h2 className="min-w-[130px] text-center text-sm font-semibold sm:min-w-[150px] sm:text-base">
+            <h2 className="flex-1 text-center text-sm font-semibold tracking-tight sm:text-base lg:min-w-[150px] lg:flex-none">
               {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
             </h2>
             <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Nasledujúci mesiac"
@@ -510,8 +510,8 @@ export function VrFinanceTab() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
-            <div className="relative min-w-[180px] flex-1 sm:max-w-[240px] sm:flex-none">
+          <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center lg:justify-end">
+            <div className="relative min-w-0 sm:col-span-2 lg:w-[240px]">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="h-9 w-full pl-9 text-xs"
@@ -521,13 +521,16 @@ export function VrFinanceTab() {
                 aria-label="Hľadať podľa firmy alebo názvu položky"
               />
             </div>
-            <VrCategoryManager scope={scope} />
-            <Button variant="outline" size="sm" className="h-9" onClick={exportCsv} disabled={visibleRows.length === 0}>
-              <Download className="mr-1 h-4 w-4" /> Export CSV
-            </Button>
-            <VrReportDialog />
+            <div className="flex flex-wrap items-center gap-2 [&>*]:min-w-0 [&>*]:flex-1 sm:col-span-2 lg:[&>*]:flex-none">
+              <VrCategoryManager scope={scope} />
+              <Button variant="outline" size="sm" className="h-9" onClick={exportCsv} disabled={visibleRows.length === 0}>
+                <Download className="mr-1 h-4 w-4" /> Export CSV
+              </Button>
+              <VrReportDialog />
+            </div>
           </div>
         </div>
+
 
         {/* Rýchle filtre — obdobie a typ */}
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
