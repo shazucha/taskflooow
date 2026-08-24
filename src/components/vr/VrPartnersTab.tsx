@@ -8,13 +8,13 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { toast } from "sonner";
 import { useCurrentUserId, useProfiles } from "@/lib/queries";
 import {
-  VR_COST_CATEGORIES,
   eur,
   useCreateVrContribution,
   useDeleteVrContribution,
   useVrContributions,
-  vrCategoryLabel,
 } from "@/lib/vrFinanceApi";
+import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
+import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
 
 export function VrPartnersTab() {
   const userId = useCurrentUserId();
@@ -29,6 +29,11 @@ export function VrPartnersTab() {
   const [purpose, setPurpose] = useState("");
   const [category, setCategory] = useState("prevadzka");
   const [filterPartner, setFilterPartner] = useState("all");
+  // Spoločný vklad páru (napr. Stanley + Lenka)
+  const [sharedOn, setSharedOn] = useState(false);
+  const [partnerId2, setPartnerId2] = useState<string>("");
+  const [splitMode, setSplitMode] = useState<"half" | "each">("half");
+  const categories = useVrCategories("contribution");
 
   const nameOf = (uid: string) => {
     const p = profiles.find((x) => x.id === uid);
@@ -57,21 +62,32 @@ export function VrPartnersTab() {
 
   async function submit() {
     const value = Number(String(amount).replace(",", "."));
-    if (!partnerId && !userId) return;
+    const first = partnerId || (userId as string);
+    if (!first) return;
     if (!purpose.trim()) return toast.error("Doplň, za čo bola úhrada.");
     if (!value || value <= 0) return toast.error("Zadaj sumu väčšiu ako 0.");
+    if (sharedOn && !partnerId2) return toast.error("Vyber druhého spoločníka.");
+    if (sharedOn && partnerId2 === first) return toast.error("Vyber dvoch rôznych spoločníkov.");
+
+    // Spoločný vklad: buď sa suma rozdelí na polovicu, alebo sa zapíše každému celá.
+    const targets = sharedOn ? [first, partnerId2] : [first];
+    const perPerson = sharedOn && splitMode === "half" ? Math.round((value / 2) * 100) / 100 : value;
+    const suffix = sharedOn ? " (spoločný vklad)" : "";
+
     try {
-      await create.mutateAsync({
-        partner_id: partnerId || (userId as string),
-        paid_on: paidOn,
-        amount: value,
-        purpose: purpose.trim(),
-        category,
-        note: null,
-      });
+      for (const pid of targets) {
+        await create.mutateAsync({
+          partner_id: pid,
+          paid_on: paidOn,
+          amount: perPerson,
+          purpose: purpose.trim() + suffix,
+          category,
+          note: sharedOn ? `Spoločná úhrada: ${targets.map(nameOf).join(" + ")}` : null,
+        });
+      }
       setAmount("");
       setPurpose("");
-      toast.success("Úhrada zapísaná.");
+      toast.success(sharedOn ? "Spoločná úhrada zapísaná pre 2 osoby." : "Úhrada zapísaná.");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -82,6 +98,8 @@ export function VrPartnersTab() {
       <section className="rounded-2xl border border-border/60 bg-card/60 p-3 sm:p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold sm:text-base">Úhrady spoločníkov</h2>
+          <div className="flex items-center gap-2">
+          <VrCategoryManager scope="contribution" />
           <Select value={filterPartner} onValueChange={setFilterPartner}>
             <SelectTrigger className="h-9 w-[200px] text-xs" aria-label="Filter podľa spoločníka">
               <SelectValue />
@@ -93,6 +111,7 @@ export function VrPartnersTab() {
               ))}
             </SelectContent>
           </Select>
+          </div>
         </div>
 
         {/* Formulár zápisu */}
@@ -116,7 +135,7 @@ export function VrPartnersTab() {
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger aria-label="Kategória"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {VR_COST_CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
               ))}
             </SelectContent>
@@ -128,6 +147,36 @@ export function VrPartnersTab() {
             onChange={(e) => setPurpose(e.target.value)}
             aria-label="Účel úhrady"
           />
+          <label className="flex items-center gap-2 rounded-md border border-border/50 px-3 py-2 text-sm sm:col-span-2 lg:col-span-2">
+            <input
+              type="checkbox"
+              checked={sharedOn}
+              onChange={(e) => setSharedOn(e.target.checked)}
+              className="h-4 w-4 accent-current"
+            />
+            Spoločný vklad (2 osoby)
+          </label>
+          {sharedOn && (
+            <>
+              <Select value={partnerId2} onValueChange={setPartnerId2}>
+                <SelectTrigger aria-label="Druhý spoločník"><SelectValue placeholder="Druhý spoločník" /></SelectTrigger>
+                <SelectContent>
+                  {profiles
+                    .filter((p) => p.id !== (partnerId || userId))
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{nameOf(p.id)}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Select value={splitMode} onValueChange={(v) => setSplitMode(v as "half" | "each")}>
+                <SelectTrigger aria-label="Rozdelenie sumy"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="half">Rozdeliť sumu na polovicu</SelectItem>
+                  <SelectItem value="each">Celá suma každému</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
           <Button onClick={submit} disabled={create.isPending} className="bg-vr text-vr-foreground hover:bg-vr/90">
             <Plus className="mr-1 h-4 w-4" /> Zapísať
           </Button>
@@ -144,7 +193,7 @@ export function VrPartnersTab() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{r.purpose}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {nameOf(r.partner_id)} · {new Date(r.paid_on).toLocaleDateString("sk-SK")} · {vrCategoryLabel(r.category)}
+                  {nameOf(r.partner_id)} · {new Date(r.paid_on).toLocaleDateString("sk-SK")} · {vrCatLabel("contribution", r.category)}
                 </p>
               </div>
               <span className="shrink-0 text-sm font-semibold tabular-nums">{eur(Number(r.amount))}</span>
@@ -191,7 +240,7 @@ export function VrPartnersTab() {
             {byCategory.length === 0 && <li className="text-muted-foreground">—</li>}
             {byCategory.map(([c, sum]) => (
               <li key={c} className="flex items-center justify-between gap-2">
-                <span className="truncate">{vrCategoryLabel(c)}</span>
+                <span className="truncate">{vrCatLabel("contribution", c)}</span>
                 <span className="shrink-0 font-medium tabular-nums">{eur(sum)}</span>
               </li>
             ))}
