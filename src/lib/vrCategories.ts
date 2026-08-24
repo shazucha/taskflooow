@@ -21,6 +21,29 @@ export const VR_SCOPE_LABEL: Record<VrCatScope, string> = {
 
 const QK = ["vr_categories"] as const;
 
+// Predvolené záznamy (zhodné s migráciou) — použité pri obnove predvolených.
+export const VR_DEFAULTS: { scope: VrCatScope; key: string; label: string; position: number }[] = [
+  { scope: "contribution", key: "prevadzka", label: "Prevádzka", position: 10 },
+  { scope: "contribution", key: "najom", label: "Nájom a energie", position: 20 },
+  { scope: "contribution", key: "technika", label: "Technika a VR", position: 30 },
+  { scope: "contribution", key: "software", label: "Softvér a licencie", position: 40 },
+  { scope: "contribution", key: "marketing", label: "Marketing", position: 50 },
+  { scope: "contribution", key: "uctovnictvo", label: "Účtovníctvo a odvody", position: 60 },
+  { scope: "contribution", key: "ine", label: "Iné", position: 70 },
+  { scope: "expense", key: "prevadzka", label: "Prevádzka", position: 10 },
+  { scope: "expense", key: "najom", label: "Nájom a energie", position: 20 },
+  { scope: "expense", key: "technika", label: "Technika a VR", position: 30 },
+  { scope: "expense", key: "software", label: "Softvér a licencie", position: 40 },
+  { scope: "expense", key: "marketing", label: "Marketing", position: 50 },
+  { scope: "expense", key: "uctovnictvo", label: "Účtovníctvo a odvody", position: 60 },
+  { scope: "expense", key: "ine", label: "Iné", position: 70 },
+  { scope: "income", key: "vklad_konatela", label: "Vklad konateľa", position: 10 },
+  { scope: "income", key: "vklad_spolocnika", label: "Vklad spoločníka", position: 20 },
+  { scope: "income", key: "trzby", label: "Tržby zo sessions", position: 30 },
+  { scope: "income", key: "ine_prijmy", label: "Iné príjmy", position: 40 },
+];
+
+
 // Cache popiskov, aby vrCatLabel fungoval synchrónne v sumároch.
 const labelCache = new Map<string, string>();
 
