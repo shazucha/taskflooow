@@ -15,6 +15,7 @@ import {
   useVrContributions,
   type VrPartnerContribution,
   type VrShareMode,
+  type VrContribItem,
 } from "@/lib/vrFinanceApi";
 import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
@@ -39,6 +40,8 @@ export function VrPartnersTab() {
   const [paidOn, setPaidOn] = useState(todayIso);
   const [amount, setAmount] = useState("");
   const [purpose, setPurpose] = useState("");
+  // Položkový rozpis (napr. Meta Quest 3 – 571,49 €) + automatický súčet.
+  const [items, setItems] = useState<{ name: string; price: string }[]>([]);
   const [category, setCategory] = useState("prevadzka");
   const [filterPartner, setFilterPartner] = useState("all");
   const [search, setSearch] = useState("");
@@ -48,6 +51,13 @@ export function VrPartnersTab() {
   const [splitMode, setSplitMode] = useState<Exclude<VrShareMode, "single">>("half");
 
   const activeCategory = categories.some((c) => c.id === category) ? category : categories[0]?.id ?? "ine";
+
+  const num = (v: string) => Number(String(v).trim().replace(/\s/g, "").replace(",", "."));
+  const cleanItems: VrContribItem[] = items
+    .filter((it) => it.name.trim() && !Number.isNaN(num(it.price)) && num(it.price) !== 0)
+    .map((it) => ({ name: it.name.trim(), price: num(it.price) }));
+  const itemsTotal = cleanItems.reduce((s2, it) => s2 + it.price, 0);
+  const hasItems = cleanItems.length > 0;
 
   const nameOf = (uid: string) => {
     const p = profiles.find((x) => x.id === uid);
@@ -133,6 +143,7 @@ export function VrPartnersTab() {
     setEditingGroupId(null);
     setAmount("");
     setPurpose("");
+    setItems([]);
     setSharedOn(false);
     setPartnerId2("");
     setSplitMode("half");
@@ -148,6 +159,7 @@ export function VrPartnersTab() {
     setPaidOn(first.paid_on);
     setCategory(first.category);
     setPurpose(first.purpose);
+    setItems((first.items ?? []).map((it) => ({ name: it.name, price: String(it.price) })));
     if (e.rows.length > 1) {
       setSharedOn(true);
       setPartnerId2(e.rows[1].partner_id);
@@ -162,7 +174,7 @@ export function VrPartnersTab() {
   }
 
   async function submit() {
-    const raw = String(amount).trim().replace(",", ".");
+    const raw = hasItems ? String(itemsTotal) : String(amount).trim().replace(",", ".");
     const value = Number(raw);
     const first = partnerId || (userId as string);
 
@@ -200,6 +212,7 @@ export function VrPartnersTab() {
         shareMode: sharedOn ? splitMode : "single",
         purpose: purpose.trim(),
         category: activeCategory,
+        items: hasItems ? cleanItems : null,
         note: sharedOn ? `Spoločná úhrada: ${partnerIds.map(nameOf).join(" + ")}` : null,
       });
       toast.success(editingGroup ? "Úhrada upravená." : sharedOn ? "Spoločná úhrada zapísaná." : "Úhrada zapísaná.");
@@ -269,8 +282,9 @@ export function VrPartnersTab() {
           <Input
             inputMode="decimal"
             placeholder="Suma v € (celková)"
-            value={amount}
+            value={hasItems ? itemsTotal.toFixed(2) : amount}
             onChange={(e) => setAmount(e.target.value)}
+            readOnly={hasItems}
             aria-label="Suma"
           />
           <VrCompanySelect
@@ -287,6 +301,71 @@ export function VrPartnersTab() {
             onChange={(e) => setPurpose(e.target.value)}
             aria-label="Účel úhrady"
           />
+          {/* Položkový rozpis úhrady */}
+          <div className="rounded-xl border border-border/50 bg-card/50 p-3 sm:col-span-2 lg:col-span-4">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Položky {activeCategory ? `· ${vrCatLabel("contribution", activeCategory)}` : ""}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7"
+                onClick={() => setItems((p2) => [...p2, { name: "", price: "" }])}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" /> Pridať položku
+              </Button>
+            </div>
+            {items.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Bez položiek sa zapíše len celková suma. Pridaj položky (napr. Meta Quest 3 – 571,49 €) a suma sa spočíta automaticky.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {items.map((it, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <Input
+                      className="h-9 flex-1 text-sm"
+                      placeholder="Názov položky"
+                      value={it.name}
+                      onChange={(ev) =>
+                        setItems((p2) => p2.map((x, j) => (j === i ? { ...x, name: ev.target.value } : x)))
+                      }
+                      aria-label={`Názov položky ${i + 1}`}
+                    />
+                    <Input
+                      className="h-9 w-32 text-sm"
+                      inputMode="decimal"
+                      placeholder="0,00 €"
+                      value={it.price}
+                      onChange={(ev) =>
+                        setItems((p2) => p2.map((x, j) => (j === i ? { ...x, price: ev.target.value } : x)))
+                      }
+                      aria-label={`Cena položky ${i + 1}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                      aria-label="Odstrániť položku"
+                      onClick={() => setItems((p2) => p2.filter((_, j) => j !== i))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {hasItems && (
+              <p className="mt-2 flex items-center justify-between border-t border-border/50 pt-2 text-sm font-semibold">
+                <span>Dokopy</span>
+                <span className="tabular-nums text-vr">{eur(itemsTotal)}</span>
+              </p>
+            )}
+          </div>
+
           <label className="flex items-center gap-2 rounded-md border border-border/50 px-3 py-2 text-sm sm:col-span-2 lg:col-span-2">
             <input
               type="checkbox"
@@ -337,7 +416,8 @@ export function VrPartnersTab() {
             const first = e.rows[0];
             const shared = e.rows.length > 1;
             return (
-              <li key={e.key} className="flex items-center gap-3 py-2.5">
+              <li key={e.key} className="py-2.5">
+                <div className="flex items-center gap-3">
                 {shared ? (
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-vr-soft text-vr">
                     <Users className="h-4 w-4" />
@@ -371,6 +451,21 @@ export function VrPartnersTab() {
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
+                </div>
+                {(first.items?.length ?? 0) > 0 && (
+                  <ul className="ml-11 mt-1.5 space-y-1 border-l border-border/50 pl-3 text-xs">
+                    {first.items!.map((it, i) => (
+                      <li key={i} className="flex items-center justify-between gap-3">
+                        <span className="truncate text-muted-foreground">{it.name}</span>
+                        <span className="shrink-0 tabular-nums">{eur(it.price)}</span>
+                      </li>
+                    ))}
+                    <li className="flex items-center justify-between gap-3 border-t border-border/50 pt-1 font-semibold">
+                      <span>Dokopy</span>
+                      <span className="tabular-nums">{eur(first.items!.reduce((s3, it) => s3 + Number(it.price), 0))}</span>
+                    </li>
+                  </ul>
+                )}
               </li>
             );
           })}
