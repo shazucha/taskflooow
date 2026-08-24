@@ -41,6 +41,7 @@ export function VrFinanceTab() {
   const remove = useDeleteVrFinanceRecord();
   const update = useUpdateVrFinanceRecord();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingLoanId, setEditingLoanId] = useState<string | null>(null); // spárovaná pôžička konateľa
   const [search, setSearch] = useState("");
 
 
@@ -221,11 +222,22 @@ export function VrFinanceTab() {
 
   function resetForm() {
     setEditingId(null);
+    setEditingLoanId(null);
     setTitle("");
     setAmount("");
     setRecurring(false);
     setFromDirector(false);
     setOccurredOn(new Date().toISOString().slice(0, 10));
+  }
+
+  // Nájde spárovanú pôžičku konateľa k výdaju (hradené z jeho peňazí).
+  function findLoanFor(r: (typeof rows)[number]) {
+    return rows.find(
+      (l) =>
+        l.direction === "loan" &&
+        Number(l.amount) === Number(r.amount) &&
+        l.title.toLowerCase().startsWith(`${r.title.trim().toLowerCase()} — hradené konateľom`)
+    );
   }
 
   function startEdit(r: (typeof rows)[number]) {
@@ -236,11 +248,14 @@ export function VrFinanceTab() {
     setCategory(r.category);
     setOccurredOn(r.occurred_on);
     setRecurring(r.recurring);
-    setPartnerId(r.partner_id ?? "");
     setRevenueKind((r.revenue_kind as VrRevenueKind) ?? "vr");
-    setFromDirector(false);
+    const paired = r.direction === "expense" ? findLoanFor(r) : undefined;
+    setEditingLoanId(paired?.id ?? null);
+    setFromDirector(!!paired);
+    setPartnerId(paired?.partner_id ?? r.partner_id ?? "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
 
   async function submit() {
     const raw = String(amount).trim().replace(",", ".");
@@ -282,24 +297,35 @@ export function VrFinanceTab() {
       revenue_kind: direction === "income" ? revenueKind : null,
     };
 
+    const loanPayload = {
+      ...payload,
+      direction: "loan" as VrFinanceDirection,
+      title: `${title.trim()} — hradené konateľom`,
+      partner_id: partnerId,
+      revenue_kind: null,
+      recurring: false,
+    };
+
     try {
       if (editingId) {
         await update.mutateAsync({ id: editingId, patch: payload });
+        // Synchronizácia spárovanej pôžičky konateľa.
+        if (direction === "expense" && fromDirector) {
+          if (editingLoanId) await update.mutateAsync({ id: editingLoanId, patch: loanPayload });
+          else await create.mutateAsync(loanPayload);
+        } else if (editingLoanId) {
+          await remove.mutateAsync(editingLoanId);
+        }
         toast.success("Záznam upravený.");
       } else {
         await create.mutateAsync(payload);
         // Výdaj hradený konateľom → automaticky aj pôžička firme (dlh).
         if (fromDirector && direction === "expense") {
-          await create.mutateAsync({
-            ...payload,
-            direction: "loan" as VrFinanceDirection,
-            title: `${title.trim()} — hradené konateľom`,
-            partner_id: partnerId,
-            revenue_kind: null,
-          });
+          await create.mutateAsync(loanPayload);
         }
         toast.success(direction === "expense" ? "Výdaj zapísaný." : "Príjem zapísaný.");
       }
+
       resetForm();
     } catch (e) {
       toast.error((e as Error).message);
