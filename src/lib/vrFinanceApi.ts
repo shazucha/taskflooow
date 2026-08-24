@@ -30,6 +30,9 @@ export type VrShareMode = "single" | "half" | "each";
 // 'loan' = konateľ požičal firme (záväzok firmy), 'loan_repay' = firma splatila konateľovi
 export type VrFinanceDirection = "expense" | "income" | "loan" | "loan_repay";
 
+// Druh tržby: VR herňa vs. iná činnosť
+export type VrRevenueKind = "vr" | "other";
+
 export interface VrFinanceRecord {
   id: string;
   month_key: string;
@@ -40,6 +43,8 @@ export interface VrFinanceRecord {
   category: string;
   recurring: boolean;
   note: string | null;
+  partner_id: string | null;          // konateľ pri pôžičke/splátke
+  revenue_kind: VrRevenueKind | null; // druh tržby pri príjme
   created_by: string | null;
   created_at: string;
 }
@@ -79,7 +84,7 @@ function dupMsg(error: { code?: string; message: string }) {
 const PC_COLS =
   "id,partner_id,paid_on,amount,purpose,category,note,group_id,share_mode,total_amount,items,created_by,created_at";
 const FR_COLS =
-  "id,month_key,occurred_on,direction,amount,title,category,recurring,note,created_by,created_at";
+  "id,month_key,occurred_on,direction,amount,title,category,recurring,note,partner_id,revenue_kind,created_by,created_at";
 
 function useRealtime(table: string, key: string) {
   const qc = useQueryClient();
