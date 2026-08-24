@@ -229,29 +229,32 @@ export default function VrLiptov() {
   }
 
   return (
-    <main className="w-full px-4 pb-28 pt-6 sm:px-6 md:px-10 md:pt-10 md:pb-12 2xl:mx-auto 2xl:max-w-[1700px]">
-      <header className="mb-5 rounded-2xl border border-vr/30 bg-vr-soft/60 p-4">
+    <main className="w-full overflow-x-hidden px-3 pb-28 pt-5 sm:px-6 md:px-10 md:pt-10 md:pb-12 2xl:mx-auto 2xl:max-w-[1700px]">
+      <header className="mb-4 rounded-2xl border border-vr/30 bg-vr-soft/60 p-4 sm:mb-5">
         <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-vr sm:text-2xl">
           <VrHeadsetIcon className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" /> VR Liptov
         </h1>
-        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
           Dochádzka a rezervácie VR herne. <strong>7:00 – 14:00</strong> kancelária / práca,{" "}
           <strong>14:00 – 20:00</strong> VR sessions pre zákazníkov (ak nie sú klienti, dá sa využiť na prácu).
         </p>
       </header>
 
       <Tabs defaultValue="dochadzka" className="w-full">
-        <TabsList className="mb-4 flex h-auto w-full flex-wrap justify-start gap-1 p-1">
-          <TabsTrigger value="dochadzka" className="gap-1.5 text-xs sm:text-sm">
-            <CalendarDays className="h-4 w-4" /> Dochádzka a rezervácie
-          </TabsTrigger>
-          <TabsTrigger value="spolocnici" className="gap-1.5 text-xs sm:text-sm">
-            <Users className="h-4 w-4" /> Úhrady spoločníkov
-          </TabsTrigger>
-          <TabsTrigger value="financie" className="gap-1.5 text-xs sm:text-sm">
-            <Coins className="h-4 w-4" /> Výdaje a príjmy
-          </TabsTrigger>
-        </TabsList>
+        <div className="-mx-3 mb-4 overflow-x-auto px-3 pb-1 sm:mx-0 sm:overflow-visible sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList className="inline-flex h-auto w-max min-w-full justify-start gap-1 p-1 sm:w-full">
+            <TabsTrigger value="dochadzka" className="shrink-0 gap-1.5 whitespace-nowrap text-xs sm:text-sm">
+              <CalendarDays className="h-4 w-4" /> Dochádzka
+            </TabsTrigger>
+            <TabsTrigger value="spolocnici" className="shrink-0 gap-1.5 whitespace-nowrap text-xs sm:text-sm">
+              <Users className="h-4 w-4" /> Spoločníci
+            </TabsTrigger>
+            <TabsTrigger value="financie" className="shrink-0 gap-1.5 whitespace-nowrap text-xs sm:text-sm">
+              <Coins className="h-4 w-4" /> Výdaje a príjmy
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
 
         <TabsContent value="dochadzka" className="mt-0">
       <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr] lg:items-start xl:gap-6">
