@@ -34,6 +34,7 @@ function monthKeyOf(d: Date) {
 }
 
 export function VrFinanceTab() {
+  const qc = useQueryClient();
   const [cursor, setCursor] = useState(() => new Date());
   const monthKey = monthKeyOf(cursor);
   const { data: rows = [] } = useVrFinanceRecords(monthKey);
