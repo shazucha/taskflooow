@@ -239,7 +239,7 @@ export function VrPartnersTab() {
             aria-label="Suma"
           />
           <Select value={activeCategory} onValueChange={setCategory}>
-            <SelectTrigger aria-label="Kategória"><SelectValue placeholder="Kategória" /></SelectTrigger>
+            <SelectTrigger aria-label="Firma / zdroj úhrady"><SelectValue placeholder="Firma / zdroj" /></SelectTrigger>
             <SelectContent>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
