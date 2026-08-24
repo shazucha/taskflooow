@@ -21,6 +21,7 @@ import { useVrCategories, vrCatLabel } from "@/lib/vrCategories";
 import { VrCategoryManager } from "@/components/vr/VrCategoryManager";
 import { VrCompanySelect } from "@/components/vr/VrCompanySelect";
 import { VrReportDialog } from "@/components/vr/VrReportDialog";
+import { VrLoanSettleDialog } from "@/components/vr/VrLoanSettleDialog";
 
 
 const MONTHS = [
